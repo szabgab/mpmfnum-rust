@@ -62,6 +62,38 @@ pub enum RoundingMode {
     ToOdd,
 }
 
+/// Rounding direction rather than rounding _mode_.
+/// Given the sign of an unrounded number and a rounding mode,
+/// we can transform the rounding mode into a rounding direction
+/// and a boolean indicating if the direction should only be used
+/// for tie-breaking.
+#[derive(Clone, Debug)]
+pub enum RoundingDirection {
+    ToZero,
+    AwayZero,
+    ToEven,
+    ToOdd,
+}
+
+impl RoundingMode {
+    /// Converts a rounding mode and sign into a rounding direction
+    /// and a boolean indication if the direction is for tie-breaking only.
+    fn to_direction(&self, sign: bool) -> (bool, RoundingDirection) {
+        match (&self, sign) {
+            (RoundingMode::NearestTiesToEven, _) => (true, RoundingDirection::ToEven),
+            (RoundingMode::NearestTiesAwayZero, _) => (true, RoundingDirection::AwayZero),
+            (RoundingMode::ToPositive, false) => (false, RoundingDirection::AwayZero),
+            (RoundingMode::ToPositive, true) => (false, RoundingDirection::ToZero),
+            (RoundingMode::ToNegative, false) => (false, RoundingDirection::ToZero),
+            (RoundingMode::ToNegative, true) => (false, RoundingDirection::AwayZero),
+            (RoundingMode::ToZero, _) => (false, RoundingDirection::ToZero),
+            (RoundingMode::AwayZero, _) => (false, RoundingDirection::AwayZero),
+            (RoundingMode::ToEven, _) => (false, RoundingDirection::ToEven),
+            (RoundingMode::ToOdd, _) => (false, RoundingDirection::ToOdd),
+        }
+    }
+}
+
 /// Rounding contexts for rational numbers.
 ///
 /// Rounding a digital number to a fixed-width rational number takes three
@@ -91,7 +123,7 @@ pub enum RoundingMode {
 #[derive(Clone, Debug)]
 pub struct Context {
     max_p: Option<usize>,
-    min_n: Option<Mpz>,
+    min_n: Option<isize>,
     rm: RoundingMode,
 }
 
@@ -115,7 +147,7 @@ impl Context {
     }
 
     /// Sets the minimum least absolute digit.
-    pub fn with_min_n(mut self, min_n: Mpz) -> Self {
+    pub fn with_min_n(mut self, min_n: isize) -> Self {
         self.min_n = Some(min_n);
         self
     }
@@ -151,81 +183,153 @@ impl Context {
         // case split by class
         if num.is_zero() {
             // zero
-            return (Rational::zero(), None)
+            (Rational::zero(), None)
         } else if num.is_infinite() {
             // infinite number
             let s = num.is_negative().unwrap();
-            return (Rational::Infinite(s), None)
+            (Rational::Infinite(s), None)
         } else if num.is_nar() {
             // other non-real
-            return (Rational::Nan, None)
+            (Rational::Nan, None)
         } else {
             // finite, non-zero value
 
-            // first step: compute the first digit we will split off
+            // step 1: compute the first digit we will split off
             let p: Option<usize>;
-            let n: Mpz;
+            let n: isize;
 
             if self.max_p.is_none() {
                 // fixed-point rounding:
                 // limited by n, precision is unbounded
                 p = None;
-                n = self.min_n.clone().unwrap();
+                n = self.min_n.unwrap();
             } else {
                 // floating-point rounding:
                 // limited by precision
                 p = self.max_p;
-                let unbounded_n = num.e().unwrap() - Mpz::from(p.unwrap() as u64);
+                let unbounded_n = num.e().unwrap() - (p.unwrap() as isize);
                 if self.min_n.is_some() {
                     // exponent is unbounded
                     n = unbounded_n;
                 } else {
                     // exponent is not unbounded, so we may have subnormalization
                     // either limits by precision or smallest representable bit
-                    n = std::cmp::max(self.min_n.clone().unwrap(), unbounded_n);
+                    n = std::cmp::max(self.min_n.unwrap(), unbounded_n);
                 }
             }
 
-            // second step: split the significand
+            // step 2: split the significand
 
             // truncated result
+            let sign = num.sign();
             let mut exp = num.exp().unwrap();
             let mut c = num.c().unwrap();
 
             // rounding bits
             let half_bit: bool;
             let sticky_bit: bool;
+            let c_lost: Mpz;
 
             // the amount we need to shift by
-            let offset = n.clone() - (exp.clone() - Mpz::from(1));
-            let zero = Mpz::zero();
-
-            if offset > zero {
-                // shifting off bits
-                let truncated = c.clone() >> mpz_to_usize(&offset);
-                let mask = (Mpz::from(1) << mpz_to_usize(&offset)) - Mpz::from(1);
-                let lost = c.bitand(&mask);
-                c = truncated;
-                exp += offset.clone();
-                half_bit = lost.tstbit(mpz_to_usize(&(offset - Mpz::from(1))));
-                sticky_bit = !lost.bitand(&mask).is_zero();
-            } else if offset == zero {
-                // keeping all the bits
-                half_bit = false;
-                sticky_bit = false;
-            } else {
-                // need to adding padding to the right,
-                // exactly -offset binary digits
-                c <<= mpz_to_usize(&-offset.clone());
-                exp += offset;
-                half_bit = false;
-                sticky_bit = false;
+            let offset = n - (exp - 1);
+            match offset.cmp(&0) {
+                std::cmp::Ordering::Greater => {
+                    // shifting off bits
+                    let truncated = c.clone() >> (offset as usize);
+                    c_lost = c.bitand(bitmask(offset as usize));
+                    c = truncated;
+                    exp += offset;
+                    half_bit = c_lost.tstbit((offset - 1) as usize);
+                    sticky_bit = !c_lost.bitand(bitmask((offset - 1) as usize)).is_zero();
+                },
+                std::cmp::Ordering::Equal => {
+                    // keeping all the bits
+                    half_bit = false;
+                    sticky_bit = false;
+                },
+                std::cmp::Ordering::Less => {
+                    // need to adding padding to the right,
+                    // exactly -offset binary digits
+                    c <<= -offset as usize;
+                    exp += offset;
+                    half_bit = false;
+                    sticky_bit = false;
+                }
             }
 
             // sanity check
-            assert_eq!(exp, Mpz::from(n + 1), "exponent not in the right place!");
+            assert_eq!(exp, n + 1, "exponent not in the right place!");
 
-            todo!()
+            // step 3: rounding
+            // need to decide if we should increment
+            let (is_nearest, rd) = self.rm.to_direction(sign);
+            let increment: bool;
+
+            if is_nearest {
+                // nearest, directed if halfway
+                if !half_bit {
+                    // below halfway, so we truncate
+                    increment = false;
+                } else if sticky_bit {
+                    // above halfway, so we increment
+                    increment = true;
+                } else {
+                    // exactly half way ([half, sticky] == '10')
+                    match rd {
+                        RoundingDirection::ToZero => {
+                            // always truncate
+                            increment = false;
+                        },
+                        RoundingDirection::AwayZero => {
+                            // round away since not exact
+                            increment = true;
+                        },
+                        RoundingDirection::ToEven => {
+                            // round away if odd
+                            increment = !is_even(exp, &c);
+                        },
+                        RoundingDirection::ToOdd => {
+                            // round away if even
+                            increment = is_even(exp, &c);
+                        },
+                    };
+                }
+            } else {
+                // directed
+                match rd {
+                    RoundingDirection::ToZero => {
+                        // always truncate
+                        increment = false;
+                    },
+                    RoundingDirection::AwayZero => {
+                        // round away if not exact
+                        increment = half_bit || sticky_bit;
+                    }
+                    RoundingDirection::ToEven => {
+                        // round away if odd
+                        increment = !is_even(exp, &c);
+                    }
+                    RoundingDirection::ToOdd => {
+                        // round away if even
+                        increment = is_even(exp, &c);
+                    }
+                };
+            }
+
+            // step 4: apply the correction
+            if increment {
+                c += 1;
+                if p.is_some() && c.bit_length() > p.unwrap() {
+                    c >>= 1;
+                    exp += 1;
+                }
+            }
+
+            // step 5: compose result
+            let rounded = Rational::Real(sign, exp, c);
+
+            // TODO: summarize lost bits
+            (rounded, None)
         }
     }
 }

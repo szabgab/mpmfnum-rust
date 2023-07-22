@@ -24,7 +24,7 @@ use crate::number::Number;
 pub enum Rational {
     /// A finite (real) number specified by the canonical triple
     /// of sign, exponent, significand.
-    Real(bool, Mpz, Mpz),
+    Real(bool, isize, Mpz),
     /// An infinite number (signed to indicate direction).
     Infinite(bool),
     /// Not a real number; either an undefined or infinte result.
@@ -55,13 +55,13 @@ impl Number for Rational {
         }
     }
 
-    fn exp(&self) -> Option<Mpz> {
+    fn exp(&self) -> Option<isize> {
         match self {
             Rational::Real(_, exp, c) => {
                 if c.is_zero() {
                     None
                 } else {
-                    Some(exp.clone())
+                    Some(*exp)
                 }
             }
             Rational::Infinite(_) => None,
@@ -69,15 +69,14 @@ impl Number for Rational {
         }
     }
 
-    fn e(&self) -> Option<Mpz> {
+    fn e(&self) -> Option<isize> {
         match self {
             // (exp - 1) + len(c)
             Rational::Real(_, exp, c) => {
                 if c.is_zero() {
                     None
                 } else {
-                    let n = exp - Mpz::from(1);
-                    Some(n + Mpz::from(c.bit_length() as u64))
+                    Some((exp - 1) + (c.bit_length() as isize))
                 }
             }
             Rational::Infinite(_) => None,
@@ -85,14 +84,14 @@ impl Number for Rational {
         }
     }
 
-    fn n(&self) -> Option<Mpz> {
+    fn n(&self) -> Option<isize> {
         match self {
             // exp - 1
             Rational::Real(_, exp, c) => {
                 if c.is_zero() {
                     None
                 } else {
-                    Some(exp - Mpz::from(1))
+                    Some(exp - 1)
                 }
             }
             Rational::Infinite(_) => None,
@@ -192,8 +191,13 @@ impl Number for Rational {
 }
 
 impl Rational {
-    /// Constructs a zero value.
+    /// Constructs zero.
     pub fn zero() -> Self {
-        Rational::Real(false, Mpz::from(0), Mpz::from(0))
+        Rational::Real(false, 0, Mpz::from(0))
+    }
+
+    /// Constructs positive one.
+    pub fn one() -> Self {
+        Rational::Real(false, 0, Mpz::from(1))
     }
 }

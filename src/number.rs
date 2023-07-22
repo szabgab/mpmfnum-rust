@@ -45,19 +45,19 @@ pub trait Number {
 
     /// Viewing this number as `(-1)^s * c * b^exp` where `c` is an integer,
     /// returns `exp`. Only well-defined for finite, non-zero numbers.
-    fn exp(&self) -> Option<Mpz>;
+    fn exp(&self) -> Option<isize>;
 
     /// Viewing this number as `(-1)^s * f * b^e` where `f` is a binary
     /// fraction between 1 and 2, returns the exponent `e`. This is the
     /// preferred IEEE 754 interpretation of an exponent. Only well-defined
     /// for finite, non-zero numbers.
-    fn e(&self) -> Option<Mpz>;
+    fn e(&self) -> Option<isize>;
 
     /// The "least absolute exponent", the place below the least
     /// significant digit of the mantissa. Always equal to `self.exp() - 1`.
     /// For integer formats, this is just -1. Only well-defined for finite,
     /// non-zero numbers.
-    fn n(&self) -> Option<Mpz>;
+    fn n(&self) -> Option<isize>;
 
     /// Viewing this number as `(-1)^s * c * b^exp` where `c` is an integer,
     /// returns `c`. Only well-defined for finite, non-zero numbers.

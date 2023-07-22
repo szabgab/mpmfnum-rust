@@ -17,12 +17,12 @@ fn traits() {
     assert_eq!(Rational::radix(), 2, "Rational is a binary format");
 
     let vals = [
-        Rational::Real(false, Mpz::from(0), Mpz::from(0)), // 0
-        Rational::Real(false, Mpz::from(0), Mpz::from(1)), // 1
-        Rational::Real(true, Mpz::from(-4), Mpz::from(7)), // 7 * 2^-4
-        Rational::Infinite(false),                         // +Inf
-        Rational::Infinite(true),                          // -Inf,
-        Rational::Nan,                                     // NaN
+        Rational::zero(),                       // 0
+        Rational::one(),                        // 1
+        Rational::Real(true, -4, Mpz::from(7)), // 7 * 2^-4
+        Rational::Infinite(false),              // +Inf
+        Rational::Infinite(true),               // -Inf,
+        Rational::Nan,                          // NaN
     ];
 
     // Rational::sign
@@ -37,56 +37,29 @@ fn traits() {
     }
 
     // Rational::exp
-    let expected = [
-        None,
-        Some(Mpz::from(0)),
-        Some(Mpz::from(-4)),
-        None,
-        None,
-        None,
-    ];
-    for (val, expected) in vals.iter().zip(expected.iter()) {
+    let expected = [None, Some(0), Some(-4), None, None, None];
+    for (val, &expected) in vals.iter().zip(expected.iter()) {
         let actual = val.exp();
         assert_eq!(
-            actual,
-            expected.clone(),
+            actual, expected,
             "{:?} has unexpected exponent (exp); expected {:?}, actual {:?}",
-            val,
-            expected,
-            actual
+            val, expected, actual
         );
     }
 
     // Rational::e
-    let expected = [
-        None,
-        Some(Mpz::from(0)),
-        Some(Mpz::from(-2)),
-        None,
-        None,
-        None,
-    ];
-    for (val, expected) in vals.iter().zip(expected.iter()) {
+    let expected = [None, Some(0), Some(-2), None, None, None];
+    for (val, &expected) in vals.iter().zip(expected.iter()) {
         let actual = val.e();
         assert_eq!(
-            actual,
-            expected.clone(),
+            actual, expected,
             "{:?} has unexpected exponent (e); expected {:?}, actual {:?}",
-            val,
-            expected,
-            actual
+            val, expected, actual
         );
     }
 
     // Rational::n
-    let expected = [
-        None,
-        Some(Mpz::from(-1)),
-        Some(Mpz::from(-5)),
-        None,
-        None,
-        None,
-    ];
+    let expected = [None, Some(-1), Some(-5), None, None, None];
     for (val, expected) in vals.iter().zip(expected.iter()) {
         let actual = val.n();
         assert_eq!(
