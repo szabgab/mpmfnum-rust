@@ -579,8 +579,6 @@ fn multiplication() {
     let neg_inf = NEG_INF; // -Inf,
     let nan = NAN; // NaN
 
-    // additional values
-
     let vals = [&zero, &one, &frac, &pos_inf, &neg_inf, &nan];
 
     // Multiply by 0
@@ -621,9 +619,74 @@ fn multiplication() {
     }
 }
 
+fn assert_expected_add(x: &Rational, y: &Rational, expected: &Rational) {
+    let left = x.clone() + y.clone();
+    let right = y.clone() + x.clone();
+    assert!(
+        is_equal(&left, expected),
+        "for {:?} + {:?}: expected {:?}, actual {:?}",
+        x,
+        y,
+        expected,
+        left
+    );
+    assert!(
+        is_equal(&left, expected),
+        "addition is commutative: {:?} != {:?}",
+        left,
+        right
+    );
+}
+
 #[test]
 fn addition() {
+    // test values
+    let zero = Rational::zero(); // 0
+    let one = Rational::one(); // 1
+    let frac = Rational::Real(true, -4, Mpz::from(7)); // -7 * 2^-4
+    let pos_inf = POS_INF; // +Inf
+    let neg_inf = NEG_INF; // -Inf,
+    let nan = NAN; // NaN
 
+    let two = Rational::Real(false, 0, Mpz::from(2));           // 2
+    let two_frac = Rational::Real(true, -4, Mpz::from(14));    // 14 * 2^-4
+    let one_m_frac = Rational::Real(false, -4, Mpz::from(9));   // 9 * 2^-4
 
+    let vals = [&zero, &one, &frac, &pos_inf, &neg_inf, &nan];
 
+    // Add by 0
+    let expected = [&zero, &one, &frac, &pos_inf, &neg_inf, &nan];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        assert_expected_add(&zero, val, expected);
+    }
+
+    // Add by 1
+    let expected = [&one, &two, &one_m_frac, &pos_inf, &neg_inf, &nan];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        assert_expected_add(&one, val, expected);
+    }
+
+    // Add by -7 * 2^-4
+    let expected = [&frac, &one_m_frac, &two_frac, &pos_inf, &neg_inf, &nan];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        assert_expected_add(&frac, val, expected);
+    }
+
+    // Add by +Inf
+    let expected = [&pos_inf, &pos_inf, &pos_inf, &pos_inf, &nan, &nan];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        assert_expected_add(&pos_inf, val, expected);
+    }
+
+    // Add by -Inf
+    let expected = [&neg_inf, &neg_inf, &neg_inf, &nan, &neg_inf, &nan];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        assert_expected_add(&neg_inf, val, expected);
+    }
+
+    // Add by Nan
+    let expected = [&nan; 6];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        assert_expected_add(&nan, val, expected);
+    }
 }

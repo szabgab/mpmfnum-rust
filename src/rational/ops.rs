@@ -41,14 +41,12 @@ impl Rational {
                     // 0 + y = y
                     Self::Real(*s2, *exp2, c2.clone())
                 } else {
-                    // x + y != 0
-
                     // need to normalize mantissas:
                     // resulting exponent is the minimum of the
                     // exponent of the arguments
                     let exp = min(*exp1, *exp2);
-                    let c1 = c1 << (exp1 - exp) as usize;
-                    let c2 = c2 << (exp2 - exp) as usize;
+                    let c1 = c1 << (*exp1 - exp) as usize;
+                    let c2 = c2 << (*exp2 - exp) as usize;
 
                     // add signed integers
                     let m = match (*s1, *s2) {
