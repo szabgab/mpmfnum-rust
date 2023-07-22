@@ -9,7 +9,7 @@
 use crate::Number;
 
 /// Rounding context.
-/// 
+///
 /// Most mathematical operators on digital numbers can be decomposed
 /// into two steps: first, a mathematically-correct operation over
 /// real numbers, interpreting digital numbers as real numbers; second,
@@ -20,16 +20,16 @@ use crate::Number;
 /// The characteristics of the rounding operation may be summarized as
 /// in a "rounding context". All mathematicaly evaluation is done under
 /// a particular rounding context.
-/// 
+///
 /// See [`Number`] for details on the number trait.
-/// 
+///
 pub trait RoundingContext {
     /// The result of rounded operations under this context.
     type Rounded;
 
     /// Converts any [`Number`] to [`RoundingContext::Rounded`], rounding
     /// the argument according to this context.
-    /// 
+    ///
     /// Implementation note:
     /// This is the canonical rounding function, taking any value
     /// satisfying `Number` and rounding it to type `Rounded`.

@@ -27,7 +27,7 @@ use crate::RoundingContext;
 /// Number systems may encode non-real numbers, notably infinity or NaN.
 ///
 /// See [`RoundingContext`] for details on rounding.
-/// 
+///
 pub trait Number {
     /// Returns the radix of a number.
     /// It must be strictly positive.

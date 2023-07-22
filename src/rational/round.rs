@@ -11,9 +11,9 @@ use std::ops::BitAnd;
 
 use gmp::mpz::*;
 
-use crate::{Number, RoundingContext};
 use crate::rational::Rational;
 use crate::util::*;
+use crate::{Number, RoundingContext};
 
 /// Rounding modes for [`Context`].
 ///
@@ -202,7 +202,7 @@ impl Context {
             }
             std::cmp::Ordering::Equal => {
                 // keeping all the bits
-                (exp, c, Mpz::from(0) ,false, false)
+                (exp, c, Mpz::from(0), false, false)
             }
             std::cmp::Ordering::Less => {
                 // need to adding padding to the right,
@@ -217,7 +217,14 @@ impl Context {
     /// Rounding utility function: given the truncated result and rounding
     /// bits, should the truncated result be incremented to produce
     /// the final rounded result?
-    fn round_increment(&self, sign: bool, exp: isize, c: &Mpz, half_bit: bool, sticky_bit: bool) -> bool {
+    fn round_increment(
+        &self,
+        sign: bool,
+        exp: isize,
+        c: &Mpz,
+        half_bit: bool,
+        sticky_bit: bool,
+    ) -> bool {
         let (is_nearest, rd) = self.rm.to_direction(sign);
         match (is_nearest, half_bit, sticky_bit, rd) {
             (_, false, false, _) => {
@@ -300,7 +307,7 @@ impl Context {
 
         let sign = num.sign();
         let (mut exp, mut c, c_lost, half_bit, sticky_bit) = Self::split(num, n);
-        
+
         // sanity check
         assert_eq!(exp, n + 1, "exponent not in the right place!");
 

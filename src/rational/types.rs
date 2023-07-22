@@ -11,7 +11,7 @@ use std::cmp::Ordering;
 
 use gmp::mpz::*;
 
-use crate::number::Number;
+use crate::Number;
 
 /// The rational number format.
 ///
