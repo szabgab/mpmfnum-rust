@@ -20,7 +20,7 @@ fn traits() {
     let vals = [
         Rational::zero(),                       // 0
         Rational::one(),                        // 1
-        Rational::Real(true, -4, Mpz::from(7)), // 7 * 2^-4
+        Rational::Real(true, -4, Mpz::from(7)), // -7 * 2^-4
         Rational::Infinite(false),              // +Inf
         Rational::Infinite(true),               // -Inf,
         Rational::Nan,                          // NaN
@@ -573,4 +573,153 @@ fn ordering() {
         Some(Ordering::Equal),
         "should be the same"
     );
+}
+
+fn is_equal(x: &Rational, y: &Rational) -> bool {
+    match (x, y) {
+        (Rational::Nan, Rational::Nan) => true,
+        (_, _) => *x == *y,
+    }
+}
+
+#[test]
+fn multiplication() {
+    // test values
+    let zero = Rational::zero(); // 0
+    let one = Rational::one(); // 1
+    let frac = Rational::Real(true, -4, Mpz::from(7)); // -7 * 2^-4
+    let pos_inf = POS_INF; // +Inf
+    let neg_inf = NEG_INF; // -Inf,
+    let nan = NAN; // NaN
+
+    // additional values
+
+    let vals = [&zero, &one, &frac, &pos_inf, &neg_inf, &nan];
+
+    // Multiply by 0
+    let expected = [&zero, &zero, &zero, &nan, &nan, &nan];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        let left = zero.clone() * val.clone();
+        let right = val.clone() * zero.clone();
+        assert!(
+            is_equal(&left, expected),
+            "for {:?} * {:?}: expected {:?}, actual {:?}",
+            zero,
+            val,
+            expected,
+            left
+        );
+        assert!(
+            is_equal(&left, expected),
+            "multiplication is commutative: {:?} != {:?}",
+            left,
+            right
+        );
+    }
+
+    // Multiply by 1
+    let expected = [&zero, &one, &frac, &pos_inf, &neg_inf, &nan];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        let left = one.clone() * val.clone();
+        let right = val.clone() * one.clone();
+        assert!(
+            is_equal(&left, expected),
+            "for {:?} * {:?}: expected {:?}, actual {:?}",
+            one,
+            val,
+            expected,
+            left
+        );
+        assert!(
+            is_equal(&left, expected),
+            "multiplication is commutative: {:?} != {:?}",
+            left,
+            right
+        );
+    }
+
+    // Multiply by -7 * 2^-4
+    let frac_sqr = Rational::Real(false, -8, Mpz::from(49));
+    let expected = [&zero, &frac, &frac_sqr, &neg_inf, &pos_inf, &nan];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        let left = frac.clone() * val.clone();
+        let right = val.clone() * frac.clone();
+        assert!(
+            is_equal(&left, expected),
+            "for {:?} * {:?}: expected {:?}, actual {:?}",
+            frac,
+            val,
+            expected,
+            left
+        );
+        assert!(
+            is_equal(&left, expected),
+            "multiplication is commutative: {:?} != {:?}",
+            left,
+            right
+        );
+    }
+
+    // Multiply by +Inf
+    let expected = [&nan, &pos_inf, &neg_inf, &pos_inf, &neg_inf, &nan];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        let left = pos_inf.clone() * val.clone();
+        let right = val.clone() * pos_inf.clone();
+        assert!(
+            is_equal(&left, expected),
+            "for {:?} * {:?}: expected {:?}, actual {:?}",
+            pos_inf,
+            val,
+            expected,
+            left
+        );
+        assert!(
+            is_equal(&left, expected),
+            "multiplication is commutative: {:?} != {:?}",
+            left,
+            right
+        );
+    }
+
+    // Multiply by -Inf
+    let expected = [&nan, &neg_inf, &pos_inf, &neg_inf, &pos_inf, &nan];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        let left = neg_inf.clone() * val.clone();
+        let right = val.clone() * neg_inf.clone();
+        assert!(
+            is_equal(&left, expected),
+            "for {:?} * {:?}: expected {:?}, actual {:?}",
+            neg_inf,
+            val,
+            expected,
+            left
+        );
+        assert!(
+            is_equal(&left, expected),
+            "multiplication is commutative: {:?} != {:?}",
+            left,
+            right
+        );
+    }
+
+    // Multiply by Nan
+    let expected = [&nan; 6];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        let left = nan.clone() * val.clone();
+        let right = val.clone() * nan.clone();
+        assert!(
+            is_equal(&left, expected),
+            "for {:?} * {:?}: expected {:?}, actual {:?}",
+            nan,
+            val,
+            expected,
+            left
+        );
+        assert!(
+            is_equal(&left, expected),
+            "multiplication is commutative: {:?} != {:?}",
+            left,
+            right
+        );
+    }
 }

@@ -15,32 +15,9 @@ use crate::RoundingContext;
 
 impl Rational {
     /// Multiplies two numbers of type [`Rational`] exactly.
-    /// Panics if the arguments are not both real numbers.
+    /// Multiplication of non-real values follows the usual
+    /// IEEE 754 rules.
     fn mul_exact(&self, other: &Self) -> Self {
-        assert!(!self.is_nar() && !other.is_nar(), "must be real numbers");
-        if self.is_zero() || other.is_zero() {
-            // finite * zero is zero
-            Self::zero()
-        } else {
-            // non-zero * non-zero is non-zero
-            let sign = self.sign() != other.sign();
-            let exp = self.exp().unwrap() + other.exp().unwrap();
-            let c = self.c().unwrap() * other.c().unwrap();
-            Self::Real(sign, exp, c)
-        }
-    }
-}
-
-impl Mul for Rational {
-    type Output = Self;
-
-    fn mul(self, rhs: Self) -> Self::Output {
-        self.mul_exact(&rhs)
-    }
-}
-
-impl RoundedMul<Context> for Rational {
-    fn mul(&self, other: &Self, ctx: &Context) -> <Context as RoundingContext>::Rounded {
         match (&self, other) {
             // Invalid arguments means invalid result
             (Self::Nan, _) => Self::Nan,
@@ -56,10 +33,33 @@ impl RoundedMul<Context> for Rational {
                     // Inf * non-zero is just Inf
                     Self::Infinite(*sinf != *s)
                 }
-            },
+            }
             (Self::Real(_, _, _), Self::Real(_, _, _)) => {
-                ctx.round(&self.mul_exact(other))
+                if self.is_zero() || other.is_zero() {
+                    // finite * zero is zero
+                    Self::zero()
+                } else {
+                    // non-zero * non-zero is non-zero
+                    let sign = self.sign() != other.sign();
+                    let exp = self.exp().unwrap() + other.exp().unwrap();
+                    let c = self.c().unwrap() * other.c().unwrap();
+                    Self::Real(sign, exp, c)
+                }
             }
         }
+    }
+}
+
+impl Mul for Rational {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        self.mul_exact(&rhs)
+    }
+}
+
+impl RoundedMul<Context> for Rational {
+    fn mul(&self, other: &Self, ctx: &Context) -> Rational {
+        ctx.round(&self.mul_exact(&other))
     }
 }
