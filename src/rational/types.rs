@@ -177,7 +177,7 @@ impl Number for Rational {
                 } else {
                     Some(*s)
                 }
-            },
+            }
             Rational::Infinite(s) => Some(*s),
             Rational::Nan => None,
         }
