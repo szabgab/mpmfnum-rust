@@ -10,7 +10,10 @@
 
 pub mod ieee754;
 pub mod number;
+pub mod ops;
 pub mod rational;
+pub mod round;
 mod util;
 
 pub use number::Number;
+pub use round::RoundingContext;

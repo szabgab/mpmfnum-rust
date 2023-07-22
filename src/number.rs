@@ -4,10 +4,14 @@
 
 // number.rs
 //
-// Defines the (digital) number trait.
+// Number trait
 //
 
+#![allow(unused_imports)]
+
 use gmp::mpz::*;
+
+use crate::RoundingContext;
 
 /// The "digital" number representing a (projective) real number format.
 ///
@@ -22,17 +26,8 @@ use gmp::mpz::*;
 /// `c` were extended to an infinite sequence of digits in either direction.
 /// Number systems may encode non-real numbers, notably infinity or NaN.
 ///
-/// Most mathematical operators on digital numbers can be decomposed
-/// into two steps: first, a mathematically-correct operation over
-/// real numbers, interpreting digital numbers as real numbers; second,
-/// a rounding operation to limit the number significant digits and decide
-/// how the "lost" digits will affect the final output. Thus, rounding
-/// enforces a particular "format" for digital numbers, but they should
-/// just be considered unbounded real numbers when in isolation.
-/// The characteristics of the rounding operation may be summarized as
-/// in a "rounding context". All mathematicaly evaluation is done under
-/// a particular rounding context.
-///
+/// See [`RoundingContext`] for details on rounding.
+/// 
 pub trait Number {
     /// Returns the radix of a number.
     /// It must be strictly positive.

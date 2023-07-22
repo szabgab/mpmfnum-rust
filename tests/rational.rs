@@ -208,7 +208,7 @@ fn round_trivial() {
 
     // round(zero) = round
     let zero = Rational::zero();
-    let (rounded_zero, err) = ctx.round(&zero);
+    let (rounded_zero, err) = ctx.round_residual(&zero);
     assert!(rounded_zero.is_zero(), "round(0) = 0");
     assert!(err.is_some(), "rounding 0 should have a zero lost bits");
     assert!(
@@ -217,17 +217,17 @@ fn round_trivial() {
     );
 
     // round(+Inf) = +Inf
-    let (rounded_pos_inf, err) = ctx.round(&POS_INF);
+    let (rounded_pos_inf, err) = ctx.round_residual(&POS_INF);
     assert!(rounded_pos_inf.is_infinite(), "round(+Inf) = +Inf");
     assert!(err.is_none(), "rounding +Inf should have no error");
 
     // round(-Inf) = -Inf
-    let (rounded_neg_inf, err) = ctx.round(&NEG_INF);
+    let (rounded_neg_inf, err) = ctx.round_residual(&NEG_INF);
     assert!(rounded_neg_inf.is_infinite(), "round(-Inf) = -Inf");
     assert!(err.is_none(), "rounding -Inf should have no error");
 
     // round(Nan) = Nan
-    let (rounded_nan, err) = ctx.round(&NAN);
+    let (rounded_nan, err) = ctx.round_residual(&NAN);
     assert!(rounded_nan.is_nar(), "round(-Nan) = Nan");
     assert!(err.is_none(), "rounding Nan should have no error");
 }
@@ -248,7 +248,7 @@ fn round_fixed() {
     let ctx = Context::new()
         .with_min_n(-1)
         .with_rounding_mode(RoundingMode::ToZero);
-    let (rounded_one, err) = ctx.round(&one);
+    let (rounded_one, err) = ctx.round_residual(&one);
     assert_eq!(
         rounded_one,
         Rational::one(),
@@ -261,7 +261,7 @@ fn round_fixed() {
     let ctx = Context::new()
         .with_min_n(0)
         .with_rounding_mode(RoundingMode::ToZero);
-    let (rounded_one, err) = ctx.round(&one);
+    let (rounded_one, err) = ctx.round_residual(&one);
     assert_eq!(rounded_one, zero, "rounding should truncated to 0");
     assert!(err.is_some(), "lost bits should be some");
     assert_eq!(err.unwrap(), Rational::one(), "lost bits should be 1");
@@ -270,7 +270,7 @@ fn round_fixed() {
     let ctx = Context::new()
         .with_min_n(0)
         .with_rounding_mode(RoundingMode::ToZero);
-    let (rounded_one, err) = ctx.round(&neg_one);
+    let (rounded_one, err) = ctx.round_residual(&neg_one);
     assert_eq!(rounded_one, zero, "rounding should truncated to 0");
     assert!(err.is_some(), "lost bits should be some");
     assert_eq!(err.unwrap(), neg_one, "lost bits should be -1");
@@ -279,7 +279,7 @@ fn round_fixed() {
     let ctx = Context::new()
         .with_min_n(-1)
         .with_rounding_mode(RoundingMode::ToZero);
-    let (rounded, err) = ctx.round(&one_3_4);
+    let (rounded, err) = ctx.round_residual(&one_3_4);
     assert_eq!(rounded, one, "rounding should truncated to 0");
     assert!(err.is_some(), "lost bits should be some");
     assert_eq!(err.unwrap(), three_4, "lost bits should be 3/4");
@@ -288,7 +288,7 @@ fn round_fixed() {
     let ctx = Context::new()
         .with_min_n(-2)
         .with_rounding_mode(RoundingMode::ToZero);
-    let (rounded, err) = ctx.round(&one_3_4);
+    let (rounded, err) = ctx.round_residual(&one_3_4);
     assert_eq!(rounded, one_1_2, "rounding should truncated to 0");
     assert!(err.is_some(), "lost bits should be some");
     assert_eq!(err.unwrap(), one_4, "lost bits should be 1/4");
@@ -297,7 +297,7 @@ fn round_fixed() {
     let ctx = Context::new()
         .with_min_n(10)
         .with_rounding_mode(RoundingMode::ToZero);
-    let (rounded, err) = ctx.round(&one);
+    let (rounded, err) = ctx.round_residual(&one);
     assert_eq!(rounded, zero, "rounding should truncated to 0");
     assert!(err.is_some(), "lost bits should be some");
     assert_eq!(err.unwrap(), one, "lost bits should be 1");
@@ -318,7 +318,7 @@ fn round_float() {
 
     // rounding 1.25 with 3 bits, exact
     let ctx = Context::new().with_max_precision(3);
-    let (rounded, err) = ctx.round(&one_1_4);
+    let (rounded, err) = ctx.round_residual(&one_1_4);
     assert_eq!(rounded, one_1_4, "rounding should be exact");
     assert_eq!(err.unwrap(), zero, "lost bits is zero");
 
@@ -326,31 +326,31 @@ fn round_float() {
 
     // rounding 1.25 with 2 bits, round-to-nearest
     let ctx = ctx.with_max_precision(2);
-    let (rounded, err) = ctx.round(&one_1_4);
+    let (rounded, err) = ctx.round_residual(&one_1_4);
     assert_eq!(rounded, one, "rounding goes to 1");
     assert_eq!(err.unwrap(), one_4, "lost bits is 1/4");
 
     // rounding 1.25 with 2 bits, round-to-positive
     let ctx = ctx.with_rounding_mode(RoundingMode::ToPositive);
-    let (rounded, err) = ctx.round(&one_1_4);
+    let (rounded, err) = ctx.round_residual(&one_1_4);
     assert_eq!(rounded, one_1_2, "rounding goes to 3/2");
     assert_eq!(err.unwrap(), one_4, "lost bits is -1/4");
 
     // rounding 1.25 with 2 bits, round-to-negative
     let ctx = ctx.with_rounding_mode(RoundingMode::ToNegative);
-    let (rounded, err) = ctx.round(&one_1_4);
+    let (rounded, err) = ctx.round_residual(&one_1_4);
     assert_eq!(rounded, one, "rounding goes to 1");
     assert_eq!(err.unwrap(), one_4, "lost bits is 1/4");
 
     // rounding 1.25 with 2 bits, round-to-even
     let ctx = ctx.with_rounding_mode(RoundingMode::ToEven);
-    let (rounded, err) = ctx.round(&one_1_4);
+    let (rounded, err) = ctx.round_residual(&one_1_4);
     assert_eq!(rounded, one, "rounding goes to 1");
     assert_eq!(err.unwrap(), one_4, "lost bits is 1/4");
 
     // rounding 1.25 with 2 bits, round-to-odd
     let ctx = ctx.with_rounding_mode(RoundingMode::ToOdd);
-    let (rounded, err) = ctx.round(&one_1_4);
+    let (rounded, err) = ctx.round_residual(&one_1_4);
     assert_eq!(rounded, one_1_2, "rounding goes to 3/2");
     assert_eq!(err.unwrap(), one_4, "lost bits is -1/4");
 
@@ -358,31 +358,31 @@ fn round_float() {
 
     // rounding 1.125 with 2 bits, round-to-nearest
     let ctx = ctx.with_rounding_mode(RoundingMode::NearestTiesToEven);
-    let (rounded, err) = ctx.round(&one_1_8);
+    let (rounded, err) = ctx.round_residual(&one_1_8);
     assert_eq!(rounded, one, "rounding goes to 1");
     assert_eq!(err.unwrap(), one_8, "lost bits is 1/8");
 
     // rounding 1.125 with 2 bits, round-to-positive
     let ctx = ctx.with_rounding_mode(RoundingMode::ToPositive);
-    let (rounded, err) = ctx.round(&one_1_8);
+    let (rounded, err) = ctx.round_residual(&one_1_8);
     assert_eq!(rounded, one_1_2, "rounding goes to 3/2");
     assert_eq!(err.unwrap(), one_8, "lost bits is 1/8");
 
     // rounding 1.125 with 2 bits, round-to-negative
     let ctx = ctx.with_rounding_mode(RoundingMode::ToNegative);
-    let (rounded, err) = ctx.round(&one_1_8);
+    let (rounded, err) = ctx.round_residual(&one_1_8);
     assert_eq!(rounded, one, "rounding goes to 1");
     assert_eq!(err.unwrap(), one_8, "lost bits is 1/8");
 
     // rounding 1.125 with 2 bits, round-to-even
     let ctx = ctx.with_rounding_mode(RoundingMode::ToEven);
-    let (rounded, err) = ctx.round(&one_1_8);
+    let (rounded, err) = ctx.round_residual(&one_1_8);
     assert_eq!(rounded, one, "rounding goes to 1");
     assert_eq!(err.unwrap(), one_8, "lost bits is 1/8");
 
     // rounding 1.125 with 2 bits, round-to-odd
     let ctx = ctx.with_rounding_mode(RoundingMode::ToOdd);
-    let (rounded, err) = ctx.round(&one_1_8);
+    let (rounded, err) = ctx.round_residual(&one_1_8);
     assert_eq!(rounded, one_1_2, "rounding goes to 3/2");
     assert_eq!(err.unwrap(), one_8, "lost bits is -3/8");
 }
@@ -399,49 +399,49 @@ fn round_float_subnorm() {
 
     // No subnormals, round-to-nearest
     let ctx = Context::new().with_max_precision(2);
-    let (rounded, err) = ctx.round(&half_way);
+    let (rounded, err) = ctx.round_residual(&half_way);
     assert_eq!(one, rounded, "rounding to 1");
     assert_eq!(err.unwrap(), one_8, "lost bits is 1/8");
 
     // No subnormals, round-away-zero
     let ctx = ctx.with_rounding_mode(RoundingMode::AwayZero);
-    let (rounded, err) = ctx.round(&half_way);
+    let (rounded, err) = ctx.round_residual(&half_way);
     assert_eq!(one, rounded, "rounding to 1");
     assert_eq!(err.unwrap(), one_8, "lost bits is 1/8");
 
     // No subnormals, round-to-zero
     let ctx = ctx.with_rounding_mode(RoundingMode::ToZero);
-    let (rounded, err) = ctx.round(&half_way);
+    let (rounded, err) = ctx.round_residual(&half_way);
     assert_eq!(tiny_val, rounded, "rounding to 3/4");
     assert_eq!(err.unwrap(), one_8, "lost bits is 1/8");
 
     // Float<2, 4>, round-to-nearest
     let ctx = Context::new().with_max_precision(2).with_min_n(-2);
-    let (rounded, err) = ctx.round(&tiny_val);
+    let (rounded, err) = ctx.round_residual(&tiny_val);
     assert_eq!(one, rounded, "rounding to 1");
     assert_eq!(err.unwrap(), one_4, "lost bits is 1/4");
 
     // Float<2, 4>, round-away-zero
     let ctx = ctx.with_rounding_mode(RoundingMode::AwayZero);
-    let (rounded, err) = ctx.round(&tiny_val);
+    let (rounded, err) = ctx.round_residual(&tiny_val);
     assert_eq!(one, rounded, "rounding to 1");
     assert_eq!(err.unwrap(), one_4, "lost bits is 1/4");
 
     // Float<2, 4>, round-to-zero
     let ctx = ctx.with_rounding_mode(RoundingMode::ToZero);
-    let (rounded, err) = ctx.round(&tiny_val);
+    let (rounded, err) = ctx.round_residual(&tiny_val);
     assert_eq!(one_2, rounded, "rounding to 1/2");
     assert_eq!(err.unwrap(), one_4, "lost bits is 1/4");
 
     // Float<2, 4>, round-to-even
     let ctx = ctx.with_rounding_mode(RoundingMode::ToEven);
-    let (rounded, err) = ctx.round(&tiny_val);
+    let (rounded, err) = ctx.round_residual(&tiny_val);
     assert_eq!(one, rounded, "rounding to 1");
     assert_eq!(err.unwrap(), one_4, "lost bits is 1/4");
 
     // Float<2, 4>, round-to-odd
     let ctx = ctx.with_rounding_mode(RoundingMode::ToOdd);
-    let (rounded, err) = ctx.round(&tiny_val);
+    let (rounded, err) = ctx.round_residual(&tiny_val);
     assert_eq!(one_2, rounded, "rounding to 1/2");
     assert_eq!(err.unwrap(), one_4, "lost bits is 1/4");
 }

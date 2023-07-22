@@ -11,7 +11,7 @@ use std::ops::BitAnd;
 
 use gmp::mpz::*;
 
-use crate::number::Number;
+use crate::{Number, RoundingContext};
 use crate::rational::Rational;
 use crate::util::*;
 
@@ -341,7 +341,7 @@ impl Context {
     /// the error term when rounding is implemented via truncation.
     /// The lost digits are unsigned unless the rounded value is zero, in
     /// which case, the sign is just the sign of `num`.
-    pub fn round<T: Number>(&self, num: &T) -> (Rational, Option<Rational>) {
+    pub fn round_residual<T: Number>(&self, num: &T) -> (Rational, Option<Rational>) {
         assert!(
             self.max_p.is_some() || self.min_n.is_some(),
             "must specify either maximum precision or least absolute digit"
@@ -368,5 +368,14 @@ impl Context {
 impl Default for Context {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl RoundingContext for Context {
+    type Rounded = Rational;
+
+    fn round<T: Number>(&self, num: &T) -> Self::Rounded {
+        let (rounded, _) = self.round_residual(num);
+        rounded
     }
 }
