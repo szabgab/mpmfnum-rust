@@ -10,6 +10,5 @@ readme = "README.md"
 license = "MIT"
 
 [dependencies]
-gmp-mpfr-sys = "1.5.3"
 rug = "1.19.2"
 rust-gmp = "0.5.0"

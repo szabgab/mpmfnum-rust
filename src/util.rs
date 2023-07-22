@@ -20,7 +20,7 @@ pub(crate) fn bitmask(n: usize) -> Mpz {
 /// than the evenness is based on the exponent.
 pub(crate) fn is_even(exp: isize, c: &Mpz) -> bool {
     if c.bit_length() > 1 {
-        c.tstbit(0)
+        !c.tstbit(0)
     } else {
         (exp % 2) == 0
     }
