@@ -241,12 +241,12 @@ impl Context {
                     exp += offset;
                     half_bit = c_lost.tstbit((offset - 1) as usize);
                     sticky_bit = !c_lost.bitand(bitmask((offset - 1) as usize)).is_zero();
-                },
+                }
                 std::cmp::Ordering::Equal => {
                     // keeping all the bits
                     half_bit = false;
                     sticky_bit = false;
-                },
+                }
                 std::cmp::Ordering::Less => {
                     // need to adding padding to the right,
                     // exactly -offset binary digits
@@ -279,19 +279,19 @@ impl Context {
                         RoundingDirection::ToZero => {
                             // always truncate
                             increment = false;
-                        },
+                        }
                         RoundingDirection::AwayZero => {
                             // round away since not exact
                             increment = true;
-                        },
+                        }
                         RoundingDirection::ToEven => {
                             // round away if odd
                             increment = !is_even(exp, &c);
-                        },
+                        }
                         RoundingDirection::ToOdd => {
                             // round away if even
                             increment = is_even(exp, &c);
-                        },
+                        }
                     };
                 }
             } else {
@@ -300,7 +300,7 @@ impl Context {
                     RoundingDirection::ToZero => {
                         // always truncate
                         increment = false;
-                    },
+                    }
                     RoundingDirection::AwayZero => {
                         // round away if not exact
                         increment = half_bit || sticky_bit;

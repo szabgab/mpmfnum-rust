@@ -6,8 +6,8 @@
 //
 // The rational number type
 
-use std::cmp::Ordering;
 use std::cmp::min;
+use std::cmp::Ordering;
 
 use gmp::mpz::*;
 
@@ -23,7 +23,7 @@ use crate::number::Number;
 /// Rational numbers may encode a non-real number (see [`NAN`]) which is
 /// interpreted as a NaN (neither finite nor infinite). All operations
 /// canonicalize -0 to +0 (no sign bit).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum Rational {
     /// A finite (real) number specified by the canonical triple
     /// of sign, exponent, significand.
@@ -38,10 +38,10 @@ pub enum Rational {
 pub const NAN: Rational = Rational::Nan;
 
 /// An instantiation of [`Rational::Infinite`] with positive sign.
-pub const POS_INF: Rational = Rational::Infinite(true);
+pub const POS_INF: Rational = Rational::Infinite(false);
 
 /// An instantiation of [`Rational::Infinite`] with negative sign.
-pub const NEG_INF: Rational = Rational::Infinite(false);
+pub const NEG_INF: Rational = Rational::Infinite(true);
 
 // Implements the `Number` trait for `Rational`.
 // See `Rational` for a description of the trait and its members.
@@ -212,7 +212,7 @@ impl Rational {
 
 impl PartialOrd for Rational {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match (&self, &other) {
+        match (self, other) {
             (Rational::Nan, _) => None,
             (_, Rational::Nan) => None,
             (Rational::Infinite(s1), Rational::Infinite(s2)) => {
@@ -226,7 +226,7 @@ impl PartialOrd for Rational {
                     // +Inf > -Inf
                     Some(Ordering::Greater)
                 }
-            },
+            }
             (Rational::Infinite(s), _) => {
                 if *s {
                     // -Inf < finite
@@ -235,7 +235,7 @@ impl PartialOrd for Rational {
                     // +Inf > finite
                     Some(Ordering::Greater)
                 }
-            },
+            }
             (_, Rational::Infinite(s)) => {
                 if *s {
                     // finite > -Inf
@@ -244,7 +244,7 @@ impl PartialOrd for Rational {
                     // finite < +Inf
                     Some(Ordering::Less)
                 }
-            },
+            }
             (Rational::Real(s1, exp1, c1), Rational::Real(s2, exp2, c2)) => {
                 // finite <?> finite
                 // check for zero
@@ -267,7 +267,7 @@ impl PartialOrd for Rational {
                         Some(Ordering::Greater)
                     }
                 } else {
-                    // non-zero, finite <?> non-zero finite
+                    // non-zero, finite <?> non-zero finit
 
                     // normalize: inefficient but slow
                     let n1 = exp1 - 1;
@@ -289,6 +289,16 @@ impl PartialOrd for Rational {
                     Some(ord1.cmp(&ord2))
                 }
             }
+        }
+    }
+}
+
+impl PartialEq for Rational {
+    fn eq(&self, other: &Self) -> bool {
+        match self.partial_cmp(other) {
+            Some(Ordering::Equal) => true,
+            Some(_) => false,
+            None => false,
         }
     }
 }

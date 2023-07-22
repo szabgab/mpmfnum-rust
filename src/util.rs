@@ -9,7 +9,7 @@
 
 use gmp::mpz::*;
 
-/// Produces a bitmask (as an Mpz) encoding `(1 << n) - 1` 
+/// Produces a bitmask (as an Mpz) encoding `(1 << n) - 1`
 /// which can be used to extract the first `n` binary digits.
 pub(crate) fn bitmask(n: usize) -> Mpz {
     (Mpz::one() << n) - Mpz::one()

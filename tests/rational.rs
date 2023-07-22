@@ -7,6 +7,7 @@
 // Tests for the rational module
 
 use gmp::mpz::Mpz;
+use std::cmp::Ordering;
 
 use mpmfnum::rational::*;
 use mpmfnum::Number;
@@ -230,16 +231,180 @@ fn round_trivial() {
 /// Testing rounding using fixed-point rounding
 #[test]
 fn round_fixed() {
-    // 1 (min_n == -1)
-    let ctx = Context::new().with_min_n(-1);
+    // 1 (min_n == -1) => 1
+    let ctx = Context::new()
+        .with_min_n(-1)
+        .with_rounding_mode(RoundingMode::ToZero);
     let one = Rational::Real(false, -2, Mpz::from(4));
     let (rounded_one, _) = ctx.round(&one);
-    assert_eq!(rounded_one, one, "rounding should not have lost bits");
+    assert_eq!(
+        rounded_one,
+        Rational::one(),
+        "rounding should not have lost bits"
+    );
 
-    // 1 (min_n == 0)
-    let ctx = Context::new().with_min_n(0);
+    // 1 (min_n == 0) => 0
+    let ctx = Context::new()
+        .with_min_n(0)
+        .with_rounding_mode(RoundingMode::ToZero);
     let one = Rational::Real(false, -2, Mpz::from(4));
     let (rounded_one, _) = ctx.round(&one);
-    assert_eq!(rounded_one, Rational::zero(), "rounding should have truncated to 0");
+    assert_eq!(
+        rounded_one,
+        Rational::zero(),
+        "rounding should truncated to 0"
+    );
 
+    // 1.75 (min_n == -1) => 1
+    let ctx = Context::new()
+        .with_min_n(-1)
+        .with_rounding_mode(RoundingMode::ToZero);
+    let one_3_4 = Rational::Real(false, -2, Mpz::from(7));
+    let (rounded, _) = ctx.round(&one_3_4);
+    assert_eq!(rounded, Rational::one(), "rounding should truncated to 0");
+
+    // 1.75 (min_n == -2) => 1.5
+    let ctx = Context::new()
+        .with_min_n(-2)
+        .with_rounding_mode(RoundingMode::ToZero);
+    let one_3_4 = Rational::Real(false, -2, Mpz::from(7));
+    let (rounded, _) = ctx.round(&one_3_4);
+    assert_eq!(
+        rounded,
+        Rational::Real(false, -1, Mpz::from(3)),
+        "rounding should truncated to 0"
+    );
+}
+
+/// Testing rounding using floating-point rounding
+#[test]
+fn round_float() {}
+
+#[test]
+fn ordering() {
+    // values to compare against
+    let vals = [
+        Rational::zero(),
+        Rational::one(),
+        POS_INF.clone(),
+        NEG_INF.clone(),
+        NAN.clone(),
+    ];
+
+    // compare with 0
+    let zero = Rational::zero();
+    let expected = [
+        Some(Ordering::Equal),
+        Some(Ordering::Less),
+        Some(Ordering::Less),
+        Some(Ordering::Greater),
+        None,
+    ];
+    for (val, expected) in vals.iter().zip(expected.iter()) {
+        let actual = zero.partial_cmp(val);
+        assert_eq!(
+            actual,
+            expected.clone(),
+            "unexpected comparison result between {:?} and {:?}: expected {:?}, actual {:?}",
+            zero,
+            val,
+            expected,
+            actual
+        );
+    }
+
+    // compare with 1
+    let one = Rational::one();
+    let expected = [
+        Some(Ordering::Greater),
+        Some(Ordering::Equal),
+        Some(Ordering::Less),
+        Some(Ordering::Greater),
+        None,
+    ];
+    for (val, expected) in vals.iter().zip(expected.iter()) {
+        let actual = one.partial_cmp(val);
+        assert_eq!(
+            actual,
+            expected.clone(),
+            "unexpected comparison result between {:?} and {:?}: expected {:?}, actual {:?}",
+            one,
+            val,
+            expected,
+            actual
+        );
+    }
+
+    // compare with +Inf
+    let expected = [
+        Some(Ordering::Greater),
+        Some(Ordering::Greater),
+        Some(Ordering::Equal),
+        Some(Ordering::Greater),
+        None,
+    ];
+    for (val, expected) in vals.iter().zip(expected.iter()) {
+        let actual = POS_INF.partial_cmp(val);
+        assert_eq!(
+            actual,
+            expected.clone(),
+            "unexpected comparison result between {:?} and {:?}: expected {:?}, actual {:?}",
+            POS_INF,
+            val,
+            expected,
+            actual
+        );
+    }
+
+    // compare with -Inf
+    let expected = [
+        Some(Ordering::Less),
+        Some(Ordering::Less),
+        Some(Ordering::Less),
+        Some(Ordering::Equal),
+        None,
+    ];
+    for (val, expected) in vals.iter().zip(expected.iter()) {
+        let actual = NEG_INF.partial_cmp(val);
+        assert_eq!(
+            actual,
+            expected.clone(),
+            "unexpected comparison result between {:?} and {:?}: expected {:?}, actual {:?}",
+            NEG_INF,
+            val,
+            expected,
+            actual
+        );
+    }
+
+    // compare with Nan
+    let expected = [None, None, None, None, None];
+    for (val, expected) in vals.iter().zip(expected.iter()) {
+        let actual = NAN.partial_cmp(val);
+        assert_eq!(
+            actual,
+            expected.clone(),
+            "unexpected comparison result between {:?} and {:?}: expected {:?}, actual {:?}",
+            NAN,
+            val,
+            expected,
+            actual
+        );
+    }
+
+    // test normalization
+    let one = Rational::one();
+    let also_one = Rational::Real(false, -1, Mpz::from(2));
+    assert_eq!(
+        one.partial_cmp(&also_one),
+        Some(Ordering::Equal),
+        "should be the same"
+    );
+
+    let still_one = Rational::Real(false, -2, Mpz::from(4));
+    assert_eq!(
+        one.partial_cmp(&still_one),
+        Some(Ordering::Equal),
+        "should be the same"
+    );
 }
