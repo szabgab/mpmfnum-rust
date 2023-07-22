@@ -90,6 +90,9 @@ pub trait Number {
     /// behavior, the result is false.
     fn is_infinite(&self) -> bool;
 
+    /// Returns true if this number is zero.
+    fn is_zero(&self) -> bool;
+
     /// Returns true if this number is negative.
     /// This is not always well-defined, so the result is an Option.
     /// This is not necessarily the same as the sign bit (the IEEE 754
