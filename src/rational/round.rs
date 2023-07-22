@@ -6,6 +6,7 @@
 //
 // Rounding for the rational type
 
+use std::cmp::min;
 use std::ops::BitAnd;
 
 use gmp::mpz::*;
@@ -170,10 +171,176 @@ impl Context {
         self
     }
 
+    /// Rounding utility function: splits a [`Number`] at binary digit `n`,
+    /// returning five values: the position of the least siginficant digit
+    /// of `num` above `n`, the binary digits above the `n`th place,
+    /// the binary digits at or below the `n`th place, and the two
+    /// subsequent binary digits at the digit `n` and `n-1` (the halfway
+    /// and sticky rounding bits).
+    fn split<T: Number>(num: &T, n: isize) -> (isize, Mpz, Mpz, bool, bool) {
+        // number components
+        let exp = num.exp().unwrap();
+        let c = num.c().unwrap();
+
+        // shift amount
+        let offset = n - (exp - 1);
+
+        // compute the truncated result asnd lost binary digits
+        match offset.cmp(&0) {
+            std::cmp::Ordering::Greater => {
+                // shifting off bits
+                let max_lost = c.bit_length();
+                let exp = exp + offset;
+                let truncated = c.clone() >> (offset as usize);
+                let c_lost = c.bitand(bitmask(min(offset as usize, max_lost)));
+                let half_bit = c_lost.tstbit((offset - 1) as usize);
+                let sticky_bit = !c_lost
+                    .clone()
+                    .bitand(bitmask((offset - 1) as usize))
+                    .is_zero();
+                (exp, truncated, c_lost, half_bit, sticky_bit)
+            }
+            std::cmp::Ordering::Equal => {
+                // keeping all the bits
+                (exp, c, Mpz::from(0) ,false, false)
+            }
+            std::cmp::Ordering::Less => {
+                // need to adding padding to the right,
+                // exactly -offset binary digits
+                let exp = exp + offset;
+                let c = c << -offset as usize;
+                (exp, c, Mpz::from(0), false, false)
+            }
+        }
+    }
+
+    /// Rounding utility function: given the truncated result and rounding
+    /// bits, should the truncated result be incremented to produce
+    /// the final rounded result?
+    fn round_increment(&self, sign: bool, exp: isize, c: &Mpz, half_bit: bool, sticky_bit: bool) -> bool {
+        let (is_nearest, rd) = self.rm.to_direction(sign);
+        match (is_nearest, half_bit, sticky_bit, rd) {
+            (_, false, false, _) => {
+                // exact => truncate
+                false
+            }
+            (true, false, _, _) => {
+                // nearest, below the halfway point => truncate
+                false
+            }
+            (true, true, true, _) => {
+                // nearest, above the halfway point => increment
+                true
+            }
+            (true, true, false, RoundingDirection::ToZero) => {
+                // nearest, exactly halfway, ToZero => truncate
+                false
+            }
+            (true, true, false, RoundingDirection::AwayZero) => {
+                // nearest, exactly halfway, AwayZero => increment
+                true
+            }
+            (true, true, false, RoundingDirection::ToEven) => {
+                // nearest, exactly halfway, ToEven => increment if odd
+                !is_even(exp, &c)
+            }
+            (true, true, false, RoundingDirection::ToOdd) => {
+                // nearest, exactly halfway, ToOdd => increment if even
+                is_even(exp, &c)
+            }
+            (false, _, _, RoundingDirection::ToZero) => {
+                // directed, toZero => always truncate
+                false
+            }
+            (false, _, _, RoundingDirection::AwayZero) => {
+                // directed, alwaysZero => increment
+                true
+            }
+            (false, _, _, RoundingDirection::ToEven) => {
+                // directed, toEven => increment if odd
+                !is_even(exp, &c)
+            }
+            (false, _, _, RoundingDirection::ToOdd) => {
+                // directed, toOdd => increment if even
+                is_even(exp, &c)
+            }
+        }
+    }
+
+    /// Rounds a finite [`Number`].
+    /// Called by the public [`Number::round`] function
+    fn round_finite<T: Number>(&self, num: &T) -> (Rational, Option<Rational>) {
+        // step 1: compute the first digit we will split off
+        let (p, n) = match (self.max_p, self.min_n) {
+            (None, None) => {
+                // unreachable
+                panic!("unreachable")
+            }
+            (None, Some(min_n)) => {
+                // fixed-point rounding:
+                // limited by n, precision is unbounded
+                (None, min_n)
+            }
+            (Some(max_p), None) => {
+                // floating-point rounding:
+                // limited by precision, exponent is unbounded
+                (Some(max_p), num.e().unwrap() - (max_p as isize))
+            }
+            (Some(max_p), Some(min_n)) => {
+                // floating-point rounding:
+                // limited by precision or exponent;
+                // we may have subnormalization
+                let unbounded_n = num.e().unwrap() - (max_p as isize);
+                let n = std::cmp::max(min_n, unbounded_n);
+                (Some(max_p), n)
+            }
+        };
+
+        // step 2: split the significand at binary digit `n`
+
+        let sign = num.sign();
+        let (mut exp, mut c, c_lost, half_bit, sticky_bit) = Self::split(num, n);
+        
+        // sanity check
+        assert_eq!(exp, n + 1, "exponent not in the right place!");
+
+        // step 3: correct if needed
+        // need to decide if we should increment
+        if self.round_increment(sign, exp, &c, half_bit, sticky_bit) {
+            c += 1;
+            if p.is_some() && c.bit_length() > p.unwrap() {
+                c >>= 1;
+                exp += 1;
+            }
+        }
+
+        // step 4: compose result
+        let rounded = Rational::Real(sign, exp, c);
+        let exp_lost = num.n().unwrap() + 1;
+        let lost = if rounded.is_zero() {
+            // all bits lost and the result is rounded
+            // so we give `c_lost` the "sign" of the result
+            // which is just the sign of `num`.
+            Rational::Real(sign, exp_lost, c_lost)
+        } else {
+            // some bits are lost, `lost` will be unsigned
+            Rational::Real(false, exp_lost, c_lost)
+        };
+
+        // Returns the rounded number and the binary digits lost
+        // as a sum
+        (rounded.canonicalize(), Some(lost.canonicalize()))
+    }
+
     /// Rounds a [`Number`] type to a [`Rational`]. The function returns
     /// a pair: the actual rounding value, and an [`Option`] containing
     /// the lost binary digits encoded as a rational number if the rounded
-    /// result was finite or [`None`] otherwise.
+    /// result was finite or [`None`] otherwise. The lost digits _do not_
+    /// necessarily represent an error term `err` where
+    /// `num = round(num) + err` for every rounding mode, but it is exactly
+    /// the error term when rounding is implemented via truncation.
+    /// The lost digits are unsigned unless the rounded value is zero, in
+    /// which case, the sign is just the sign of `num`.
     pub fn round<T: Number>(&self, num: &T) -> (Rational, Option<Rational>) {
         assert!(
             self.max_p.is_some() || self.min_n.is_some(),
@@ -183,7 +350,7 @@ impl Context {
         // case split by class
         if num.is_zero() {
             // zero
-            (Rational::zero(), None)
+            (Rational::zero(), Some(Rational::zero()))
         } else if num.is_infinite() {
             // infinite number
             let s = num.is_negative().unwrap();
@@ -193,138 +360,7 @@ impl Context {
             (Rational::Nan, None)
         } else {
             // finite, non-zero value
-
-            // step 1: compute the first digit we will split off
-            let (p, n) = match (self.max_p, self.min_n) {
-                (None, None) => {
-                    // unreachable
-                    panic!("unreachable")
-                }
-                (None, Some(min_n)) => {
-                    // fixed-point rounding:
-                    // limited by n, precision is unbounded
-                    (None, min_n)
-                }
-                (Some(max_p), None) => {
-                    // floating-point rounding:
-                    // limited by precision, exponent is unbounded
-                    (Some(max_p), num.e().unwrap() - (max_p as isize))
-                }
-                (Some(max_p), Some(min_n)) => {
-                    // floating-point rounding:
-                    // limited by precision or exponent
-                    // we may have subnormalization either limits
-                    // by precision or smallest representable bit
-                    let unbounded_n = num.e().unwrap() - (max_p as isize);
-                    let n = std::cmp::max(min_n, unbounded_n);
-                    (Some(max_p), n)
-                }
-            };
-
-            // step 2: split the significand
-
-            // truncated
-            let sign = num.sign();
-            let exp = num.exp().unwrap();
-            let c = num.c().unwrap();
-
-            // the amount we need to shift by
-            let offset = n - (exp - 1);
-
-            // compute the truncated result asnd lost binary digits
-            let (mut exp, mut c, half_bit, sticky_bit, _c_lost) = match offset.cmp(&0) {
-                std::cmp::Ordering::Greater => {
-                    // shifting off bits
-                    let exp = exp + offset;
-                    let truncated = c.clone() >> (offset as usize);
-                    let c_lost = c.bitand(bitmask(offset as usize));
-                    let half_bit = c_lost.tstbit((offset - 1) as usize);
-                    let sticky_bit = !c_lost
-                        .clone()
-                        .bitand(bitmask((offset - 1) as usize))
-                        .is_zero();
-                    (exp, truncated, half_bit, sticky_bit, c_lost)
-                }
-                std::cmp::Ordering::Equal => {
-                    // keeping all the bits
-                    (exp, c, false, false, Mpz::from(0))
-                }
-                std::cmp::Ordering::Less => {
-                    // need to adding padding to the right,
-                    // exactly -offset binary digits
-                    let exp = exp + offset;
-                    let c = c << -offset as usize;
-                    (exp, c, false, false, Mpz::from(0))
-                }
-            };
-
-            // sanity check
-            assert_eq!(exp, n + 1, "exponent not in the right place!");
-
-            // step 3: rounding
-            // need to decide if we should increment
-            let (is_nearest, rd) = self.rm.to_direction(sign);
-            let increment = match (is_nearest, half_bit, sticky_bit, rd) {
-                (_, false, false, _) => {
-                    // exact => truncate
-                    false
-                }
-                (true, false, _, _) => {
-                    // nearest, below the halfway point => truncate
-                    false
-                }
-                (true, true, true, _) => {
-                    // nearest, above the halfway point => increment
-                    true
-                }
-                (true, true, false, RoundingDirection::ToZero) => {
-                    // nearest, exactly halfway, ToZero => truncate
-                    false
-                }
-                (true, true, false, RoundingDirection::AwayZero) => {
-                    // nearest, exactly halfway, AwayZero => increment
-                    true
-                }
-                (true, true, false, RoundingDirection::ToEven) => {
-                    // nearest, exactly halfway, ToEven => increment if odd
-                    !is_even(exp, &c)
-                }
-                (true, true, false, RoundingDirection::ToOdd) => {
-                    // nearest, exactly halfway, ToOdd => increment if even
-                    is_even(exp, &c)
-                }
-                (false, _, _, RoundingDirection::ToZero) => {
-                    // toZero => always truncate
-                    false
-                }
-                (false, _, _, RoundingDirection::AwayZero) => {
-                    // inexact, alwaysZero => increment
-                    true
-                }
-                (false, _, _, RoundingDirection::ToEven) => {
-                    // inexact, toEven => increment if odd
-                    !is_even(exp, &c)
-                }
-                (false, _, _, RoundingDirection::ToOdd) => {
-                    // inexact, toOdd => increment if even
-                    is_even(exp, &c)
-                }
-            };
-
-            // step 4: apply the correction
-            if increment {
-                c += 1;
-                if p.is_some() && c.bit_length() > p.unwrap() {
-                    c >>= 1;
-                    exp += 1;
-                }
-            }
-
-            // step 5: compose result
-            let rounded = Rational::Real(sign, exp, c);
-
-            // TODO: summarize lost bits
-            (rounded, None)
+            self.round_finite(num)
         }
     }
 }

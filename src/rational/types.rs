@@ -208,6 +208,16 @@ impl Rational {
     pub fn is_nan(&self) -> bool {
         matches!(self, Rational::Nan)
     }
+
+    /// Canonicalizes this number.
+    /// All zeros are mapped to [`Rational::Real(false, 0, 0)`].
+    pub fn canonicalize(&self) -> Self {
+        if self.is_zero() {
+            Rational::zero()
+        } else {
+            self.clone()
+        }
+    }
 }
 
 impl PartialOrd for Rational {
