@@ -9,8 +9,8 @@ jobs:
   test:
     name: "Build and test"
     strategy:
-      matrix:
-        os: [ macos-latest, ubuntu-latest, windows-latest ]
+      matrix: # windows fails when installing the MPFR crate
+        os: [ macos-latest, ubuntu-latest ]
 
     runs-on: ${{ matrix.os }}
 

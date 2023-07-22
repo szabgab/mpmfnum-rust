@@ -2,10 +2,9 @@
 // Brett Saiki <bksaiki(at)gmail.com>
 // 2023
 
-// rational/mod.rs
+// rational/types.rs
 //
-// Top-level of the rational module.
-// Exports public functions
+// The rational number type
 
 use gmp::mpz::*;
 
