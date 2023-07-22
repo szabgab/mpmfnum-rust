@@ -446,6 +446,19 @@ fn round_float_subnorm() {
     assert_eq!(err.unwrap(), one_4, "lost bits is 1/4");
 }
 
+fn assert_expected_cmp(x: &Rational, y: &Rational, expected: &Option<Ordering>) {
+    let actual = x.partial_cmp(y);
+    assert_eq!(
+        actual,
+        expected.clone(),
+        "unexpected comparison result between {:?} and {:?}: expected {:?}, actual {:?}",
+        x,
+        y,
+        expected,
+        actual
+    );
+}
+
 #[test]
 fn ordering() {
     // values to compare against
@@ -467,16 +480,7 @@ fn ordering() {
         None,
     ];
     for (val, expected) in vals.iter().zip(expected.iter()) {
-        let actual = zero.partial_cmp(val);
-        assert_eq!(
-            actual,
-            expected.clone(),
-            "unexpected comparison result between {:?} and {:?}: expected {:?}, actual {:?}",
-            zero,
-            val,
-            expected,
-            actual
-        );
+        assert_expected_cmp(&zero, val, expected);
     }
 
     // compare with 1
@@ -489,16 +493,7 @@ fn ordering() {
         None,
     ];
     for (val, expected) in vals.iter().zip(expected.iter()) {
-        let actual = one.partial_cmp(val);
-        assert_eq!(
-            actual,
-            expected.clone(),
-            "unexpected comparison result between {:?} and {:?}: expected {:?}, actual {:?}",
-            one,
-            val,
-            expected,
-            actual
-        );
+        assert_expected_cmp(&one, val, expected);
     }
 
     // compare with +Inf
@@ -510,16 +505,7 @@ fn ordering() {
         None,
     ];
     for (val, expected) in vals.iter().zip(expected.iter()) {
-        let actual = POS_INF.partial_cmp(val);
-        assert_eq!(
-            actual,
-            expected.clone(),
-            "unexpected comparison result between {:?} and {:?}: expected {:?}, actual {:?}",
-            POS_INF,
-            val,
-            expected,
-            actual
-        );
+        assert_expected_cmp(&POS_INF, val, expected);
     }
 
     // compare with -Inf
@@ -531,31 +517,13 @@ fn ordering() {
         None,
     ];
     for (val, expected) in vals.iter().zip(expected.iter()) {
-        let actual = NEG_INF.partial_cmp(val);
-        assert_eq!(
-            actual,
-            expected.clone(),
-            "unexpected comparison result between {:?} and {:?}: expected {:?}, actual {:?}",
-            NEG_INF,
-            val,
-            expected,
-            actual
-        );
+        assert_expected_cmp(&NEG_INF, val, expected);
     }
 
     // compare with Nan
     let expected = [None, None, None, None, None];
     for (val, expected) in vals.iter().zip(expected.iter()) {
-        let actual = NAN.partial_cmp(val);
-        assert_eq!(
-            actual,
-            expected.clone(),
-            "unexpected comparison result between {:?} and {:?}: expected {:?}, actual {:?}",
-            NAN,
-            val,
-            expected,
-            actual
-        );
+        assert_expected_cmp(&NAN, val, expected);
     }
 
     // test normalization
@@ -582,6 +550,25 @@ fn is_equal(x: &Rational, y: &Rational) -> bool {
     }
 }
 
+fn assert_expected_mul(x: &Rational, y: &Rational, expected: &Rational) {
+    let left = x.clone() * y.clone();
+    let right = y.clone() * x.clone();
+    assert!(
+        is_equal(&left, expected),
+        "for {:?} * {:?}: expected {:?}, actual {:?}",
+        x,
+        y,
+        expected,
+        left
+    );
+    assert!(
+        is_equal(&left, expected),
+        "multiplication is commutative: {:?} != {:?}",
+        left,
+        right
+    );
+}
+
 #[test]
 fn multiplication() {
     // test values
@@ -599,127 +586,44 @@ fn multiplication() {
     // Multiply by 0
     let expected = [&zero, &zero, &zero, &nan, &nan, &nan];
     for (&val, &expected) in vals.iter().zip(expected.iter()) {
-        let left = zero.clone() * val.clone();
-        let right = val.clone() * zero.clone();
-        assert!(
-            is_equal(&left, expected),
-            "for {:?} * {:?}: expected {:?}, actual {:?}",
-            zero,
-            val,
-            expected,
-            left
-        );
-        assert!(
-            is_equal(&left, expected),
-            "multiplication is commutative: {:?} != {:?}",
-            left,
-            right
-        );
+        assert_expected_mul(&zero, val, expected);
     }
 
     // Multiply by 1
     let expected = [&zero, &one, &frac, &pos_inf, &neg_inf, &nan];
     for (&val, &expected) in vals.iter().zip(expected.iter()) {
-        let left = one.clone() * val.clone();
-        let right = val.clone() * one.clone();
-        assert!(
-            is_equal(&left, expected),
-            "for {:?} * {:?}: expected {:?}, actual {:?}",
-            one,
-            val,
-            expected,
-            left
-        );
-        assert!(
-            is_equal(&left, expected),
-            "multiplication is commutative: {:?} != {:?}",
-            left,
-            right
-        );
+        assert_expected_mul(&one, val, expected);
     }
 
     // Multiply by -7 * 2^-4
     let frac_sqr = Rational::Real(false, -8, Mpz::from(49));
     let expected = [&zero, &frac, &frac_sqr, &neg_inf, &pos_inf, &nan];
     for (&val, &expected) in vals.iter().zip(expected.iter()) {
-        let left = frac.clone() * val.clone();
-        let right = val.clone() * frac.clone();
-        assert!(
-            is_equal(&left, expected),
-            "for {:?} * {:?}: expected {:?}, actual {:?}",
-            frac,
-            val,
-            expected,
-            left
-        );
-        assert!(
-            is_equal(&left, expected),
-            "multiplication is commutative: {:?} != {:?}",
-            left,
-            right
-        );
+        assert_expected_mul(&frac, val, expected);
     }
 
     // Multiply by +Inf
     let expected = [&nan, &pos_inf, &neg_inf, &pos_inf, &neg_inf, &nan];
     for (&val, &expected) in vals.iter().zip(expected.iter()) {
-        let left = pos_inf.clone() * val.clone();
-        let right = val.clone() * pos_inf.clone();
-        assert!(
-            is_equal(&left, expected),
-            "for {:?} * {:?}: expected {:?}, actual {:?}",
-            pos_inf,
-            val,
-            expected,
-            left
-        );
-        assert!(
-            is_equal(&left, expected),
-            "multiplication is commutative: {:?} != {:?}",
-            left,
-            right
-        );
+        assert_expected_mul(&pos_inf, val, expected);
     }
 
     // Multiply by -Inf
     let expected = [&nan, &neg_inf, &pos_inf, &neg_inf, &pos_inf, &nan];
     for (&val, &expected) in vals.iter().zip(expected.iter()) {
-        let left = neg_inf.clone() * val.clone();
-        let right = val.clone() * neg_inf.clone();
-        assert!(
-            is_equal(&left, expected),
-            "for {:?} * {:?}: expected {:?}, actual {:?}",
-            neg_inf,
-            val,
-            expected,
-            left
-        );
-        assert!(
-            is_equal(&left, expected),
-            "multiplication is commutative: {:?} != {:?}",
-            left,
-            right
-        );
+        assert_expected_mul(&neg_inf, val, expected);
     }
 
     // Multiply by Nan
     let expected = [&nan; 6];
     for (&val, &expected) in vals.iter().zip(expected.iter()) {
-        let left = nan.clone() * val.clone();
-        let right = val.clone() * nan.clone();
-        assert!(
-            is_equal(&left, expected),
-            "for {:?} * {:?}: expected {:?}, actual {:?}",
-            nan,
-            val,
-            expected,
-            left
-        );
-        assert!(
-            is_equal(&left, expected),
-            "multiplication is commutative: {:?} != {:?}",
-            left,
-            right
-        );
+        assert_expected_mul(&nan, val, expected);
     }
+}
+
+#[test]
+fn addition() {
+
+
+
 }
