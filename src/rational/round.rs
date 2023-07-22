@@ -6,10 +6,13 @@
 //
 // Rounding for the rational type
 
+use std::ops::BitAnd;
+
 use gmp::mpz::*;
 
 use crate::number::Number;
 use crate::rational::Rational;
+use crate::util::*;
 
 /// Rounding modes for [`Context`].
 ///
@@ -47,6 +50,7 @@ use crate::rational::Rational;
 /// The rounding behavior of zero, infinite, and not-numerical values will be
 /// unaffected by rounding mode.
 ///
+#[derive(Clone, Debug)]
 pub enum RoundingMode {
     NearestTiesToEven,
     NearestTiesAwayZero,
@@ -84,6 +88,7 @@ pub enum RoundingMode {
 /// possible rounding modes that can be specified are defined by
 /// [`RoundingMode`].
 ///
+#[derive(Clone, Debug)]
 pub struct Context {
     max_p: Option<usize>,
     min_n: Option<Mpz>,
@@ -121,8 +126,23 @@ impl Context {
         self
     }
 
-    /// Rounds a [`Number`] type to a [`Rational`].
-    pub fn round<T: Number>(&self, num: T) -> Rational {
+    /// Clears the maximum allowable precision.
+    pub fn without_max_precision(mut self) -> Self {
+        self.max_p = None;
+        self
+    }
+
+    /// Clears the minimum least absolute digit.
+    pub fn without_min_n(mut self) -> Self {
+        self.min_n = None;
+        self
+    }
+
+    /// Rounds a [`Number`] type to a [`Rational`]. The function returns
+    /// a pair: the actual rounding value, and an [`Option`] containing
+    /// the lost binary digits encoded as a rational number if the rounded
+    /// result was finite or [`None`] otherwise.
+    pub fn round<T: Number>(&self, num: T) -> (Rational, Option<Rational>) {
         assert!(
             self.max_p.is_some() || self.min_n.is_some(),
             "must specify either maximum precision or least absolute digit"
@@ -131,17 +151,79 @@ impl Context {
         // case split by class
         if num.is_zero() {
             // zero
-            return Rational::zero();
+            return (Rational::zero(), None)
         } else if num.is_infinite() {
             // infinite number
-            return Rational::Infinite(num.is_negative().unwrap());
+            let s = num.is_negative().unwrap();
+            return (Rational::Infinite(s), None)
         } else if num.is_nar() {
             // other non-real
-            return Rational::Nan;
+            return (Rational::Nan, None)
         } else {
             // finite, non-zero value
 
+            // first step: compute the first digit we will split off
+            let p: Option<usize>;
+            let n: Mpz;
 
+            if self.max_p.is_none() {
+                // fixed-point rounding:
+                // limited by n, precision is unbounded
+                p = None;
+                n = self.min_n.clone().unwrap();
+            } else {
+                // floating-point rounding:
+                // limited by precision
+                p = self.max_p;
+                let unbounded_n = num.e().unwrap() - Mpz::from(p.unwrap() as u64);
+                if self.min_n.is_some() {
+                    // exponent is unbounded
+                    n = unbounded_n;
+                } else {
+                    // exponent is not unbounded, so we may have subnormalization
+                    // either limits by precision or smallest representable bit
+                    n = std::cmp::max(self.min_n.clone().unwrap(), unbounded_n);
+                }
+            }
+
+            // second step: split the significand
+
+            // truncated result
+            let mut exp = num.exp().unwrap();
+            let mut c = num.c().unwrap();
+
+            // rounding bits
+            let half_bit: bool;
+            let sticky_bit: bool;
+
+            // the amount we need to shift by
+            let offset = n.clone() - (exp.clone() - Mpz::from(1));
+            let zero = Mpz::zero();
+
+            if offset > zero {
+                // shifting off bits
+                let truncated = c.clone() >> mpz_to_usize(&offset);
+                let mask = (Mpz::from(1) << mpz_to_usize(&offset)) - Mpz::from(1);
+                let lost = c.bitand(&mask);
+                c = truncated;
+                exp += offset.clone();
+                half_bit = lost.tstbit(mpz_to_usize(&(offset - Mpz::from(1))));
+                sticky_bit = !lost.bitand(&mask).is_zero();
+            } else if offset == zero {
+                // keeping all the bits
+                half_bit = false;
+                sticky_bit = false;
+            } else {
+                // need to adding padding to the right,
+                // exactly -offset binary digits
+                c <<= mpz_to_usize(&-offset.clone());
+                exp += offset;
+                half_bit = false;
+                sticky_bit = false;
+            }
+
+            // sanity check
+            assert_eq!(exp, Mpz::from(n + 1), "exponent not in the right place!");
 
             todo!()
         }

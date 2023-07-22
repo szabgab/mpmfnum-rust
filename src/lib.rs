@@ -11,5 +11,6 @@
 pub mod ieee754;
 pub mod number;
 pub mod rational;
+mod util;
 
 pub use number::Number;
