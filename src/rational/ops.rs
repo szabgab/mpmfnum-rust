@@ -7,7 +7,7 @@
 // Implementations of operators
 
 use std::cmp::min;
-use std::ops::{Add, Mul};
+use std::ops::{Add, Mul, Neg};
 
 use gmp::sign::Sign;
 
@@ -93,6 +93,18 @@ impl Rational {
                     Self::Real(s1 != s2, exp1 + exp2, c1 * c2)
                 }
             }
+        }
+    }
+}
+
+impl Neg for Rational {
+    type Output = Rational;
+
+    fn neg(self) -> Self::Output {
+        match &self {
+            Self::Nan => Self::Nan,
+            Self::Infinite(s) => Self::Infinite(!s),
+            Self::Real(s, exp, c) => Self::Real(!s, *exp, c.clone()).canonicalize(),
         }
     }
 }

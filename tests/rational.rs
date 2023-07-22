@@ -690,3 +690,29 @@ fn addition() {
         assert_expected_add(&nan, val, expected);
     }
 }
+
+
+#[test]
+fn neg() {
+    // test values
+    let zero = Rational::zero(); // 0
+    let one = Rational::one(); // 1
+    let frac = Rational::Real(true, -4, Mpz::from(7)); // -7 * 2^-4
+    let pos_inf = POS_INF; // +Inf
+    let neg_inf = NEG_INF; // -Inf,
+    let nan = NAN; // NaN
+
+    let neg_zero = -zero;
+    let neg_one = -one;
+    let neg_frac = -frac;
+    let neg_pos_inf = -pos_inf;
+    let neg_neg_inf = -neg_inf;
+    let neg_nan = nan;
+
+    assert!(!neg_zero.sign(), "-0 should not have a sign");
+    assert!(neg_one.sign(), "-1 is signed");
+    assert!(!neg_frac.sign(), "-(-7 * 2^-4) is not signed");
+    assert!(neg_pos_inf.sign(), "-(+Inf) is signed");
+    assert!(!neg_neg_inf.sign(), "-(-Inf) is not signed");
+    assert!(!neg_nan.sign(), "-Nan is not signed");
+}
