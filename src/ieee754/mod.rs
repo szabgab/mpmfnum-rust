@@ -3,7 +3,7 @@
 // 2023
 
 // ieee754/mod.rs
-// 
+//
 // Top-level file
 // Exports all public functions
 //

@@ -3,10 +3,13 @@
 // 2023
 
 // lib.rs
-// 
-// Top-level file
+//
+// Top-level file of the entire crate.
 // Exports all public functions
 //
 
+pub mod ieee754;
 pub mod number;
+pub mod rational;
 
+pub use number::Number;

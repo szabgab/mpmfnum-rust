@@ -3,14 +3,14 @@
 // 2023
 
 // number.rs
-// 
+//
 // Defines the (digital) number trait.
 //
 
-use gmp::mpz;
+use gmp::mpz::*;
 
 /// The "digital" number representing a (projective) real number format.
-/// 
+///
 /// All computer number systems share some characteristics.
 /// They all can be represented by a finite-precision number in
 /// scientific notation: `(-1)^s * c * b^exp` where `s` is the sign,
@@ -21,7 +21,7 @@ use gmp::mpz;
 /// the "point" refers to the position of the "ones" place within `c`, if
 /// `c` were extended to an infinite sequence of digits in either direction.
 /// Number systems may encode non-real numbers, notably infinity or NaN.
-/// 
+///
 /// Most mathematical operators on digital numbers can be decomposed
 /// into two steps: first, a mathematically-correct operation over
 /// real numbers, interpreting digital numbers as real numbers; second,
@@ -31,8 +31,8 @@ use gmp::mpz;
 /// just be considered unbounded real numbers when in isolation.
 /// The characteristics of the rounding operation may be summarized as
 /// in a "rounding context". All mathematicaly evaluation is done under
-/// a particular rounding context. 
-/// 
+/// a particular rounding context.
+///
 pub trait Number {
     /// Returns the radix of a number.
     /// It must be strictly positive.
@@ -41,34 +41,32 @@ pub trait Number {
     /// Returns true if the number's sign bit is true.
     /// For number formats with no notion of sign bit, the result
     /// will always be false.
-    fn sign() -> bool;
+    fn sign(&self) -> bool;
 
     /// Viewing this number as `(-1)^s * c * b^exp` where `c` is an integer,
-    /// returns `exp` as an `mpz::Mpz`. Only well-defined for finite,
-    /// non-zero numbers.
-    fn exp() -> Option<mpz::Mpz>;
+    /// returns `exp`. Only well-defined for finite, non-zero numbers.
+    fn exp(&self) -> Option<Mpz>;
 
     /// Viewing this number as `(-1)^s * f * b^e` where `f` is a binary
     /// fraction between 1 and 2, returns the exponent `e`. This is the
     /// preferred IEEE 754 interpretation of an exponent. Only well-defined
     /// for finite, non-zero numbers.
-    fn e() -> Option<mpz::Mpz>;
+    fn e(&self) -> Option<Mpz>;
 
     /// The "least significant exponent", the place below the least
     /// significant digit of the mantissa. Always equal to `self.exp() - 1`.
     /// For integer formats, this is just -1. Only well-defined for finite,
     /// non-zero numbers.
-    fn n() -> Option<mpz::Mpz>;
+    fn n(&self) -> Option<Mpz>;
 
     /// Viewing this number as `(-1)^s * c * b^exp` where `c` is an integer,
-    /// returns `c` as an `mpz::Mpz`. Only well-defined for finite,
-    /// non-zero numbers.
-    fn c() -> Option<mpz::Mpz>;
+    /// returns `c`. Only well-defined for finite, non-zero numbers.
+    fn c(&self) -> Option<Mpz>;
 
     /// Viewing this number as `(-1)^s * c * b^exp` where `c` is an integer,
     /// returns `(-1)^s * c`, the signed significand. Only well-defined for
     /// finite, non-zero numbers.
-    fn m() -> Option<mpz::Mpz>;
+    fn m(&self) -> Option<Mpz>;
 
     /// Precision of the significand.
     /// This is just `floor(logb(c))` where `b` is the radix and `c` is
@@ -76,25 +74,29 @@ pub trait Number {
     /// is just the number of bits required to encode `c`. For values that
     /// do not encode numbers, intervals, or even limiting behavior,
     /// the result is 0.
-    fn p() -> usize;
+    fn p(&self) -> usize;
 
     /// Returns true if this number is not a real number.
     /// Example: NaN or +/-Inf from the IEEE 754 standard.
-    fn is_nar() -> bool;
+    fn is_nar(&self) -> bool;
 
     /// Returns true if this number is finite.
     /// For values that do not encode numbers, intervals, or even limiting
     /// behavior, the result is false.
-    fn is_finite() -> bool;
+    fn is_finite(&self) -> bool;
 
     /// Returns true if this number if infinite.
     /// For values that do not encode numbers, intervals, or even limiting
     /// behavior, the result is false.
-    fn is_infinite() -> bool;
+    fn is_infinite(&self) -> bool;
 
     /// Returns true if this number is negative.
     /// This is not always well-defined, so the result is an Option.
     /// This is not necessarily the same as the sign bit (the IEEE 754
     /// standard differentiates between -0.0 and +0.0).
-    fn is_negative() -> Option<bool>;
+    fn is_negative(&self) -> Option<bool>;
+
+    /// Returns true if this number represents a numerical value:
+    /// either a finite number, interval, or some limiting value.
+    fn is_numerical(&self) -> bool;
 }
