@@ -174,7 +174,7 @@ impl Context {
     /// a pair: the actual rounding value, and an [`Option`] containing
     /// the lost binary digits encoded as a rational number if the rounded
     /// result was finite or [`None`] otherwise.
-    pub fn round<T: Number>(&self, num: T) -> (Rational, Option<Rational>) {
+    pub fn round<T: Number>(&self, num: &T) -> (Rational, Option<Rational>) {
         assert!(
             self.max_p.is_some() || self.min_n.is_some(),
             "must specify either maximum precision or least absolute digit"

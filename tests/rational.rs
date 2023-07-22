@@ -198,3 +198,31 @@ fn traits() {
         );
     }
 }
+
+/// Testing rounding
+#[test]
+fn round_trivial() {
+    // rounding context
+    let ctx = Context::new().with_max_precision(1);
+
+    // round(zero) = round
+    let zero = Rational::zero();
+    let (rounded_zero, err) = ctx.round(&zero);
+    assert!(rounded_zero.is_zero(), "round(0) = 0");
+    assert!(err.is_none(), "rounding 0 should have no error");
+
+    // round(+Inf) = +Inf
+    let (rounded_pos_inf, err) = ctx.round(&POS_INF);
+    assert!(rounded_pos_inf.is_infinite(), "round(+Inf) = +Inf");
+    assert!(err.is_none(), "rounding +Inf should have no error");
+
+    // round(-Inf) = -Inf
+    let (rounded_neg_inf, err) = ctx.round(&NEG_INF);
+    assert!(rounded_neg_inf.is_infinite(), "round(-Inf) = -Inf");
+    assert!(err.is_none(), "rounding -Inf should have no error");
+
+    // round(Nan) = Nan
+    let (rounded_nan, err) = ctx.round(&NAN);
+    assert!(rounded_nan.is_nar(), "round(-Nan) = Nan");
+    assert!(err.is_none(), "rounding Nan should have no error");
+}
