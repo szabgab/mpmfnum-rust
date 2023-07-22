@@ -6,6 +6,9 @@
 //
 // The rational number type
 
+use std::cmp::Ordering;
+use std::cmp::min;
+
 use gmp::mpz::*;
 
 use crate::number::Number;
@@ -20,7 +23,7 @@ use crate::number::Number;
 /// Rational numbers may encode a non-real number (see [`NAN`]) which is
 /// interpreted as a NaN (neither finite nor infinite). All operations
 /// canonicalize -0 to +0 (no sign bit).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Rational {
     /// A finite (real) number specified by the canonical triple
     /// of sign, exponent, significand.
@@ -199,5 +202,93 @@ impl Rational {
     /// Constructs positive one.
     pub fn one() -> Self {
         Rational::Real(false, 0, Mpz::from(1))
+    }
+
+    /// Returns true if the number is [`NAN`].
+    pub fn is_nan(&self) -> bool {
+        matches!(self, Rational::Nan)
+    }
+}
+
+impl PartialOrd for Rational {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (&self, &other) {
+            (Rational::Nan, _) => None,
+            (_, Rational::Nan) => None,
+            (Rational::Infinite(s1), Rational::Infinite(s2)) => {
+                if *s1 == *s2 {
+                    // infinities of the same sign
+                    Some(Ordering::Equal)
+                } else if *s1 {
+                    // -Inf < +Inf
+                    Some(Ordering::Less)
+                } else {
+                    // +Inf > -Inf
+                    Some(Ordering::Greater)
+                }
+            },
+            (Rational::Infinite(s), _) => {
+                if *s {
+                    // -Inf < finite
+                    Some(Ordering::Less)
+                } else {
+                    // +Inf > finite
+                    Some(Ordering::Greater)
+                }
+            },
+            (_, Rational::Infinite(s)) => {
+                if *s {
+                    // finite > -Inf
+                    Some(Ordering::Greater)
+                } else {
+                    // finite < +Inf
+                    Some(Ordering::Less)
+                }
+            },
+            (Rational::Real(s1, exp1, c1), Rational::Real(s2, exp2, c2)) => {
+                // finite <?> finite
+                // check for zero
+                if c1.is_zero() && c2.is_zero() {
+                    Some(Ordering::Equal)
+                } else if c1.is_zero() {
+                    if *s2 {
+                        // 0 > -finite
+                        Some(Ordering::Greater)
+                    } else {
+                        // 0 < finite
+                        Some(Ordering::Less)
+                    }
+                } else if c2.is_zero() {
+                    if *s1 {
+                        // -finite < 0
+                        Some(Ordering::Less)
+                    } else {
+                        // finite > 0
+                        Some(Ordering::Greater)
+                    }
+                } else {
+                    // non-zero, finite <?> non-zero finite
+
+                    // normalize: inefficient but slow
+                    let n1 = exp1 - 1;
+                    let n2 = exp2 - 1;
+                    let n = min(n1, n2);
+
+                    // compare ordinals
+                    let mut ord1 = c1 << (n1 - n) as usize;
+                    let mut ord2 = c2 << (n2 - n) as usize;
+
+                    if *s1 {
+                        ord1 = -ord1;
+                    }
+
+                    if *s2 {
+                        ord2 = -ord2;
+                    }
+
+                    Some(ord1.cmp(&ord2))
+                }
+            }
+        }
     }
 }

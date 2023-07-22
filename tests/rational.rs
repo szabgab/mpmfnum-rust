@@ -199,7 +199,7 @@ fn traits() {
     }
 }
 
-/// Testing rounding
+/// Testing rounding for easy cases
 #[test]
 fn round_trivial() {
     // rounding context
@@ -225,4 +225,21 @@ fn round_trivial() {
     let (rounded_nan, err) = ctx.round(&NAN);
     assert!(rounded_nan.is_nar(), "round(-Nan) = Nan");
     assert!(err.is_none(), "rounding Nan should have no error");
+}
+
+/// Testing rounding using fixed-point rounding
+#[test]
+fn round_fixed() {
+    // 1 (min_n == -1)
+    let ctx = Context::new().with_min_n(-1);
+    let one = Rational::Real(false, -2, Mpz::from(4));
+    let (rounded_one, _) = ctx.round(&one);
+    assert_eq!(rounded_one, one, "rounding should not have lost bits");
+
+    // 1 (min_n == 0)
+    let ctx = Context::new().with_min_n(0);
+    let one = Rational::Real(false, -2, Mpz::from(4));
+    let (rounded_one, _) = ctx.round(&one);
+    assert_eq!(rounded_one, Rational::zero(), "rounding should have truncated to 0");
+
 }
