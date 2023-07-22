@@ -7,6 +7,7 @@
 // Tests for the rational module
 
 use gmp::mpz::Mpz;
+use rug::Float;
 use std::cmp::Ordering;
 
 use mpmfnum::rational::*;
@@ -715,4 +716,23 @@ fn neg() {
     assert!(neg_pos_inf.sign(), "-(+Inf) is signed");
     assert!(!neg_neg_inf.sign(), "-(-Inf) is not signed");
     assert!(!neg_nan.sign(), "-Nan is not signed");
+}
+
+#[test]
+fn mpfr_integration() {
+    // test values
+    let zero = Rational::zero(); // 0
+    let one = Rational::one(); // 1
+    let frac = Rational::Real(true, -4, Mpz::from(7)); // -7 * 2^-4
+    let pos_inf = POS_INF; // +Inf
+    let neg_inf = NEG_INF; // -Inf,
+    let nan = NAN; // NaN
+
+    let vals = [zero, one, frac, pos_inf, neg_inf, nan];
+
+    for val in &vals {
+        let f: Float = val.clone().into();
+        let val2 = Rational::from(f);
+        assert!(is_equal(val, &val2), "conversion should have been exact: {:?} != {:?}", val, val2);
+    }
 }
