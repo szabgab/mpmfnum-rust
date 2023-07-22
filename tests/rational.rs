@@ -303,54 +303,103 @@ fn round_float() {
     // rounding 1.25 with 2 bits, round-to-nearest
     let ctx = ctx.with_max_precision(2);
     let (rounded, _) = ctx.round(&one_1_4);
-    assert_eq!(rounded, one, "rounding should be exact");
+    assert_eq!(rounded, one, "rounding goes to 1");
 
     // rounding 1.25 with 2 bits, round-to-positive
     let ctx = ctx.with_rounding_mode(RoundingMode::ToPositive);
     let (rounded, _) = ctx.round(&one_1_4);
-    assert_eq!(rounded, one_1_2, "rounding should be exact");
+    assert_eq!(rounded, one_1_2, "rounding goes to 3/2");
 
     // rounding 1.25 with 2 bits, round-to-negative
     let ctx = ctx.with_rounding_mode(RoundingMode::ToNegative);
     let (rounded, _) = ctx.round(&one_1_4);
-    assert_eq!(rounded, one, "rounding should be exact");
+    assert_eq!(rounded, one, "rounding goes to 1");
 
     // rounding 1.25 with 2 bits, round-to-even
     let ctx = ctx.with_rounding_mode(RoundingMode::ToEven);
     let (rounded, _) = ctx.round(&one_1_4);
-    assert_eq!(rounded, one, "rounding should be exact");
+    assert_eq!(rounded, one, "rounding goes to 1");
 
     // rounding 1.25 with 2 bits, round-to-odd
     let ctx = ctx.with_rounding_mode(RoundingMode::ToOdd);
     let (rounded, _) = ctx.round(&one_1_4);
-    assert_eq!(rounded, one_1_2, "rounding should be exact");
+    assert_eq!(rounded, one_1_2, "rounding goes to 3/2");
 
     // 1.125, 2 bit
 
     // rounding 1.125 with 2 bits, round-to-nearest
     let ctx = ctx.with_rounding_mode(RoundingMode::NearestTiesToEven);
     let (rounded, _) = ctx.round(&one_1_8);
-    assert_eq!(rounded, one, "rounding should be exact");
+    assert_eq!(rounded, one, "rounding goes to 1");
 
     // rounding 1.125 with 2 bits, round-to-positive
     let ctx = ctx.with_rounding_mode(RoundingMode::ToPositive);
     let (rounded, _) = ctx.round(&one_1_8);
-    assert_eq!(rounded, one_1_2, "rounding should be exact");
+    assert_eq!(rounded, one_1_2, "rounding goes to 3/2");
 
     // rounding 1.125 with 2 bits, round-to-negative
     let ctx = ctx.with_rounding_mode(RoundingMode::ToNegative);
     let (rounded, _) = ctx.round(&one_1_8);
-    assert_eq!(rounded, one, "rounding should be exact");
+    assert_eq!(rounded, one, "rounding goes to 1");
 
     // rounding 1.125 with 2 bits, round-to-even
     let ctx = ctx.with_rounding_mode(RoundingMode::ToEven);
     let (rounded, _) = ctx.round(&one_1_8);
-    assert_eq!(rounded, one, "rounding should be exact");
+    assert_eq!(rounded, one, "rounding goes to 1");
 
     // rounding 1.125 with 2 bits, round-to-odd
     let ctx = ctx.with_rounding_mode(RoundingMode::ToOdd);
     let (rounded, _) = ctx.round(&one_1_8);
-    assert_eq!(rounded, one_1_2, "rounding should be exact");
+    assert_eq!(rounded, one_1_2, "rounding goes to 3/2");
+}
+
+/// Testing rounding using floating-point rounding using subnormals
+#[test]
+fn round_float_subnorm() {
+    let one = Rational::Real(false, 0, Mpz::from(1));
+    let half_way = Rational::Real(false, -3, Mpz::from(7));
+    let tiny_val = Rational::Real(false, -2, Mpz::from(3));
+    let one_half = Rational::Real(false, -1, Mpz::from(1));
+
+    // No subnormals, round-to-nearest
+    let ctx = Context::new().with_max_precision(2);
+    let (rounded, _) = ctx.round(&half_way);
+    assert_eq!(one, rounded, "rounding to 1");
+
+    // No subnormals, round-away-zero
+    let ctx = ctx.with_rounding_mode(RoundingMode::AwayZero);
+    let (rounded, _) = ctx.round(&half_way);
+    assert_eq!(one, rounded, "rounding to 1");
+
+    // No subnormals, round-to-zero
+    let ctx = ctx.with_rounding_mode(RoundingMode::ToZero);
+    let (rounded, _) = ctx.round(&half_way);
+    assert_eq!(tiny_val, rounded, "rounding to 3/4");
+
+    // Float<2, 4>, round-to-nearest
+    let ctx = Context::new().with_max_precision(2).with_min_n(-2);
+    let (rounded, _) = ctx.round(&tiny_val);
+    assert_eq!(one, rounded, "rounding to 1");
+
+    // Float<2, 4>, round-away-zero
+    let ctx = ctx.with_rounding_mode(RoundingMode::AwayZero);
+    let (rounded, _) = ctx.round(&tiny_val);
+    assert_eq!(one, rounded, "rounding to 1");
+
+    // Float<2, 4>, round-to-zero
+    let ctx = ctx.with_rounding_mode(RoundingMode::ToZero);
+    let (rounded, _) = ctx.round(&tiny_val);
+    assert_eq!(one_half, rounded, "rounding to 1/2");
+
+    // Float<2, 4>, round-to-even
+    let ctx = ctx.with_rounding_mode(RoundingMode::ToEven);
+    let (rounded, _) = ctx.round(&tiny_val);
+    assert_eq!(one, rounded, "rounding to 1");
+
+    // Float<2, 4>, round-to-odd
+    let ctx = ctx.with_rounding_mode(RoundingMode::ToOdd);
+    let (rounded, _) = ctx.round(&tiny_val);
+    assert_eq!(one_half, rounded, "rounding to 1/2");
 }
 
 #[test]
