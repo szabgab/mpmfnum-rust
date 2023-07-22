@@ -53,7 +53,7 @@ pub trait Number {
     /// for finite, non-zero numbers.
     fn e(&self) -> Option<Mpz>;
 
-    /// The "least significant exponent", the place below the least
+    /// The "least absolute exponent", the place below the least
     /// significant digit of the mantissa. Always equal to `self.exp() - 1`.
     /// For integer formats, this is just -1. Only well-defined for finite,
     /// non-zero numbers.

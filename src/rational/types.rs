@@ -17,7 +17,7 @@ use crate::number::Number;
 /// a _fixed-width_ rational number `(-1)^s * c * 2^e` where `c` is a
 /// binary-encoded integer with a maximum bitwidth. Like rational numbers,
 /// `e` is theoretically unbounded and may be as large or small as needed.
-/// Rational numbers may encode a non-real number (see [`NAR`]) which is
+/// Rational numbers may encode a non-real number (see [`NAN`]) which is
 /// interpreted as a NaN (neither finite nor infinite). All operations
 /// canonicalize -0 to +0 (no sign bit).
 #[derive(Debug, Clone)]
@@ -31,7 +31,7 @@ pub enum Rational {
     Nan,
 }
 
-/// An instatiation of [`Rational::Nan`].
+/// An instantiation of [`Rational::Nan`].
 pub const NAN: Rational = Rational::Nan;
 
 /// An instantiation of [`Rational::Infinite`] with positive sign.
@@ -188,5 +188,12 @@ impl Number for Rational {
             Rational::Infinite(_) => true,
             Rational::Nan => false,
         }
+    }
+}
+
+impl Rational {
+    /// Constructs a zero value.
+    pub fn zero() -> Self {
+        Rational::Real(false, Mpz::from(0), Mpz::from(0))
     }
 }
