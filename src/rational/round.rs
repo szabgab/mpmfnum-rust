@@ -51,7 +51,7 @@ use crate::{Number, RoundingContext};
 /// The rounding behavior of zero, infinite, and not-numerical values will be
 /// unaffected by rounding mode.
 ///
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum RoundingMode {
     NearestTiesToEven,
     NearestTiesAwayZero,

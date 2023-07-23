@@ -359,8 +359,6 @@ impl From<Rational> for Float {
     }
 }
 
-
-
 impl From<Float> for Rational {
     fn from(val: Float) -> Self {
         if val.is_nan() {

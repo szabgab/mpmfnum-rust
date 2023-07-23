@@ -11,4 +11,5 @@
 mod round;
 mod types;
 
+pub use round::Context;
 pub use types::{Exceptions, IEEE754};

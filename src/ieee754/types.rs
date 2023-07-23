@@ -9,6 +9,7 @@
 use gmp::mpz::Mpz;
 
 use crate::{rational::Rational, Number};
+use crate::ieee754::Context;
 
 /// Exception flags to signal certain properties of the rounded result.
 ///
@@ -48,7 +49,7 @@ use crate::{rational::Rational, Number};
 ///     will be raised regardless of the state of the `inexact` flag
 ///     i.e., `underflow_post = tiny_post && inexact`.
 ///
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct Exceptions {
     // defined in the IEEE 754 standard
     pub invalid: bool,
@@ -69,7 +70,7 @@ pub struct Exceptions {
 /// required to bitvector that encodes a binary floating-point number
 /// as described by the IEEE 754 standard.
 #[derive(Clone, Debug)]
-enum Float {
+pub(crate) enum Float {
     // zero (+/-)
     // => (sign)
     Zero(bool),
@@ -98,76 +99,18 @@ enum Float {
 pub struct IEEE754 {
     num: Float,
     flags: Exceptions,
-    es: usize,
-    nbits: usize,
+    ctx: Context
 }
 
 impl IEEE754 {
-    /// Returns the bitwidth of the exponent when viewed as a bitvector.
-    /// This is guaranteed to satisfy `2 <= self.es() <= self.nbits() - 2.
-    /// Exponent overflowing will likely occur past 60 bits, but MPFR
-    /// generally has a limit at 31 bits.
-    pub fn es(&self) -> usize {
-        self.es
-    }
-
-    /// Returns the bitwidth of the entire number when viewed as a bitvector.
-    /// This is guaranteed to satisfy `self.es() + 2 <= self.nbits()`.
-    pub fn nbits(&self) -> usize {
-        self.nbits
-    }
-
     /// Returns the flags set during the creation of this number
-    pub fn flags(&self) -> Exceptions {
-        self.flags
+    pub fn flags(&self) -> &Exceptions {
+        &self.flags
     }
 
-    /// Returns the maximum precision allowed by this format.
-    /// The result is always `self.nbits() - self.es()`.
-    pub fn max_p(&self) -> usize {
-        self.nbits - self.es
-    }
-
-    /// Returns the maximum width of the significand when viewed
-    /// as a bitvector. The result is always `self.max_p() - 1`.
-    pub fn max_m(&self) -> usize {
-        self.nbits - self.es - 1
-    }
-
-    /// Exponent of the largst finite floating-point value representable
-    /// in this format when viewed as `(-1)^s * m * b^e` where `m`
-    /// is a fraction between 1 and 2.
-    pub fn emax(&self) -> isize {
-        (1 << (self.es() - 1)) - 1
-    }
-
-    /// Exponent of the smallest normal floating-point value representable
-    /// in this format when viewed as `(-1)^s * m * b^e` where `m`
-    /// is a fraction between 1 and 2. The result is just `self.emax() - 1`.
-    pub fn emin(&self) -> isize {
-        1 - self.emax()
-    }
-
-    /// Exponent of the largst finite floating-point value representable
-    /// in this format when viewed as `(-1)^s * c * b^e` where `c`
-    /// is an integer. The result is just `self.emax() - self.max_m()`
-    pub fn expmax(&self) -> isize {
-        self.emax() - (self.max_m() as isize)
-    }
-
-    /// Exponent of the smallest normal floating-point value representable
-    /// in this format when viewed as `(-1)^s * c * b^e` where `c`
-    /// is an integer. The result is just `self.emin() - self.max_m()`
-    /// `self.emax() - 1`.
-    pub fn expmin(&self) -> isize {
-        self.emin() - (self.max_m() as isize)
-    }
-
-    /// The exponent "bias" used when converting a valid exponent range
-    /// `[emin, emax]` to unsigned integers for bitpacking. Specifically,
-    /// the final range is `[1, 2*emax]` The result is just `self.emax()`.
-    pub fn bias(&self) -> isize {
-        self.emax()
+    /// Returns the rounding context used to create this number.
+    pub fn ctx(&self) -> &Context {
+        &self.ctx
     }
 }
 
@@ -189,7 +132,7 @@ impl Number for IEEE754 {
     fn exp(&self) -> Option<isize> {
         match &self.num {
             Float::Zero(_) => None,
-            Float::Subnormal(_, _) => Some(self.expmin()),
+            Float::Subnormal(_, _) => Some(self.ctx().expmin()),
             Float::Normal(_, exp, _) => Some(*exp),
             Float::Infinity(_) => None,
             Float::Nan(_, _, _) => None,
@@ -199,7 +142,7 @@ impl Number for IEEE754 {
     fn e(&self) -> Option<isize> {
         match &self.num {
             Float::Zero(_) => None,
-            Float::Subnormal(_, c) => Some((self.expmin() - 1) + (c.bit_length() as isize)),
+            Float::Subnormal(_, c) => Some((self.ctx().expmin() - 1) + (c.bit_length() as isize)),
             Float::Normal(_, exp, c) => Some((*exp - 1) + (c.bit_length() as isize)),
             Float::Infinity(_) => None,
             Float::Nan(_, _, _) => None,
@@ -209,7 +152,7 @@ impl Number for IEEE754 {
     fn n(&self) -> Option<isize> {
         match &self.num {
             Float::Zero(_) => None,
-            Float::Subnormal(_, _) => Some(self.expmin() - 1),
+            Float::Subnormal(_, _) => Some(self.ctx().expmin() - 1),
             Float::Normal(_, exp, _) => Some(exp - 1),
             Float::Infinity(_) => None,
             Float::Nan(_, _, _) => None,
@@ -285,4 +228,3 @@ impl From<IEEE754> for Rational {
         }
     }
 }
-
