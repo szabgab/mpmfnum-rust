@@ -177,7 +177,7 @@ impl Context {
     /// the binary digits at or below the `n`th place, and the two
     /// subsequent binary digits at the digit `n` and `n-1` (the halfway
     /// and sticky rounding bits).
-    fn split<T: Number>(num: &T, n: isize) -> (isize, Mpz, Mpz, bool, bool) {
+    pub(crate) fn split<T: Number>(num: &T, n: isize) -> (isize, Mpz, Mpz, bool, bool) {
         // number components
         let exp = num.exp().unwrap();
         let c = num.c().unwrap();
