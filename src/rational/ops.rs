@@ -23,7 +23,8 @@ macro_rules! mpfr_1ary {
     ($name:ident; $mpfr:ident; $cname:expr) => {
         #[doc = "Applies `"]
         #[doc = $cname]
-        #[doc = "`to two [`Rational`] numbers with `p` precision using MPFR, rounding to odd."]
+        #[doc = "` to a [`Rational`] number with `p`
+                 precision using MPFR, rounding to odd."]
         pub fn $name(&self, p: usize) -> Self {
             use mpfr::{rnd_t::RNDZ, PREC_MAX, PREC_MIN};
             assert!(
@@ -46,7 +47,8 @@ macro_rules! mpfr_2ary {
     ($name:ident; $mpfr:ident; $cname:expr) => {
         #[doc = "Applies `"]
         #[doc = $cname]
-        #[doc = "`to two [`Rational`] numbers with `p` precision using MPFR, rounding to odd."]
+        #[doc = "` to two [`Rational`] numbers with `p`
+                 precision using MPFR, rounding to odd."]
         pub fn $name(&self, other: &Self, p: usize) -> Self {
             use mpfr::{rnd_t::RNDZ, PREC_MAX, PREC_MIN};
             assert!(
@@ -160,20 +162,44 @@ impl Rational {
     }
 
     // Unary operators
-    mpfr_1ary!(sqrt_with_mpfr; sqrt; "sqrt");
-    mpfr_1ary!(cbrt_with_mpfr; cbrt; "cbrt");
-    mpfr_1ary!(exp_with_mpfr; exp; "exp");
-    mpfr_1ary!(exp2_with_mpfr; exp2; "exp2");
-    mpfr_1ary!(exp10_with_mpfr; exp10; "exp10");
-    mpfr_1ary!(log_with_mpfr; log; "log");
-    mpfr_1ary!(log2_with_mpfr; log2; "log2");
-    mpfr_1ary!(log10_with_mpfr; log10; "log10");
+    mpfr_1ary!(neg_with_mpfr; neg; "(- x)");
+    mpfr_1ary!(sqrt_with_mpfr; sqrt; "sqrt(x)");
+    mpfr_1ary!(cbrt_with_mpfr; cbrt; "cbrt(x)");
+    mpfr_1ary!(exp_with_mpfr; exp; "exp(x)");
+    mpfr_1ary!(exp2_with_mpfr; exp2; "2^x");
+    // mpfr_1ary!(exp10_with_mpfr; exp10; "exp10(x)");
+    mpfr_1ary!(expm1_with_mpfr; expm1; "e^x - 1");
+    mpfr_1ary!(log_with_mpfr; log; "ln(x)");
+    mpfr_1ary!(log2_with_mpfr; log2; "log2(x)");
+    mpfr_1ary!(log10_with_mpfr; log10; "log10(x)");
+    mpfr_1ary!(log1p_with_mpfr; log1p; "ln(x + 1)");
+    mpfr_1ary!(sin_with_mpfr; sin; "sin(x)");
+    mpfr_1ary!(cos_with_mpfr; cos; "cos(x)");
+    mpfr_1ary!(tan_with_mpfr; tan; "tan(x)");
+    mpfr_1ary!(asin_with_mpfr; asin; "arcsin(x)");
+    mpfr_1ary!(acos_with_mpfr; acos; "arccos(x)");
+    mpfr_1ary!(atan_with_mpfr; atan; "arctan(x)");
+    mpfr_1ary!(sinh_with_mpfr; sinh; "sinh(x)");
+    mpfr_1ary!(cosh_with_mpfr; cosh; "cosh(x)");
+    mpfr_1ary!(tanh_with_mpfr; tanh; "tanh(x)");
+    mpfr_1ary!(asinh_with_mpfr; asinh; "arsinh(x)");
+    mpfr_1ary!(acosh_with_mpfr; acosh; "arcosh(x)");
+    mpfr_1ary!(atanh_with_mpfr; atanh; "artanh(x)");
+    mpfr_1ary!(erf_with_mpfr; erf; "erf(x)");
+    mpfr_1ary!(erfc_with_mpfr; erfc; "erfc(x)");
+    mpfr_1ary!(tgamma_with_mpfr; gamma; "tgamma(x)");
+    mpfr_1ary!(lgamma_with_mpfr; lngamma; "erfc(x)");
 
     // Binary operators
-    mpfr_2ary!(add_with_mpfr; add; "add");
-    mpfr_2ary!(sub_with_mpfr; sub; "sub");
-    mpfr_2ary!(mul_with_mpfr; mul; "mul");
-    mpfr_2ary!(div_with_mpfr; div; "div");
+    mpfr_2ary!(add_with_mpfr; add; "x + y");
+    mpfr_2ary!(sub_with_mpfr; sub; "x - y");
+    mpfr_2ary!(mul_with_mpfr; mul; "x * y");
+    mpfr_2ary!(div_with_mpfr; div; "x / y");
+    mpfr_2ary!(pow_with_mpfr; pow; "x ^ y");
+    mpfr_2ary!(hypot_with_mpfr; hypot; "sqrt(x^2 + y^2)");
+    mpfr_2ary!(fmod_with_mpfr; fmod; "fmod(x, y)");
+    mpfr_2ary!(remainder_with_mpfr; remainder; "remainder(x, y)");
+    mpfr_2ary!(atan2_with_mpfr; atan2; "arctan(y / x)");
 }
 
 impl Neg for Rational {

@@ -15,7 +15,7 @@
     [BigInt](https://docs.rs/num-bigint/latest/num_bigint/) or
     [Rug](https://docs.rs/rug/latest/rug/) (MPFR), this library
     emphasizes a clean abstraction of various computer number systems
-    rather than high-performance arbitrary-precision numbers.
+    rather than high-performance for arbitrary-precision numbers.
 
     This is the API documentation.
 
