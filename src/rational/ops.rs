@@ -9,16 +9,67 @@
 use std::cmp::min;
 use std::ops::{Add, Mul, Neg, Sub};
 
+use rug::Float;
+
+use gmp::mpz::Mpz;
 use gmp::sign::Sign;
+use gmp_mpfr_sys::mpfr;
 
 use crate::ops::*;
 use crate::rational::*;
 use crate::RoundingContext;
 
+macro_rules! mpfr_1ary {
+    ($name:ident; $mpfr:ident; $cname:expr) => {
+        #[doc = "Applies `"]
+        #[doc = $cname]
+        #[doc = "`to two [`Rational`] numbers with `p` precision using MPFR, rounding to odd."]
+        pub fn $name(&self, p: usize) -> Self {
+            use mpfr::{rnd_t::RNDZ, PREC_MAX, PREC_MIN};
+            assert!(
+                p as i64 >= PREC_MIN && p as i64 <= PREC_MAX,
+                "precision must be between {} and {}",
+                PREC_MIN,
+                PREC_MAX
+            );
+
+            let mut dst = Float::new(p as u32);
+            let src = Float::from(self.clone());
+            let t = unsafe { mpfr::$mpfr(dst.as_raw_mut(), src.as_raw(), RNDZ) };
+
+            Rational::from(dst).with_ternary(t)
+        }
+    };
+}
+
+macro_rules! mpfr_2ary {
+    ($name:ident; $mpfr:ident; $cname:expr) => {
+        #[doc = "Applies `"]
+        #[doc = $cname]
+        #[doc = "`to two [`Rational`] numbers with `p` precision using MPFR, rounding to odd."]
+        pub fn $name(&self, other: &Self, p: usize) -> Self {
+            use mpfr::{rnd_t::RNDZ, PREC_MAX, PREC_MIN};
+            assert!(
+                p as i64 >= PREC_MIN && p as i64 <= PREC_MAX,
+                "precision must be between {} and {}",
+                PREC_MIN,
+                PREC_MAX
+            );
+
+            let mut dst = Float::new(p as u32);
+            let src1 = Float::from(self.clone());
+            let src2 = Float::from(other.clone());
+            let t = unsafe { mpfr::$mpfr(dst.as_raw_mut(), src1.as_raw(), src2.as_raw(), RNDZ) };
+
+            Rational::from(dst).with_ternary(t)
+        }
+    };
+}
+
 impl Rational {
     /// Adds two numbers of type [`Rational`] exactly.
     /// Addition of non-real values follows the usual IEEE 754 rules.
-    fn add_exact(&self, other: &Self) -> Self {
+    pub fn add_exact(&self, other: &Self) -> Self {
         match (&self, other) {
             // invalid arguments means invalid result
             (Self::Nan, _) => Self::Nan,
@@ -66,7 +117,7 @@ impl Rational {
     /// Multiplies two numbers of type [`Rational`] exactly.
     /// Multiplication of non-real values follows the usual
     /// IEEE 754 rules.
-    fn mul_exact(&self, other: &Self) -> Self {
+    pub fn mul_exact(&self, other: &Self) -> Self {
         match (&self, other) {
             // invalid arguments means invalid result
             (Self::Nan, _) => Self::Nan,
@@ -95,6 +146,34 @@ impl Rational {
             }
         }
     }
+
+    /// Applies a correction to a [`Rational`] type from an MPFR ternary
+    /// value to translate round-to-zero to round odd.
+    fn with_ternary(mut self, t: i32) -> Self {
+        if let Rational::Real(s, exp, c) = &self {
+            if t != 0 && c.tstbit(0) {
+                self = Rational::Real(*s, *exp, c + Mpz::from(1));
+            }
+        }
+
+        self
+    }
+
+    // Unary operators
+    mpfr_1ary!(sqrt_with_mpfr; sqrt; "sqrt");
+    mpfr_1ary!(cbrt_with_mpfr; cbrt; "cbrt");
+    mpfr_1ary!(exp_with_mpfr; exp; "exp");
+    mpfr_1ary!(exp2_with_mpfr; exp2; "exp2");
+    mpfr_1ary!(exp10_with_mpfr; exp10; "exp10");
+    mpfr_1ary!(log_with_mpfr; log; "log");
+    mpfr_1ary!(log2_with_mpfr; log2; "log2");
+    mpfr_1ary!(log10_with_mpfr; log10; "log10");
+
+    // Binary operators
+    mpfr_2ary!(add_with_mpfr; add; "add");
+    mpfr_2ary!(sub_with_mpfr; sub; "sub");
+    mpfr_2ary!(mul_with_mpfr; mul; "mul");
+    mpfr_2ary!(div_with_mpfr; div; "div");
 }
 
 impl Neg for Rational {
