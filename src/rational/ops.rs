@@ -119,7 +119,7 @@ impl Add for Rational {
 
 impl RoundedAdd<Context> for Rational {
     fn add(&self, other: &Self, ctx: &Context) -> Rational {
-        ctx.round(&self.add_exact(&other))
+        ctx.round(&self.add_exact(other))
     }
 }
 
@@ -133,6 +133,6 @@ impl Mul for Rational {
 
 impl RoundedMul<Context> for Rational {
     fn mul(&self, other: &Self, ctx: &Context) -> Rational {
-        ctx.round(&self.mul_exact(&other))
+        ctx.round(&self.mul_exact(other))
     }
 }

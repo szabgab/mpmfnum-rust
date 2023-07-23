@@ -4,6 +4,11 @@
 
 // ieee754/mod.rs
 //
-// Top-level file
-// Exports all public functions
+// Top-level of the rational module.
+// Exports public functions
 //
+
+mod round;
+mod types;
+
+pub use types::{Exceptions, IEEE754};

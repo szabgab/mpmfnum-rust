@@ -649,9 +649,9 @@ fn addition() {
     let neg_inf = NEG_INF; // -Inf,
     let nan = NAN; // NaN
 
-    let two = Rational::Real(false, 0, Mpz::from(2));           // 2
-    let two_frac = Rational::Real(true, -4, Mpz::from(14));    // 14 * 2^-4
-    let one_m_frac = Rational::Real(false, -4, Mpz::from(9));   // 9 * 2^-4
+    let two = Rational::Real(false, 0, Mpz::from(2)); // 2
+    let two_frac = Rational::Real(true, -4, Mpz::from(14)); // 14 * 2^-4
+    let one_m_frac = Rational::Real(false, -4, Mpz::from(9)); // 9 * 2^-4
 
     let vals = [&zero, &one, &frac, &pos_inf, &neg_inf, &nan];
 
@@ -691,7 +691,6 @@ fn addition() {
         assert_expected_add(&nan, val, expected);
     }
 }
-
 
 #[test]
 fn neg() {
@@ -733,6 +732,11 @@ fn mpfr_integration() {
     for val in &vals {
         let f: Float = val.clone().into();
         let val2 = Rational::from(f);
-        assert!(is_equal(val, &val2), "conversion should have been exact: {:?} != {:?}", val, val2);
+        assert!(
+            is_equal(val, &val2),
+            "conversion should have been exact: {:?} != {:?}",
+            val,
+            val2
+        );
     }
 }

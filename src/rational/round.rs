@@ -249,11 +249,11 @@ impl Context {
             }
             (true, true, false, RoundingDirection::ToEven) => {
                 // nearest, exactly halfway, ToEven => increment if odd
-                !is_even(exp, &c)
+                !is_even(exp, c)
             }
             (true, true, false, RoundingDirection::ToOdd) => {
                 // nearest, exactly halfway, ToOdd => increment if even
-                is_even(exp, &c)
+                is_even(exp, c)
             }
             (false, _, _, RoundingDirection::ToZero) => {
                 // directed, toZero => always truncate
@@ -265,11 +265,11 @@ impl Context {
             }
             (false, _, _, RoundingDirection::ToEven) => {
                 // directed, toEven => increment if odd
-                !is_even(exp, &c)
+                !is_even(exp, c)
             }
             (false, _, _, RoundingDirection::ToOdd) => {
                 // directed, toOdd => increment if even
-                is_even(exp, &c)
+                is_even(exp, c)
             }
         }
     }

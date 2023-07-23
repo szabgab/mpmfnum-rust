@@ -12,9 +12,9 @@ use std::cmp::Ordering;
 use gmp::mpz::Mpz;
 use gmp::sign::Sign;
 
-use rug::Float;
-use rug::float::Special;
 use rug::float::prec_min;
+use rug::float::Special;
+use rug::Float;
 
 use gmp_mpfr_sys::gmp::mpz_t;
 use gmp_mpfr_sys::mpfr;
@@ -321,44 +321,45 @@ impl PartialEq for Rational {
     }
 }
 
-impl Into<Float> for Rational {
-    fn into(self) -> Float {
-        match &self {
-            Self::Nan => {
-                Float::with_val(prec_min(), Special::Nan)
-            },
-            Self::Infinite(s) => {
+impl From<Rational> for Float {
+    fn from(val: Rational) -> Self {
+        match &val {
+            Rational::Nan => Float::with_val(prec_min(), Special::Nan),
+            Rational::Infinite(s) => {
                 if *s {
                     Float::with_val(prec_min(), Special::NegInfinity)
                 } else {
                     Float::with_val(prec_min(), Special::Infinity)
                 }
             }
-            Self::Real(s, exp, c) => {
+            Rational::Real(s, exp, c) => {
                 if c.is_zero() {
                     Float::with_val(prec_min(), 0.0)
                 } else {
-                    let mut f = Float::new(self.p() as u32);
+                    let mut f = Float::new(val.p() as u32);
 
                     unsafe {
                         // set `f` to `c * 2^exp`
                         let ptr = c.inner() as *const mpz_t;
-                        let t = mpfr::set_z_2exp(f.as_raw_mut(), ptr, *exp as i64, mpfr::rnd_t::RNDN);
+                        let t =
+                            mpfr::set_z_2exp(f.as_raw_mut(), ptr, *exp as i64, mpfr::rnd_t::RNDN);
                         assert_eq!(t, 0, "should have been exact");
-    
+
                         // negate if necessary
                         if *s {
                             let t = mpfr::neg(f.as_raw_mut(), f.as_raw(), mpfr::rnd_t::RNDN);
                             assert_eq!(t, 0, "should have been exact");
                         }
                     }
-    
+
                     f
                 }
             }
         }
     }
 }
+
+
 
 impl From<Float> for Rational {
     fn from(val: Float) -> Self {
@@ -371,14 +372,12 @@ impl From<Float> for Rational {
         } else {
             let mut m = Mpz::zero();
             let exp: isize;
-            
+
             unsafe {
                 let ptr = m.inner_mut() as *mut mpz_t;
                 exp = mpfr::get_z_2exp(ptr, val.as_raw()) as isize;
             }
 
-
-            
             Self::Real(m.sign() == Sign::Negative, exp, m.abs()).canonicalize()
         }
     }
