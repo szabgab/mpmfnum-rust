@@ -9,15 +9,15 @@
 use crate::{Number, RoundingContext};
 
 /// Rounded addition.
-pub trait RoundedAdd<C: RoundingContext>: Number {
+pub trait RoundedAdd: RoundingContext {
     /// Adds two values of type `Self` exactly, rounding according
     /// to the rounding context `ctx`.
-    fn add(&self, other: &Self, ctx: &C) -> C::Rounded;
+    fn add<N1: Number, N2: Number>(&self, src1: &N1, src2: &N2) -> Self::Rounded;
 }
 
 /// Rounded multiplication.
-pub trait RoundedMul<C: RoundingContext>: Number {
-    /// Multiplies two values of type `Self` exactly, rounding according
+pub trait RoundedMul: RoundingContext {
+    /// Adds two values of type `Self` exactly, rounding according
     /// to the rounding context `ctx`.
-    fn mul(&self, other: &Self, ctx: &C) -> C::Rounded;
+    fn mul<N1: Number, N2: Number>(&self, src1: &N1, src2: &N2) -> Self::Rounded;
 }

@@ -15,9 +15,7 @@ use gmp::mpz::Mpz;
 use gmp::sign::Sign;
 use gmp_mpfr_sys::mpfr;
 
-use crate::ops::*;
 use crate::rational::*;
-use crate::RoundingContext;
 
 macro_rules! mpfr_1ary {
     ($name:ident; $mpfr:ident; $cname:expr) => {
@@ -28,16 +26,18 @@ macro_rules! mpfr_1ary {
         pub fn $name(&self, p: usize) -> Self {
             use mpfr::{rnd_t::RNDZ, PREC_MAX, PREC_MIN};
             assert!(
-                p as i64 >= PREC_MIN && p as i64 <= PREC_MAX,
+                p as i64 > PREC_MIN && p as i64 <= PREC_MAX,
                 "precision must be between {} and {}",
-                PREC_MIN,
+                PREC_MIN + 1,
                 PREC_MAX
             );
 
-            let mut dst = Float::new(p as u32);
+            // compute with `p - 1` bits
+            let mut dst = Float::new((p - 1) as u32);
             let src = Float::from(self.clone());
             let t = unsafe { mpfr::$mpfr(dst.as_raw_mut(), src.as_raw(), RNDZ) };
 
+            // apply correction to get the last bit
             Rational::from(dst).with_ternary(t)
         }
     };
@@ -52,17 +52,19 @@ macro_rules! mpfr_2ary {
         pub fn $name(&self, other: &Self, p: usize) -> Self {
             use mpfr::{rnd_t::RNDZ, PREC_MAX, PREC_MIN};
             assert!(
-                p as i64 >= PREC_MIN && p as i64 <= PREC_MAX,
+                p as i64 > PREC_MIN && p as i64 <= PREC_MAX,
                 "precision must be between {} and {}",
-                PREC_MIN,
+                PREC_MIN + 1,
                 PREC_MAX
             );
 
-            let mut dst = Float::new(p as u32);
+            // compute with `p - 1` bits
+            let mut dst = Float::new((p - 1) as u32);
             let src1 = Float::from(self.clone());
             let src2 = Float::from(other.clone());
             let t = unsafe { mpfr::$mpfr(dst.as_raw_mut(), src1.as_raw(), src2.as_raw(), RNDZ) };
 
+            // apply correction to get the last bit
             Rational::from(dst).with_ternary(t)
         }
     };
@@ -150,12 +152,18 @@ impl Rational {
     }
 
     /// Applies a correction to a [`Rational`] type from an MPFR ternary
-    /// value to translate round-to-zero to round odd.
+    /// value to translate a rounded result of precision `p - 1` obtained
+    /// with round-to-zero to a rounded result of precision `p` obtained
+    /// with round-to-odd.
     fn with_ternary(mut self, t: i32) -> Self {
         if let Rational::Real(s, exp, c) = &self {
-            if t != 0 && c.tstbit(0) {
-                self = Rational::Real(*s, *exp, c + Mpz::from(1));
-            }
+            // the last bit is '1' if the result is inexact (`t != 0`).
+            let c = if t == 0 {
+                c << 1
+            } else {
+                (c << 1) + Mpz::from(1)
+            };
+            self = Rational::Real(*s, *exp, c);
         }
 
         self
@@ -235,17 +243,5 @@ impl Mul for Rational {
 
     fn mul(self, rhs: Self) -> Self::Output {
         self.mul_exact(&rhs)
-    }
-}
-
-impl RoundedAdd<Context> for Rational {
-    fn add(&self, other: &Self, ctx: &Context) -> Rational {
-        ctx.round(&self.add_exact(other))
-    }
-}
-
-impl RoundedMul<Context> for Rational {
-    fn mul(&self, other: &Self, ctx: &Context) -> Rational {
-        ctx.round(&self.mul_exact(other))
     }
 }

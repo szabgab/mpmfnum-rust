@@ -343,12 +343,6 @@ impl RoundingContext for Context {
                 flags: Exceptions::default(),
                 ctx: self.clone(),
             }
-        } else if num.is_zero() {
-            IEEE754 {
-                num: Float::Zero(num.sign()),
-                flags: Exceptions::default(),
-                ctx: self.clone(),
-            }
         } else {
             self.round_finite(num)
         }

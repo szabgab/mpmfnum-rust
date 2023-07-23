@@ -8,6 +8,7 @@
 // Exports public functions
 //
 
+mod ops;
 mod round;
 mod types;
 

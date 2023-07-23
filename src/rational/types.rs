@@ -11,10 +11,7 @@ use std::cmp::Ordering;
 
 use gmp::mpz::Mpz;
 use gmp::sign::Sign;
-
-use rug::float::prec_min;
-use rug::float::Special;
-use rug::Float;
+use rug;
 
 use gmp_mpfr_sys::gmp::mpz_t;
 use gmp_mpfr_sys::mpfr;
@@ -245,6 +242,26 @@ impl Rational {
             }
         }
     }
+
+    /// Constructs a rational number from a [`Number`].
+    /// This is the default conversion function from any implementation
+    /// of the trait.
+    pub fn from_number<N: Number>(val: &N) -> Self {
+        // case split by class
+        if !val.is_numerical() {
+            // Any non-numerical type is NaN
+            Self::Nan
+        } else if val.is_infinite() {
+            // Any infinity is either +/- infinity.
+            Self::Infinite(val.sign())
+        } else if val.is_zero() {
+            // Any zero is just +0
+            Self::zero()
+        } else {
+            // Finite, non-zero
+            Self::Real(val.sign(), val.exp().unwrap(), val.c().unwrap())
+        }
+    }
 }
 
 impl PartialOrd for Rational {
@@ -340,15 +357,17 @@ impl PartialEq for Rational {
     }
 }
 
-impl From<Rational> for Float {
+impl From<Rational> for rug::Float {
     fn from(val: Rational) -> Self {
+        use rug::float::*;
+        use rug::Float;
         match val {
             Rational::Nan => Float::with_val(prec_min(), Special::Nan),
             Rational::Infinite(s) => {
                 if s {
-                    Float::with_val(prec_min(), Special::NegInfinity)
+                    rug::Float::with_val(prec_min(), Special::NegInfinity)
                 } else {
-                    Float::with_val(prec_min(), Special::Infinity)
+                    rug::Float::with_val(prec_min(), Special::Infinity)
                 }
             }
             Rational::Real(s, exp, c) => {
@@ -374,8 +393,8 @@ impl From<Rational> for Float {
     }
 }
 
-impl From<Float> for Rational {
-    fn from(val: Float) -> Self {
+impl From<rug::Float> for Rational {
+    fn from(val: rug::Float) -> Self {
         if val.is_nan() {
             Self::Nan
         } else if val.is_infinite() {
