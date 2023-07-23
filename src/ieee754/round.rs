@@ -262,12 +262,14 @@ impl Context {
         }
 
         // step 4: check for underflow after rounding
-        // split with 2 more digits in the significant part
+        // split again but with 2 more digits in the significant part:
+        // the halfway and quarter bit are the least significant parts of `c_trunc`
+        // and the lower rounding bits are contained in `lost`.
         let (exp_trunc, c_trunc, lost, _, _) = rational::Context::split(num, n - 2);
         let e_trunc = exp_trunc + c_trunc.bit_length() as isize - 1;
-        let tiny_post = self.round_tiny(sign, e_trunc, &c_trunc, &lost);
 
         let tiny_pre = e_trunc < self.emin();
+        let tiny_post = self.round_tiny(sign, e_trunc, &c_trunc, &lost);
         let carry = e > e_trunc;
 
         // step 5: compose result

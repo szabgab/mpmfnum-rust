@@ -219,12 +219,18 @@ impl Number for IEEE754 {
 
 impl From<IEEE754> for Rational {
     fn from(val: IEEE754) -> Self {
-        match &val.num {
+        match val.num {
             Float::Zero(_) => Rational::zero(),
-            Float::Subnormal(_, _) => todo!(),
-            Float::Normal(_, _, _) => todo!(),
-            Float::Infinity(_) => todo!(),
-            Float::Nan(_, _, _) => todo!(),
+            Float::Subnormal(s, c) => Rational::Real(s, val.ctx.expmin(), c),
+            Float::Normal(s, exp, c) => Rational::Real(s, exp, c),
+            Float::Infinity(s) => Rational::Infinite(s),
+            Float::Nan(_, _, _) => Rational::Nan,
         }
+    }
+}
+
+impl PartialEq for IEEE754 {
+    fn eq(&self, other: &Self) -> bool {
+        Rational::from(self.clone()) == Rational::from(other.clone())
     }
 }

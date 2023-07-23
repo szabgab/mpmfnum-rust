@@ -342,10 +342,10 @@ impl PartialEq for Rational {
 
 impl From<Rational> for Float {
     fn from(val: Rational) -> Self {
-        match &val {
+        match val {
             Rational::Nan => Float::with_val(prec_min(), Special::Nan),
             Rational::Infinite(s) => {
-                if *s {
+                if s {
                     Float::with_val(prec_min(), Special::NegInfinity)
                 } else {
                     Float::with_val(prec_min(), Special::Infinity)
@@ -355,15 +355,15 @@ impl From<Rational> for Float {
                 if c.is_zero() {
                     Float::with_val(prec_min(), 0.0)
                 } else {
-                    let mut f = Float::new(val.p() as u32);
+                    let mut f = Float::new(c.bit_length() as u32);
                     let rnd = mpfr::rnd_t::RNDN;
-                    let m = if *s { -c } else { c.clone() };
+                    let m = if s { -c } else { c };
 
                     unsafe {
                         // set `f` to `c * 2^exp`
                         let src_ptr = m.inner() as *const mpz_t;
                         let dest_ptr = f.as_raw_mut();
-                        let t = mpfr::set_z_2exp(dest_ptr, src_ptr, *exp as i64, rnd);
+                        let t = mpfr::set_z_2exp(dest_ptr, src_ptr, exp as i64, rnd);
                         assert_eq!(t, 0, "should have been exact");
                     }
 
