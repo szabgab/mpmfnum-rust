@@ -7,7 +7,7 @@
 // Implementations of operators
 
 use std::cmp::min;
-use std::ops::{Add, Mul, Neg};
+use std::ops::{Add, Mul, Neg, Sub};
 
 use gmp::sign::Sign;
 
@@ -117,9 +117,11 @@ impl Add for Rational {
     }
 }
 
-impl RoundedAdd<Context> for Rational {
-    fn add(&self, other: &Self, ctx: &Context) -> Rational {
-        ctx.round(&self.add_exact(other))
+impl Sub for Rational {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        self.mul_exact(&-rhs)
     }
 }
 
@@ -128,6 +130,12 @@ impl Mul for Rational {
 
     fn mul(self, rhs: Self) -> Self::Output {
         self.mul_exact(&rhs)
+    }
+}
+
+impl RoundedAdd<Context> for Rational {
+    fn add(&self, other: &Self, ctx: &Context) -> Rational {
+        ctx.round(&self.add_exact(other))
     }
 }
 

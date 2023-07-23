@@ -79,8 +79,8 @@ pub enum RoundingDirection {
 impl RoundingMode {
     /// Converts a rounding mode and sign into a rounding direction
     /// and a boolean indication if the direction is for tie-breaking only.
-    fn to_direction(&self, sign: bool) -> (bool, RoundingDirection) {
-        match (&self, sign) {
+    pub(crate) fn to_direction(self, sign: bool) -> (bool, RoundingDirection) {
+        match (self, sign) {
             (RoundingMode::NearestTiesToEven, _) => (true, RoundingDirection::ToEven),
             (RoundingMode::NearestTiesAwayZero, _) => (true, RoundingDirection::AwayZero),
             (RoundingMode::ToPositive, false) => (false, RoundingDirection::AwayZero),
@@ -304,7 +304,6 @@ impl Context {
         };
 
         // step 2: split the significand at binary digit `n`
-
         let sign = num.sign();
         let (mut exp, mut c, c_lost, half_bit, sticky_bit) = Self::split(num, n);
 

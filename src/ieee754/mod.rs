@@ -12,4 +12,4 @@ mod round;
 mod types;
 
 pub use round::Context;
-pub use types::{Exceptions, IEEE754};
+pub use types::{Exceptions, Float, IEEE754};

@@ -226,6 +226,25 @@ impl Rational {
             self.clone()
         }
     }
+
+    /// Returns true if the binary digit at place `n` is `1`
+    /// when viewing this number as a sequence of infinite digits.
+    pub fn bit(&self, idx: isize) -> bool {
+        match self {
+            Rational::Nan => false,
+            Rational::Infinite(_) => false,
+            Rational::Real(_, _, c) if c.is_zero() => false,
+            Rational::Real(_, exp, c) => {
+                if idx < *exp || idx > self.e().unwrap() {
+                    // below the least significant digit or above
+                    // the most significant digit
+                    false
+                } else {
+                    c.tstbit((idx - *exp) as usize)
+                }
+            }
+        }
+    }
 }
 
 impl PartialOrd for Rational {
@@ -285,7 +304,7 @@ impl PartialOrd for Rational {
                         Some(Ordering::Greater)
                     }
                 } else {
-                    // non-zero, finite <?> non-zero finit
+                    // non-zero, finite <?> non-zero, finite
 
                     // normalize: inefficient but slow
                     let n1 = exp1 - 1;
@@ -337,19 +356,15 @@ impl From<Rational> for Float {
                     Float::with_val(prec_min(), 0.0)
                 } else {
                     let mut f = Float::new(val.p() as u32);
+                    let rnd = mpfr::rnd_t::RNDN;
+                    let m = if *s { -c } else { c.clone() };
 
                     unsafe {
                         // set `f` to `c * 2^exp`
-                        let ptr = c.inner() as *const mpz_t;
-                        let t =
-                            mpfr::set_z_2exp(f.as_raw_mut(), ptr, *exp as i64, mpfr::rnd_t::RNDN);
+                        let src_ptr = m.inner() as *const mpz_t;
+                        let dest_ptr = f.as_raw_mut();
+                        let t = mpfr::set_z_2exp(dest_ptr, src_ptr, *exp as i64, rnd);
                         assert_eq!(t, 0, "should have been exact");
-
-                        // negate if necessary
-                        if *s {
-                            let t = mpfr::neg(f.as_raw_mut(), f.as_raw(), mpfr::rnd_t::RNDN);
-                            assert_eq!(t, 0, "should have been exact");
-                        }
                     }
 
                     f

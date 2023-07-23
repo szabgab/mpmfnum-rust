@@ -6,10 +6,13 @@
 //
 // IEEE 754 floating-point rounding
 
-use std::cmp::min;
+use std::cmp::max;
 
-use crate::ieee754::IEEE754;
-use crate::rational::{self, RoundingMode};
+use gmp::mpz::Mpz;
+
+use crate::ieee754::{Exceptions, Float, IEEE754};
+use crate::rational::{self, RoundingDirection, RoundingMode, Rational};
+use crate::util::bitmask;
 use crate::{Number, RoundingContext};
 
 /// Rounding contexts for IEEE 754 floating-point numbers.
@@ -124,32 +127,133 @@ impl Context {
     pub fn bias(&self) -> isize {
         self.emax()
     }
+
+    /// Returns the maximum representable value.
+    pub fn max_float(&self) -> IEEE754 {
+        IEEE754 {
+            num: Float::Normal(false, self.expmax(), bitmask(self.max_p() + 1)),
+            flags: Exceptions::default(),
+            ctx: self.clone(),
+        }
+    }
 }
 
-impl RoundingContext for Context {
-    type Rounded = IEEE754;
+// Rounding utility functions.
+impl Context {
+    /// Given a sign and rounding mode, returns true if a overflow
+    /// exception means the result is rounded to infinity rather
+    /// than MAX_FLOAT.
+    fn overflow_to_infinity(sign: bool, rm: RoundingMode) -> bool {
+        // convert to direction
+        match rm.to_direction(sign) {
+            (true, _) => true,
+            (_, RoundingDirection::ToZero) => false, // always truncate
+            (_, RoundingDirection::AwayZero) => true, // always away
+            (_, RoundingDirection::ToEven) => true,  // MAX_FLOAT has odd LSB
+            (_, RoundingDirection::ToOdd) => false,  // MAX_FLOAT has odd LSB
+        }
+    }
 
-    fn round<T: Number>(&self, num: &T) -> IEEE754 {
+    /// Returns true if the result will be tiny after rounding.
+    /// This condition is satisfied when the result is at least as small
+    /// as the minimum normal value and the rounded result is different
+    /// than if rounding were done with unbounded exponent.
+    fn round_tiny(exp: isize, c: &Mpz, lost: &Rational) -> bool {
+        let half_bit = lost.bit(exp - 1);
+        let quarter_bit = lost.bit(exp - 2);
+        eprintln!("{} {} {} {}", exp, c, half_bit, quarter_bit);
+
+        todo!()
+    }
+
+    /// Rounds a finite (non-zero) number.
+    fn round_finite<T: Number>(&self, num: &T) -> IEEE754 {
         // step 1: rounding as a fixed-precision rational number
         // first, so we need to compute the context parameters.
         // IEEE 754 numbers support subnormalization so we need
         // to set both `max_p` and `min_n` when rounding using the
         // rational number rounding context.
         let max_p = self.nbits - self.es;
-        let min_n = if let Some(exp) = num.exp() {
-            min(exp, self.expmin()) - 1
-        } else {
-            self.expmin() - 1
-        };
+        let unbounded_n = num.exp().unwrap() - 1;
+        let n = max(unbounded_n, self.expmin() - 1);
 
         // step 2: round and collect the lost bits
         let rctx = rational::Context::new()
+            .with_rounding_mode(self.rm)
             .with_max_precision(max_p)
-            .with_min_n(min_n)
-            .with_rounding_mode(self.rm);
+            .with_min_n(n);
         let (rounded, lost) = rctx.round_residual(num);
+        assert!(lost.is_some(), "residual should be Some");
 
+        // rounding components
+        let sign = num.sign();
+        let exp = rounded.exp().unwrap();
+        let e = rounded.e().unwrap();
+        let c = rounded.c().unwrap();
+        let lost = lost.unwrap();
+
+        // step 3: check for overflow and possibly clamp exponent
+        if e > self.emax() {
+            let num = if Context::overflow_to_infinity(sign, self.rm) {
+                // rounding says to overflow to +Inf
+                Float::Infinity(sign)
+            } else {
+                Float::Zero(false)
+            };
+
+            return IEEE754 {
+                num,
+                flags: Exceptions {
+                    overflow: true,
+                    inexact: true,
+                    carry: true,
+                    ..Default::default()
+                },
+                ctx: self.clone(),
+            };
+        }
+
+        // step 4: compute flags
+        let tiny_pre = e < self.emin();
+        let tiny_post = Self::round_tiny(exp, &c, &lost);
+
+        // step 5: compose result
 
         todo!()
+    }
+}
+
+impl RoundingContext for Context {
+    type Rounded = IEEE754;
+
+    fn round<T: Number>(&self, num: &T) -> IEEE754 {
+        // case split by class
+        if num.is_zero() {
+            IEEE754 {
+                num: Float::Zero(num.sign()),
+                flags: Exceptions::default(),
+                ctx: self.clone(),
+            }
+        } else if num.is_infinite() {
+            IEEE754 {
+                num: Float::Infinity(num.sign()),
+                flags: Exceptions::default(),
+                ctx: self.clone(),
+            }
+        } else if num.is_nar() {
+            IEEE754 {
+                num: Float::Nan(num.sign(), true, Mpz::from(0)),
+                flags: Exceptions::default(),
+                ctx: self.clone(),
+            }
+        } else if num.is_zero() {
+            IEEE754 {
+                num: Float::Zero(num.sign()),
+                flags: Exceptions::default(),
+                ctx: self.clone(),
+            }
+        } else {
+            self.round_finite(num)
+        }
     }
 }

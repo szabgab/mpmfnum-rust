@@ -8,8 +8,8 @@
 
 use gmp::mpz::Mpz;
 
-use crate::{rational::Rational, Number};
 use crate::ieee754::Context;
+use crate::{rational::Rational, Number};
 
 /// Exception flags to signal certain properties of the rounded result.
 ///
@@ -49,7 +49,7 @@ use crate::ieee754::Context;
 ///     will be raised regardless of the state of the `inexact` flag
 ///     i.e., `underflow_post = tiny_post && inexact`.
 ///
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Exceptions {
     // defined in the IEEE 754 standard
     pub invalid: bool,
@@ -70,7 +70,7 @@ pub struct Exceptions {
 /// required to bitvector that encodes a binary floating-point number
 /// as described by the IEEE 754 standard.
 #[derive(Clone, Debug)]
-pub(crate) enum Float {
+pub enum Float {
     // zero (+/-)
     // => (sign)
     Zero(bool),
@@ -84,7 +84,7 @@ pub(crate) enum Float {
     // => (sign)
     Infinity(bool),
     // not-a-number
-    // => (sign, signaling, payload)
+    // => (sign, quiet, payload)
     Nan(bool, bool, Mpz),
 }
 
@@ -97,9 +97,9 @@ pub(crate) enum Float {
 /// number is created.
 #[derive(Clone, Debug)]
 pub struct IEEE754 {
-    num: Float,
-    flags: Exceptions,
-    ctx: Context
+    pub num: Float,
+    pub flags: Exceptions,
+    pub ctx: Context,
 }
 
 impl IEEE754 {
