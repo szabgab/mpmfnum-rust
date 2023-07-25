@@ -9,9 +9,9 @@
 use std::cmp::min;
 use std::ops::{Add, Mul, Neg, Sub};
 
-use num_traits::{Zero, Signed};
-use rug::{Float, Integer};
 use gmp_mpfr_sys::mpfr;
+use num_traits::{Signed, Zero};
+use rug::{Float, Integer};
 
 use crate::rational::*;
 

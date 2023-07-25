@@ -6,10 +6,10 @@
 //
 // The rational number type
 
-use std::cmp::{max, min};
 use std::cmp::Ordering;
+use std::cmp::{max, min};
 
-use num_traits::{Zero, Signed};
+use num_traits::{Signed, Zero};
 use rug::{Float, Integer};
 
 use gmp_mpfr_sys::gmp::mpz_t;
@@ -79,11 +79,13 @@ impl Number for Rational {
     fn e(&self) -> Option<isize> {
         // (exp - 1) + len(c)
         match self {
-            Rational::Real(_, exp, c) => if c.is_zero() {
-                None
-            } else {
-                Some((exp - 1) + c.significant_bits() as isize)
-            },
+            Rational::Real(_, exp, c) => {
+                if c.is_zero() {
+                    None
+                } else {
+                    Some((exp - 1) + c.significant_bits() as isize)
+                }
+            }
             Rational::Infinite(_) => None,
             Rational::Nan => None,
         }
@@ -364,7 +366,7 @@ impl From<Rational> for rug::Float {
                 if c.is_zero() {
                     Float::with_val(prec_min(), 0.0)
                 } else {
-                    let mut f = Float::new(max(1, c.significant_bits() as u32));
+                    let mut f = Float::new(max(1, c.significant_bits()));
                     let rnd = mpfr::rnd_t::RNDN;
                     let exp = exp as i64;
                     let m = if s { -c } else { c };

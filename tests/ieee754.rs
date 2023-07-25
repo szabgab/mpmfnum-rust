@@ -6,10 +6,10 @@
 //
 // Tests for the IEEE 754 module
 
-use rug::Integer;
 use mpmfnum::ieee754;
 use mpmfnum::rational::{Rational, RoundingMode};
 use mpmfnum::RoundingContext;
+use rug::Integer;
 
 fn assert_round_small(
     input: &Rational,

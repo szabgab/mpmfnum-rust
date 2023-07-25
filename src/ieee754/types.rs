@@ -145,7 +145,9 @@ impl Number for IEEE754 {
     fn e(&self) -> Option<isize> {
         match &self.num {
             Float::Zero(_) => None,
-            Float::Subnormal(_, c) => Some((self.ctx().expmin() - 1) + (c.significant_bits() as isize)),
+            Float::Subnormal(_, c) => {
+                Some((self.ctx().expmin() - 1) + (c.significant_bits() as isize))
+            }
             Float::Normal(_, exp, c) => Some((*exp - 1) + (c.significant_bits() as isize)),
             Float::Infinity(_) => None,
             Float::Nan(_, _, _) => None,
