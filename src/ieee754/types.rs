@@ -115,6 +115,39 @@ impl IEEE754 {
     pub fn ctx(&self) -> &Context {
         &self.ctx
     }
+
+    /// Returns true if this [`IEEE754`] value is a subnormal number.
+    pub fn is_subnormal(&self) -> bool {
+        matches!(self.num, Float::Subnormal(_, _))
+    }
+
+    /// Returns true if this [`IEEE754`] value is a normal number.
+    pub fn is_normal(&self) -> bool {
+        matches!(self.num, Float::Normal(_, _, _))
+    }
+
+    /// Returns true if this [`IEEE754`] value is NaN.
+    pub fn is_nan(&self) -> bool {
+        matches!(self.num, Float::Nan(_, _, _))
+    }
+    
+    /// Returns the NaN signaling bit as an Option.
+    /// The result is None if the number is not NaN.
+    pub fn nan_quiet(&self) -> Option<bool> {
+        match &self.num {
+            Float::Nan(_, q, _) => Some(*q),
+            _ => None
+        }
+    }
+
+    /// Returns the NaN payload as an Option.
+    /// The result is None if the number is not NaN.
+    pub fn nan_payload(&self) -> Option<Integer> {
+        match &self.num {
+            Float::Nan(_, _, payload) => Some(payload.clone()),
+            _ => None
+        }
+    }
 }
 
 impl Number for IEEE754 {

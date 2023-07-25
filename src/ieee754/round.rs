@@ -7,6 +7,7 @@
 // IEEE 754 floating-point rounding
 
 use std::cmp::max;
+use std::ops::{BitAnd, BitOr};
 
 use num_traits::Zero;
 use rug::Integer;
@@ -158,6 +159,57 @@ impl Context {
     pub fn max_float(&self) -> IEEE754 {
         IEEE754 {
             num: Float::Normal(false, self.expmax(), bitmask(self.max_p() + 1)),
+            flags: Exceptions::default(),
+            ctx: self.clone(),
+        }
+    }
+
+    /// Converts an integer representing an IEEE 754 bitpattern into
+    /// a [`IEEE754`] type.
+    pub fn from_bits(&self, b: Integer) -> IEEE754 {
+        assert!(
+            b < (Integer::from(1) << self.nbits),
+            "must be less than 1 << nbits"
+        );
+        let p = self.nbits - self.es;
+
+        // decompose into bitfields
+        let s = b.get_bit((self.nbits - 1) as u32);
+        let e = (b.clone() >> (p - 1)).bitand(bitmask(self.es));
+        let m = b.bitand(bitmask(p - 1));
+
+        // case split by classification
+        let e_norm = e.clone() - self.emax();
+        println!("{} {} [{}, {}] {} {} {}", s, e_norm, self.emin(), self.emax(), m, p, e);
+        let num = if e_norm < self.emin() {
+            // subnormal or zero
+            if m.is_zero() {
+                // zero
+                Float::Zero(s)
+            } else {
+                // subnormal
+                Float::Subnormal(s, m)
+            }
+        } else if e_norm <= self.emax() {
+            // normal
+            let c = (Integer::from(1) << (p - 1)).bitor(m);
+            let exp = e_norm.to_isize().unwrap() - (p as isize - 1);
+            Float::Normal(s, exp, c)
+        } else {
+            // non-real
+            if m.is_zero() {
+                // infinity
+                Float::Infinity(s)
+            } else {
+                // nan
+                let quiet = m.get_bit((p - 2) as u32);
+                let payload = m.bitand(bitmask(p - 2));
+                Float::Nan(s, quiet, payload)
+            }
+        };
+
+        IEEE754 {
+            num,
             flags: Exceptions::default(),
             ctx: self.clone(),
         }
