@@ -142,8 +142,7 @@ impl Context {
 
     /// Exponent of the smallest normal floating-point value representable
     /// in this format when viewed as `(-1)^s * c * b^e` where `c`
-    /// is an integer. The result is just `self.emin() - self.max_m()`
-    /// `self.emax() - 1`.
+    /// is an integer. The result is just `self.emin() - self.max_m()`.
     pub fn expmin(&self) -> isize {
         self.emin() - (self.max_m() as isize)
     }
@@ -153,6 +152,11 @@ impl Context {
     /// the final range is `[1, 2*emax]` The result is just `self.emax()`.
     pub fn bias(&self) -> isize {
         self.emax()
+    }
+
+    /// Returns the rounding mode of this context.
+    pub fn rm(&self) -> RoundingMode {
+        self.rm
     }
 
     /// Returns the maximum representable value.
@@ -179,7 +183,7 @@ impl Context {
         let m = b.bitand(bitmask(p - 1));
 
         // case split by classification
-        let e_norm = e.clone() - self.emax();
+        let e_norm = e - self.emax();
         let num = if e_norm < self.emin() {
             // subnormal or zero
             if m.is_zero() {

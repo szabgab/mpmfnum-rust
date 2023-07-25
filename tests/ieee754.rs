@@ -6,10 +6,15 @@
 //
 // Tests for the IEEE 754 module
 
+use std::cmp::max;
+
+use mpmfnum::ops::RoundedAdd;
 use mpmfnum::rational::{Rational, RoundingMode};
 use mpmfnum::RoundingContext;
 use mpmfnum::{ieee754, Number};
-use rug::Integer;
+
+use rug::{Integer, Float};
+use gmp_mpfr_sys::mpfr;
 
 fn assert_round_small(
     input: &Rational,
@@ -469,5 +474,84 @@ fn to_bits_small() {
         let b1 = Integer::from(i);
         let b2 = ctx.bits_to_number(b1.clone()).into_bits();
         assert_eq!(b1, b2, "round trip failed: {} != {}", b1, b2);
+    }
+}
+
+fn convert_round_mode(rm: RoundingMode) -> mpfr::rnd_t {
+    match rm {
+        RoundingMode::NearestTiesToEven => mpfr::rnd_t::RNDN,
+        RoundingMode::ToPositive => mpfr::rnd_t::RNDU,
+        RoundingMode::ToNegative => mpfr::rnd_t::RNDD,
+        RoundingMode::ToZero => mpfr::rnd_t::RNDZ,
+        RoundingMode::AwayZero => mpfr::rnd_t::RNDA,
+        _ => panic!("unsupported: {:?}", rm)
+    }
+}
+
+fn add_exhaustive_config(ctx: &ieee754::Context) {
+    let emin = (ctx.emin() as i64 - ctx.max_p() as i64) + 1;
+    let emax = (ctx.expmin() as i64) + 1;
+
+    let p = (ctx.nbits() - ctx.es()) as u32;
+    for i in 0..(1 << ctx.nbits()) {
+        let x = ctx.bits_to_number(Integer::from(i));
+        let xf = Float::from(Rational::from(x.clone()));
+        for j in 0..(1 << ctx.nbits()) {
+            let y = ctx.bits_to_number(Integer::from(j));
+            let yf = Float::from(Rational::from(y.clone()));
+
+            // Implementation
+            let z = ctx.add(&x, &y);
+
+            // MPFR
+            let mut zf = Float::new(p);
+            
+            let rnd = convert_round_mode(ctx.rm());
+            unsafe {
+                let old_emin = mpfr::get_emin();
+                let old_emax = mpfr::get_emax();
+                mpfr::set_emin(emin);
+                mpfr::set_emax(emax);
+
+                let dst = zf.as_raw_mut();
+                let t = mpfr::add(dst, xf.as_raw(), yf.as_raw(), rnd);
+                mpfr::check_range(dst, t, rnd);
+                mpfr::subnormalize(dst, t, rnd);
+
+                mpfr::set_emin(old_emin);
+                mpfr::set_emax(old_emax);
+            }
+
+            let rf = Float::from(z);
+            if rf != zf {
+                println!("{} * {}: {} != {}", xf, yf, rf, zf);
+            }
+        }
+    }
+}
+
+#[test]
+fn add_exhaustive() {
+    // parameters
+    const EMIN: usize = 2;
+    const EMAX: usize = 5;
+    const NBITS_MIN: usize = 4;
+    const NBITS_MAX: usize = 5;
+    
+    let rms = [
+        RoundingMode::NearestTiesToEven,
+        // RoundingMode::ToPositive,
+        // RoundingMode::ToNegative,
+        // RoundingMode::ToZero,
+        // RoundingMode::AwayZero
+    ];
+
+    for es in EMIN..(EMAX + 1) {
+        for nbits in max(NBITS_MIN, es + 3)..(NBITS_MAX + 1) {
+            for rm in &rms {
+                let ctx = ieee754::Context::new(es, nbits).with_rounding_mode(*rm);
+                add_exhaustive_config(&ctx);
+            }
+        }
     }
 }

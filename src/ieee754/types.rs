@@ -6,7 +6,7 @@
 //
 // The IEEE 754 floating-point type
 
-use std::ops::{BitOr, BitAnd};
+use std::ops::{BitAnd, BitOr};
 
 use num_traits::Zero;
 use rug::Integer;
@@ -133,13 +133,13 @@ impl IEEE754 {
     pub fn is_nan(&self) -> bool {
         matches!(self.num, Float::Nan(_, _, _))
     }
-    
+
     /// Returns the NaN signaling bit as an Option.
     /// The result is None if the number is not NaN.
     pub fn nan_quiet(&self) -> Option<bool> {
         match &self.num {
             Float::Nan(_, q, _) => Some(*q),
-            _ => None
+            _ => None,
         }
     }
 
@@ -148,7 +148,7 @@ impl IEEE754 {
     pub fn nan_payload(&self) -> Option<Integer> {
         match &self.num {
             Float::Nan(_, _, payload) => Some(payload.clone()),
-            _ => None
+            _ => None,
         }
     }
 
@@ -156,38 +156,37 @@ impl IEEE754 {
     /// an IEEE 754 bitpattern.
     pub fn into_bits(&self) -> Integer {
         let nbits = self.ctx.nbits();
-        match &self.num {
-            Float::Zero(s) => {
-                if *s {
-                    Integer::from(1) << nbits - 1
-                } else {
-                    Integer::from(0)
-                }
-            },
-            Float::Subnormal(s, c) => {
-                let sfield = if *s { Integer::from(1) << nbits - 1 } else { Integer::zero() };
-                c.clone().bitor(sfield)
-            },
+        let (s, unsigned) = match &self.num {
+            Float::Zero(s) => (*s, Integer::zero()),
+            Float::Subnormal(s, c) => (*s, c.clone()),
             Float::Normal(s, exp, c) => {
                 let m = self.ctx().max_m();
-                let sfield = if *s { Integer::from(1) << nbits - 1 } else { Integer::zero() };
                 let efield = Integer::from((exp + m as isize) + self.ctx().emax()) << m;
                 let mfield = c.clone().bitand(bitmask(m));
-                mfield.bitor(efield).bitor(sfield)
-            },
+                (*s, mfield.bitor(efield))
+            }
             Float::Infinity(s) => {
                 let m = self.ctx().max_m();
-                let sfield = if *s { Integer::from(1) << nbits - 1 } else { Integer::zero() };
                 let efield = bitmask(self.ctx.es()) << m;
-                efield.bitor(sfield)
+                (*s, efield)
             }
             Float::Nan(s, q, payload) => {
                 let m = self.ctx().max_m() as isize;
-                let sfield = if *s { Integer::from(1) << nbits - 1 } else { Integer::zero() };
                 let efield = bitmask(self.ctx.es()) << m;
-                let qfield = if *q { Integer::from(1) << (m - 1) } else { Integer::zero() };
-                payload.clone().bitor(qfield).bitor(efield).bitor(sfield)
+                let qfield = if *q {
+                    Integer::from(1) << (m - 1)
+                } else {
+                    Integer::zero()
+                };
+                (*s, payload.clone().bitor(qfield).bitor(efield))
             }
+        };
+
+        if s {
+            let sfield = Integer::from(1) << (nbits - 1);
+            unsigned.bitor(sfield)
+        } else {
+            unsigned
         }
     }
 }
@@ -305,6 +304,18 @@ impl From<IEEE754> for Rational {
             Float::Normal(s, exp, c) => Rational::Real(s, exp, c),
             Float::Infinity(s) => Rational::Infinite(s),
             Float::Nan(_, _, _) => Rational::Nan,
+        }
+    }
+}
+
+impl From<IEEE754> for rug::Float {
+    fn from(val: IEEE754) -> Self {
+        let s = val.sign();
+        let f = rug::Float::from(Rational::from(val));
+        if f.is_zero() && s {
+            -f
+        } else {
+            f
         }
     }
 }
