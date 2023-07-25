@@ -6,10 +6,13 @@
 //
 // The IEEE 754 floating-point type
 
+use std::ops::{BitOr, BitAnd};
+
 use num_traits::Zero;
 use rug::Integer;
 
 use crate::ieee754::Context;
+use crate::util::bitmask;
 use crate::{rational::Rational, Number};
 
 /// Exception flags to signal certain properties of the rounded result.
@@ -146,6 +149,45 @@ impl IEEE754 {
         match &self.num {
             Float::Nan(_, _, payload) => Some(payload.clone()),
             _ => None
+        }
+    }
+
+    /// Converts this [`IEEE754`] to an [`Integer`] representing
+    /// an IEEE 754 bitpattern.
+    pub fn into_bits(&self) -> Integer {
+        let nbits = self.ctx.nbits();
+        match &self.num {
+            Float::Zero(s) => {
+                if *s {
+                    Integer::from(1) << nbits - 1
+                } else {
+                    Integer::from(0)
+                }
+            },
+            Float::Subnormal(s, c) => {
+                let sfield = if *s { Integer::from(1) << nbits - 1 } else { Integer::zero() };
+                c.clone().bitor(sfield)
+            },
+            Float::Normal(s, exp, c) => {
+                let m = self.ctx().max_m();
+                let sfield = if *s { Integer::from(1) << nbits - 1 } else { Integer::zero() };
+                let efield = Integer::from((exp + m as isize) + self.ctx().emax()) << m;
+                let mfield = c.clone().bitand(bitmask(m));
+                mfield.bitor(efield).bitor(sfield)
+            },
+            Float::Infinity(s) => {
+                let m = self.ctx().max_m();
+                let sfield = if *s { Integer::from(1) << nbits - 1 } else { Integer::zero() };
+                let efield = bitmask(self.ctx.es()) << m;
+                efield.bitor(sfield)
+            }
+            Float::Nan(s, q, payload) => {
+                let m = self.ctx().max_m() as isize;
+                let sfield = if *s { Integer::from(1) << nbits - 1 } else { Integer::zero() };
+                let efield = bitmask(self.ctx.es()) << m;
+                let qfield = if *q { Integer::from(1) << (m - 1) } else { Integer::zero() };
+                payload.clone().bitor(qfield).bitor(efield).bitor(sfield)
+            }
         }
     }
 }

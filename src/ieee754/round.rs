@@ -164,9 +164,9 @@ impl Context {
         }
     }
 
-    /// Converts an integer representing an IEEE 754 bitpattern into
-    /// a [`IEEE754`] type.
-    pub fn from_bits(&self, b: Integer) -> IEEE754 {
+    /// Converts an [`Integer`] representing an IEEE 754 bitpattern
+    /// into an [`IEEE754`] type.
+    pub fn bits_to_number(&self, b: Integer) -> IEEE754 {
         assert!(
             b < (Integer::from(1) << self.nbits),
             "must be less than 1 << nbits"
@@ -180,7 +180,6 @@ impl Context {
 
         // case split by classification
         let e_norm = e.clone() - self.emax();
-        println!("{} {} [{}, {}] {} {} {}", s, e_norm, self.emin(), self.emax(), m, p, e);
         let num = if e_norm < self.emin() {
             // subnormal or zero
             if m.is_zero() {

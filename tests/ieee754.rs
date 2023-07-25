@@ -381,83 +381,93 @@ fn round_small() {
 }
 
 #[test]
-fn bits_small() {
+fn from_bits_small() {
     let ctx = ieee754::Context::new(2, 5);
 
     // 0
-    let num = ctx.from_bits(Integer::from(0));
+    let num = ctx.bits_to_number(Integer::from(0));
     assert!(num.is_zero(), "0 is zero");
     // 1
-    let num = ctx.from_bits(Integer::from(1));
+    let num = ctx.bits_to_number(Integer::from(1));
     assert!(num.is_subnormal(), "1 is subnormal");
     assert_eq!(num.c().unwrap(), Integer::from(1), "mantissa is 1");
     assert_eq!(num.exp().unwrap(), -2, "exponent is -2");
     // 2
-    let num = ctx.from_bits(Integer::from(2));
+    let num = ctx.bits_to_number(Integer::from(2));
     assert!(num.is_subnormal(), "2 is subnormal");
     assert_eq!(num.c().unwrap(), Integer::from(2), "mantissa is 2");
     assert_eq!(num.exp().unwrap(), -2, "exponent is -2");
     // 3
-    let num = ctx.from_bits(Integer::from(3));
+    let num = ctx.bits_to_number(Integer::from(3));
     assert!(num.is_subnormal(), "3 is subnormal");
     assert_eq!(num.c().unwrap(), Integer::from(3), "mantissa is 3");
     assert_eq!(num.exp().unwrap(), -2, "exponent is -2");
     // 4
-    let num = ctx.from_bits(Integer::from(4));
+    let num = ctx.bits_to_number(Integer::from(4));
     assert!(num.is_normal(), "4 is normal");
     assert_eq!(num.c().unwrap(), Integer::from(4), "mantissa is 4");
     assert_eq!(num.exp().unwrap(), -2, "exponent is -2");
     // 5
-    let num = ctx.from_bits(Integer::from(5));
+    let num = ctx.bits_to_number(Integer::from(5));
     assert!(num.is_normal(), "5 is normal");
     assert_eq!(num.c().unwrap(), Integer::from(5), "mantissa is 5");
     assert_eq!(num.exp().unwrap(), -2, "exponent is -2");
     // 6
-    let num = ctx.from_bits(Integer::from(6));
+    let num = ctx.bits_to_number(Integer::from(6));
     assert!(num.is_normal(), "6 is normal");
     assert_eq!(num.c().unwrap(), Integer::from(6), "mantissa is 6");
     assert_eq!(num.exp().unwrap(), -2, "exponent is -2");
     // 7
-    let num = ctx.from_bits(Integer::from(7));
+    let num = ctx.bits_to_number(Integer::from(7));
     assert!(num.is_normal(), "5 is normal");
     assert_eq!(num.c().unwrap(), Integer::from(7), "mantissa is 7");
     assert_eq!(num.exp().unwrap(), -2, "exponent is -2");
     // 8
-    let num = ctx.from_bits(Integer::from(8));
+    let num = ctx.bits_to_number(Integer::from(8));
     assert!(num.is_normal(), "8 is normal");
     assert_eq!(num.c().unwrap(), Integer::from(4), "mantissa is 4");
     assert_eq!(num.exp().unwrap(), -1, "exponent is -1");
     // 9
-    let num = ctx.from_bits(Integer::from(9));
+    let num = ctx.bits_to_number(Integer::from(9));
     assert!(num.is_normal(), "9 is normal");
     assert_eq!(num.c().unwrap(), Integer::from(5), "mantissa is 5");
     assert_eq!(num.exp().unwrap(), -1, "exponent is -1");
     // 10
-    let num = ctx.from_bits(Integer::from(10));
+    let num = ctx.bits_to_number(Integer::from(10));
     assert!(num.is_normal(), "10 is normal");
     assert_eq!(num.c().unwrap(), Integer::from(6), "mantissa is 6");
     assert_eq!(num.exp().unwrap(), -1, "exponent is -1");
     // 11
-    let num = ctx.from_bits(Integer::from(11));
+    let num = ctx.bits_to_number(Integer::from(11));
     assert!(num.is_normal(), "11 is normal");
     assert_eq!(num.c().unwrap(), Integer::from(7), "mantissa is 7");
     assert_eq!(num.exp().unwrap(), -1, "exponent is -1");
     // 12
-    let num = ctx.from_bits(Integer::from(12));
+    let num = ctx.bits_to_number(Integer::from(12));
     assert!(num.is_infinite(), "12 is infinity");
     // 13
-    let num = ctx.from_bits(Integer::from(13));
+    let num = ctx.bits_to_number(Integer::from(13));
     assert!(num.is_nan(), "13 is NaN");
     assert!(!num.nan_quiet().unwrap(), "13 is a signaling NaN");
     assert!(num.nan_payload().unwrap() == 1, "13 has a payload of 1");
     // 14
-    let num = ctx.from_bits(Integer::from(14));
+    let num = ctx.bits_to_number(Integer::from(14));
     assert!(num.is_nan(), "14 is NaN");
     assert!(num.nan_quiet().unwrap(), "14 is a quiet NaN");
     assert!(num.nan_payload().unwrap() == 0, "14 has a payload of 0");
     // 15
-    let num = ctx.from_bits(Integer::from(15));
+    let num = ctx.bits_to_number(Integer::from(15));
     assert!(num.is_nan(), "15 is NaN");
     assert!(num.nan_quiet().unwrap(), "15 is a quiet NaN");
     assert!(num.nan_payload().unwrap() == 1, "15 has a payload of 1");
+}
+
+#[test]
+fn to_bits_small() {
+    let ctx = ieee754::Context::new(2, 5);
+    for i in 0..32 {
+        let b1 = Integer::from(i);
+        let b2 = ctx.bits_to_number(b1.clone()).into_bits();
+        assert_eq!(b1, b2, "round trip failed: {} != {}", b1, b2);
+    }
 }
