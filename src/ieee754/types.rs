@@ -6,7 +6,8 @@
 //
 // The IEEE 754 floating-point type
 
-use gmp::mpz::Mpz;
+use num_traits::Zero;
+use rug::Integer;
 
 use crate::ieee754::Context;
 use crate::{rational::Rational, Number};
@@ -71,21 +72,23 @@ pub struct Exceptions {
 /// as described by the IEEE 754 standard.
 #[derive(Clone, Debug)]
 pub enum Float {
-    // zero (+/-)
-    // => (sign)
+    /// Signed zero: `Zero(s)`: where `s` specifies `-0` or `+0`.
     Zero(bool),
-    // subnormal numbers
-    // => (sign, significand)
-    Subnormal(bool, Mpz),
-    // signed zero or finite number
-    // => (sign, exponent, significand)
-    Normal(bool, isize, Mpz),
-    // infinity (+/-)
-    // => (sign)
+    /// Subnormal numbers: `Subnormal(s, c)` encodes `(-1)^s * c * 2^expmin`.
+    /// If the float has parameters `es` and `nbits`, then `c` is an
+    /// integer of bitwidth `nbits - es - 1`.
+    Subnormal(bool, Integer),
+    /// Normal numbers: `Normal(s, exp, c)` encodes `(-1)^s * c * 2^exp`
+    /// where `exp` is between `expmin` and `expmax` and `c` is an
+    /// integer of bitwidth `nbits - es`.
+    Normal(bool, isize, Integer),
+    /// Signed infinity: `Infinity(s)` encodes `+/- Inf`.
     Infinity(bool),
-    // not-a-number
-    // => (sign, quiet, payload)
-    Nan(bool, bool, Mpz),
+    /// Not-a-number: `Nan(s, quiet, payload)` where `s` specifies the
+    /// sign bit, `quiet` the signaling bit, and `payload` the payload
+    /// of the NaN value. Either `quiet` must be true or `payload` must
+    /// be non-zero.
+    Nan(bool, bool, Integer),
 }
 
 /// The IEEE 754 floating-point type.
@@ -97,9 +100,9 @@ pub enum Float {
 /// number is created.
 #[derive(Clone, Debug)]
 pub struct IEEE754 {
-    pub num: Float,
-    pub flags: Exceptions,
-    pub ctx: Context,
+    pub(crate) num: Float,
+    pub(crate) flags: Exceptions,
+    pub(crate) ctx: Context,
 }
 
 impl IEEE754 {
@@ -142,8 +145,8 @@ impl Number for IEEE754 {
     fn e(&self) -> Option<isize> {
         match &self.num {
             Float::Zero(_) => None,
-            Float::Subnormal(_, c) => Some((self.ctx().expmin() - 1) + (c.bit_length() as isize)),
-            Float::Normal(_, exp, c) => Some((*exp - 1) + (c.bit_length() as isize)),
+            Float::Subnormal(_, c) => Some((self.ctx().expmin() - 1) + (c.significant_bits() as isize)),
+            Float::Normal(_, exp, c) => Some((*exp - 1) + (c.significant_bits() as isize)),
             Float::Infinity(_) => None,
             Float::Nan(_, _, _) => None,
         }
@@ -159,9 +162,9 @@ impl Number for IEEE754 {
         }
     }
 
-    fn c(&self) -> Option<Mpz> {
+    fn c(&self) -> Option<Integer> {
         match &self.num {
-            Float::Zero(_) => Some(Mpz::zero()),
+            Float::Zero(_) => Some(Integer::zero()),
             Float::Subnormal(_, c) => Some(c.clone()),
             Float::Normal(_, _, c) => Some(c.clone()),
             Float::Infinity(_) => None,
@@ -169,15 +172,15 @@ impl Number for IEEE754 {
         }
     }
 
-    fn m(&self) -> Option<Mpz> {
+    fn m(&self) -> Option<Integer> {
         self.c().map(|c| if self.sign() { -c } else { c })
     }
 
     fn p(&self) -> usize {
         match &self.num {
             Float::Zero(_) => 0,
-            Float::Subnormal(_, c) => c.bit_length(),
-            Float::Normal(_, _, c) => c.bit_length(),
+            Float::Subnormal(_, c) => c.significant_bits() as usize,
+            Float::Normal(_, _, c) => c.significant_bits() as usize,
             Float::Infinity(_) => 0,
             Float::Nan(_, _, _) => 0,
         }

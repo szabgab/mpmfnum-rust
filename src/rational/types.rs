@@ -6,12 +6,11 @@
 //
 // The rational number type
 
-use std::cmp::min;
+use std::cmp::{max, min};
 use std::cmp::Ordering;
 
-use gmp::mpz::Mpz;
-use gmp::sign::Sign;
-use rug;
+use num_traits::{Zero, Signed};
+use rug::{Float, Integer};
 
 use gmp_mpfr_sys::gmp::mpz_t;
 use gmp_mpfr_sys::mpfr;
@@ -32,7 +31,7 @@ use crate::Number;
 pub enum Rational {
     /// A finite (real) number specified by the canonical triple
     /// of sign, exponent, significand.
-    Real(bool, isize, Mpz),
+    Real(bool, isize, Integer),
     /// An infinite number (signed to indicate direction).
     Infinite(bool),
     /// Not a real number; either an undefined or infinte result.
@@ -78,15 +77,13 @@ impl Number for Rational {
     }
 
     fn e(&self) -> Option<isize> {
+        // (exp - 1) + len(c)
         match self {
-            // (exp - 1) + len(c)
-            Rational::Real(_, exp, c) => {
-                if c.is_zero() {
-                    None
-                } else {
-                    Some((exp - 1) + (c.bit_length() as isize))
-                }
-            }
+            Rational::Real(_, exp, c) => if c.is_zero() {
+                None
+            } else {
+                Some((exp - 1) + c.significant_bits() as isize)
+            },
             Rational::Infinite(_) => None,
             Rational::Nan => None,
         }
@@ -107,7 +104,7 @@ impl Number for Rational {
         }
     }
 
-    fn c(&self) -> Option<Mpz> {
+    fn c(&self) -> Option<Integer> {
         match self {
             Rational::Real(_, _, c) => Some(c.clone()),
             Rational::Infinite(_) => None,
@@ -115,7 +112,7 @@ impl Number for Rational {
         }
     }
 
-    fn m(&self) -> Option<Mpz> {
+    fn m(&self) -> Option<Integer> {
         match self {
             Rational::Real(s, _, c) => {
                 if *s {
@@ -131,13 +128,7 @@ impl Number for Rational {
 
     fn p(&self) -> usize {
         match self {
-            Rational::Real(_, _, c) => {
-                if c.is_zero() {
-                    0
-                } else {
-                    c.bit_length()
-                }
-            }
+            Rational::Real(_, _, c) => c.significant_bits() as usize,
             Rational::Infinite(_) => 0,
             Rational::Nan => 0,
         }
@@ -201,12 +192,12 @@ impl Number for Rational {
 impl Rational {
     /// Constructs zero.
     pub fn zero() -> Self {
-        Rational::Real(false, 0, Mpz::from(0))
+        Rational::Real(false, 0, Integer::from(0))
     }
 
     /// Constructs positive one.
     pub fn one() -> Self {
-        Rational::Real(false, 0, Mpz::from(1))
+        Rational::Real(false, 0, Integer::from(1))
     }
 
     /// Returns true if the number is [`NAN`].
@@ -237,7 +228,7 @@ impl Rational {
                     // the most significant digit
                     false
                 } else {
-                    c.tstbit((idx - *exp) as usize)
+                    c.get_bit((idx - *exp) as u32)
                 }
             }
         }
@@ -329,8 +320,8 @@ impl PartialOrd for Rational {
                     let n = min(n1, n2);
 
                     // compare ordinals
-                    let mut ord1 = c1 << (n1 - n) as usize;
-                    let mut ord2 = c2 << (n2 - n) as usize;
+                    let mut ord1 = Integer::from(c1 << (n1 - n));
+                    let mut ord2 = Integer::from(c2 << (n2 - n));
 
                     if *s1 {
                         ord1 = -ord1;
@@ -360,7 +351,6 @@ impl PartialEq for Rational {
 impl From<Rational> for rug::Float {
     fn from(val: Rational) -> Self {
         use rug::float::*;
-        use rug::Float;
         match val {
             Rational::Nan => Float::with_val(prec_min(), Special::Nan),
             Rational::Infinite(s) => {
@@ -374,15 +364,16 @@ impl From<Rational> for rug::Float {
                 if c.is_zero() {
                     Float::with_val(prec_min(), 0.0)
                 } else {
-                    let mut f = Float::new(c.bit_length() as u32);
+                    let mut f = Float::new(max(1, c.significant_bits() as u32));
                     let rnd = mpfr::rnd_t::RNDN;
+                    let exp = exp as i64;
                     let m = if s { -c } else { c };
 
                     unsafe {
                         // set `f` to `c * 2^exp`
-                        let src_ptr = m.inner() as *const mpz_t;
+                        let src_ptr = m.as_raw() as *const mpz_t;
                         let dest_ptr = f.as_raw_mut();
-                        let t = mpfr::set_z_2exp(dest_ptr, src_ptr, exp as i64, rnd);
+                        let t = mpfr::set_z_2exp(dest_ptr, src_ptr, exp, rnd);
                         assert_eq!(t, 0, "should have been exact");
                     }
 
@@ -402,15 +393,15 @@ impl From<rug::Float> for Rational {
         } else if val.is_zero() {
             Self::zero()
         } else {
-            let mut m = Mpz::zero();
+            let mut m = Integer::zero();
             let exp: isize;
 
             unsafe {
-                let ptr = m.inner_mut() as *mut mpz_t;
+                let ptr = m.as_raw_mut() as *mut mpz_t;
                 exp = mpfr::get_z_2exp(ptr, val.as_raw()) as isize;
             }
 
-            Self::Real(m.sign() == Sign::Negative, exp, m.abs()).canonicalize()
+            Self::Real(m.is_negative(), exp, m.abs()).canonicalize()
         }
     }
 }

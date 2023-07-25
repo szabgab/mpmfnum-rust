@@ -6,8 +6,7 @@
 //
 // Tests for the rational module
 
-use gmp::mpz::Mpz;
-use rug::Float;
+use rug::{Float, Integer};
 use std::cmp::Ordering;
 
 use mpmfnum::rational::*;
@@ -19,12 +18,12 @@ fn traits() {
     assert_eq!(Rational::radix(), 2, "Rational is a binary format");
 
     let vals = [
-        Rational::zero(),                       // 0
-        Rational::one(),                        // 1
-        Rational::Real(true, -4, Mpz::from(7)), // -7 * 2^-4
-        Rational::Infinite(false),              // +Inf
-        Rational::Infinite(true),               // -Inf,
-        Rational::Nan,                          // NaN
+        Rational::zero(),                           // 0
+        Rational::one(),                            // 1
+        Rational::Real(true, -4, Integer::from(7)), // -7 * 2^-4
+        Rational::Infinite(false),                  // +Inf
+        Rational::Infinite(true),                   // -Inf,
+        Rational::Nan,                              // NaN
     ];
 
     // Rational::sign
@@ -76,9 +75,9 @@ fn traits() {
 
     // Rational::c
     let expected = [
-        Some(Mpz::from(0)),
-        Some(Mpz::from(1)),
-        Some(Mpz::from(7)),
+        Some(Integer::from(0)),
+        Some(Integer::from(1)),
+        Some(Integer::from(7)),
         None,
         None,
         None,
@@ -97,9 +96,9 @@ fn traits() {
 
     // Rational::m
     let expected = [
-        Some(Mpz::from(0)),
-        Some(Mpz::from(1)),
-        Some(Mpz::from(-7)),
+        Some(Integer::from(0)),
+        Some(Integer::from(1)),
+        Some(Integer::from(-7)),
         None,
         None,
         None,
@@ -236,14 +235,14 @@ fn round_trivial() {
 /// Testing rounding using fixed-point rounding
 #[test]
 fn round_fixed() {
-    let one_3_4 = Rational::Real(false, -2, Mpz::from(7));
-    let one_1_2 = Rational::Real(false, -1, Mpz::from(3));
+    let one_3_4 = Rational::Real(false, -2, Integer::from(7));
+    let one_1_2 = Rational::Real(false, -1, Integer::from(3));
     let one = Rational::one();
-    let three_4 = Rational::Real(false, -2, Mpz::from(3));
-    let one_4 = Rational::Real(false, -2, Mpz::from(1));
+    let three_4 = Rational::Real(false, -2, Integer::from(3));
+    let one_4 = Rational::Real(false, -2, Integer::from(1));
     let zero = Rational::zero();
 
-    let neg_one = Rational::Real(true, 0, Mpz::from(1));
+    let neg_one = Rational::Real(true, 0, Integer::from(1));
 
     // 1 (min_n == -1) => 1
     let ctx = Context::new()
@@ -307,12 +306,12 @@ fn round_fixed() {
 /// Testing rounding using floating-point rounding
 #[test]
 fn round_float() {
-    let one_1_2 = Rational::Real(false, -1, Mpz::from(3));
-    let one_1_4 = Rational::Real(false, -2, Mpz::from(5));
-    let one_1_8 = Rational::Real(false, -3, Mpz::from(9));
+    let one_1_2 = Rational::Real(false, -1, Integer::from(3));
+    let one_1_4 = Rational::Real(false, -2, Integer::from(5));
+    let one_1_8 = Rational::Real(false, -3, Integer::from(9));
     let one = Rational::one();
-    let one_4 = Rational::Real(false, -2, Mpz::from(1));
-    let one_8 = Rational::Real(false, -3, Mpz::from(1));
+    let one_4 = Rational::Real(false, -2, Integer::from(1));
+    let one_8 = Rational::Real(false, -3, Integer::from(1));
     let zero = Rational::zero();
 
     // 1.25, 3 bits
@@ -392,11 +391,11 @@ fn round_float() {
 #[test]
 fn round_float_subnorm() {
     let one = Rational::one();
-    let half_way = Rational::Real(false, -3, Mpz::from(7));
-    let tiny_val = Rational::Real(false, -2, Mpz::from(3));
-    let one_2 = Rational::Real(false, -1, Mpz::from(1));
-    let one_4 = Rational::Real(false, -2, Mpz::from(1));
-    let one_8 = Rational::Real(false, -3, Mpz::from(1));
+    let half_way = Rational::Real(false, -3, Integer::from(7));
+    let tiny_val = Rational::Real(false, -2, Integer::from(3));
+    let one_2 = Rational::Real(false, -1, Integer::from(1));
+    let one_4 = Rational::Real(false, -2, Integer::from(1));
+    let one_8 = Rational::Real(false, -3, Integer::from(1));
 
     // No subnormals, round-to-nearest
     let ctx = Context::new().with_max_precision(2);
@@ -529,14 +528,14 @@ fn ordering() {
 
     // test normalization
     let one = Rational::one();
-    let also_one = Rational::Real(false, -1, Mpz::from(2));
+    let also_one = Rational::Real(false, -1, Integer::from(2));
     assert_eq!(
         one.partial_cmp(&also_one),
         Some(Ordering::Equal),
         "should be the same"
     );
 
-    let still_one = Rational::Real(false, -2, Mpz::from(4));
+    let still_one = Rational::Real(false, -2, Integer::from(4));
     assert_eq!(
         one.partial_cmp(&still_one),
         Some(Ordering::Equal),
@@ -575,7 +574,7 @@ fn multiplication() {
     // test values
     let zero = Rational::zero(); // 0
     let one = Rational::one(); // 1
-    let frac = Rational::Real(true, -4, Mpz::from(7)); // -7 * 2^-4
+    let frac = Rational::Real(true, -4, Integer::from(7)); // -7 * 2^-4
     let pos_inf = POS_INF; // +Inf
     let neg_inf = NEG_INF; // -Inf,
     let nan = NAN; // NaN
@@ -595,7 +594,7 @@ fn multiplication() {
     }
 
     // Multiply by -7 * 2^-4
-    let frac_sqr = Rational::Real(false, -8, Mpz::from(49));
+    let frac_sqr = Rational::Real(false, -8, Integer::from(49));
     let expected = [&zero, &frac, &frac_sqr, &neg_inf, &pos_inf, &nan];
     for (&val, &expected) in vals.iter().zip(expected.iter()) {
         assert_expected_mul(&frac, val, expected);
@@ -644,14 +643,14 @@ fn addition() {
     // test values
     let zero = Rational::zero(); // 0
     let one = Rational::one(); // 1
-    let frac = Rational::Real(true, -4, Mpz::from(7)); // -7 * 2^-4
+    let frac = Rational::Real(true, -4, Integer::from(7)); // -7 * 2^-4
     let pos_inf = POS_INF; // +Inf
     let neg_inf = NEG_INF; // -Inf,
     let nan = NAN; // NaN
 
-    let two = Rational::Real(false, 0, Mpz::from(2)); // 2
-    let two_frac = Rational::Real(true, -4, Mpz::from(14)); // 14 * 2^-4
-    let one_m_frac = Rational::Real(false, -4, Mpz::from(9)); // 9 * 2^-4
+    let two = Rational::Real(false, 0, Integer::from(2)); // 2
+    let two_frac = Rational::Real(true, -4, Integer::from(14)); // 14 * 2^-4
+    let one_m_frac = Rational::Real(false, -4, Integer::from(9)); // 9 * 2^-4
 
     let vals = [&zero, &one, &frac, &pos_inf, &neg_inf, &nan];
 
@@ -697,7 +696,7 @@ fn neg() {
     // test values
     let zero = Rational::zero(); // 0
     let one = Rational::one(); // 1
-    let frac = Rational::Real(true, -4, Mpz::from(7)); // -7 * 2^-4
+    let frac = Rational::Real(true, -4, Integer::from(7)); // -7 * 2^-4
     let pos_inf = POS_INF; // +Inf
     let neg_inf = NEG_INF; // -Inf,
     let nan = NAN; // NaN
@@ -722,7 +721,7 @@ fn mpfr_integration() {
     // test values
     let zero = Rational::zero(); // 0
     let one = Rational::one(); // 1
-    let frac = Rational::Real(true, -4, Mpz::from(7)); // -7 * 2^-4
+    let frac = Rational::Real(true, -4, Integer::from(7)); // -7 * 2^-4
     let pos_inf = POS_INF; // +Inf
     let neg_inf = NEG_INF; // -Inf,
     let nan = NAN; // NaN

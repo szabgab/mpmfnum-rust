@@ -9,10 +9,8 @@
 use std::cmp::min;
 use std::ops::{Add, Mul, Neg, Sub};
 
-use rug::Float;
-
-use gmp::mpz::Mpz;
-use gmp::sign::Sign;
+use num_traits::{Zero, Signed};
+use rug::{Float, Integer};
 use gmp_mpfr_sys::mpfr;
 
 use crate::rational::*;
@@ -100,8 +98,8 @@ impl Rational {
                     // resulting exponent is the minimum of the
                     // exponent of the arguments
                     let exp = min(*exp1, *exp2);
-                    let c1 = c1 << (*exp1 - exp) as usize;
-                    let c2 = c2 << (*exp2 - exp) as usize;
+                    let c1 = Integer::from(c1 << (*exp1 - exp));
+                    let c2 = Integer::from(c2 << (*exp2 - exp));
 
                     // add signed integers
                     let m = match (*s1, *s2) {
@@ -112,7 +110,7 @@ impl Rational {
                     };
 
                     // compose result
-                    Self::Real(m.sign() == Sign::Negative, exp, m.abs())
+                    Self::Real(m.is_negative(), exp, m.abs())
                 }
             }
         }
@@ -145,7 +143,7 @@ impl Rational {
                     Self::zero()
                 } else {
                     // non-zero * non-zero is non-zero
-                    Self::Real(s1 != s2, exp1 + exp2, c1 * c2)
+                    Self::Real(s1 != s2, exp1 + exp2, Integer::from(c1 * c2))
                 }
             }
         }
@@ -159,9 +157,9 @@ impl Rational {
         if let Rational::Real(s, exp, c) = &self {
             // the last bit is '1' if the result is inexact (`t != 0`).
             let c = if t == 0 {
-                c << 1
+                Integer::from(c << 1)
             } else {
-                (c << 1) + Mpz::from(1)
+                Integer::from(c << 1) + 1
             };
             self = Rational::Real(*s, *exp, c);
         }

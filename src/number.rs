@@ -9,7 +9,7 @@
 
 #![allow(unused_imports)]
 
-use gmp::mpz::*;
+use rug::Integer;
 
 use crate::RoundingContext;
 
@@ -56,12 +56,12 @@ pub trait Number {
 
     /// Viewing this number as `(-1)^s * c * b^exp` where `c` is an integer,
     /// returns `c`. Only well-defined for finite, non-zero numbers.
-    fn c(&self) -> Option<Mpz>;
+    fn c(&self) -> Option<Integer>;
 
     /// Viewing this number as `(-1)^s * c * b^exp` where `c` is an integer,
     /// returns `(-1)^s * c`, the signed significand. Only well-defined for
     /// finite, non-zero numbers.
-    fn m(&self) -> Option<Mpz>;
+    fn m(&self) -> Option<Integer>;
 
     /// Precision of the significand.
     /// This is just `floor(logb(c))` where `b` is the radix and `c` is

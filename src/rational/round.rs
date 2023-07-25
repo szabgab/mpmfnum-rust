@@ -9,7 +9,8 @@
 use std::cmp::min;
 use std::ops::BitAnd;
 
-use gmp::mpz::*;
+use num_traits::Zero;
+use rug::Integer;
 
 use crate::rational::Rational;
 use crate::util::*;
@@ -177,7 +178,7 @@ impl Context {
     /// the binary digits at or below the `n`th place, and the two
     /// subsequent binary digits at the digit `n` and `n-1` (the halfway
     /// and sticky rounding bits).
-    pub(crate) fn split<T: Number>(num: &T, n: isize) -> (isize, Mpz, Mpz, bool, bool) {
+    pub(crate) fn split<T: Number>(num: &T, n: isize) -> (isize, Integer, Integer, bool, bool) {
         // number components
         let exp = num.exp().unwrap();
         let c = num.c().unwrap();
@@ -189,11 +190,11 @@ impl Context {
         match offset.cmp(&0) {
             std::cmp::Ordering::Greater => {
                 // shifting off bits
-                let max_lost = c.bit_length();
+                let max_lost = c.significant_bits() as usize;
                 let exp = exp + offset;
                 let truncated = c.clone() >> (offset as usize);
                 let c_lost = c.bitand(bitmask(min(offset as usize, max_lost)));
-                let half_bit = c_lost.tstbit((offset - 1) as usize);
+                let half_bit = c_lost.get_bit((offset - 1) as u32);
                 let sticky_bit = !c_lost
                     .clone()
                     .bitand(bitmask((offset - 1) as usize))
@@ -202,14 +203,14 @@ impl Context {
             }
             std::cmp::Ordering::Equal => {
                 // keeping all the bits
-                (exp, c, Mpz::from(0), false, false)
+                (exp, c, Integer::from(0), false, false)
             }
             std::cmp::Ordering::Less => {
                 // need to adding padding to the right,
                 // exactly -offset binary digits
                 let exp = exp + offset;
                 let c = c << -offset as usize;
-                (exp, c, Mpz::from(0), false, false)
+                (exp, c, Integer::from(0), false, false)
             }
         }
     }
@@ -221,7 +222,7 @@ impl Context {
         &self,
         sign: bool,
         exp: isize,
-        c: &Mpz,
+        c: &Integer,
         half_bit: bool,
         sticky_bit: bool,
     ) -> bool {
@@ -313,8 +314,10 @@ impl Context {
         // step 3: correct if needed
         // need to decide if we should increment
         if self.round_increment(sign, exp, &c, half_bit, sticky_bit) {
+            let len = c.significant_bits() as usize;
+
             c += 1;
-            if p.is_some() && c.bit_length() > p.unwrap() {
+            if p.is_some() && len > p.unwrap() {
                 c >>= 1;
                 exp += 1;
             }

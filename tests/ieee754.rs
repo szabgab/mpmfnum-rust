@@ -6,7 +6,7 @@
 //
 // Tests for the IEEE 754 module
 
-use gmp::mpz::Mpz;
+use rug::Integer;
 use mpmfnum::ieee754;
 use mpmfnum::rational::{Rational, RoundingMode};
 use mpmfnum::RoundingContext;
@@ -65,10 +65,10 @@ fn round_small() {
     use RoundingMode::*;
 
     // test values
-    let pos_1 = Rational::Real(false, 0, Mpz::from(1));
-    let pos_15_16 = Rational::Real(false, -4, Mpz::from(15));
-    let pos_7_8 = Rational::Real(false, -3, Mpz::from(7));
-    let pos_3_4 = Rational::Real(false, -2, Mpz::from(3));
+    let pos_1 = Rational::Real(false, 0, Integer::from(1));
+    let pos_15_16 = Rational::Real(false, -4, Integer::from(15));
+    let pos_7_8 = Rational::Real(false, -3, Integer::from(7));
+    let pos_3_4 = Rational::Real(false, -2, Integer::from(3));
 
     let neg_1 = -pos_1.clone();
     let neg_15_16 = -pos_15_16.clone();

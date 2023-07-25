@@ -8,7 +8,8 @@
 
 use std::cmp::max;
 
-use gmp::mpz::Mpz;
+use num_traits::Zero;
+use rug::Integer;
 
 use crate::ieee754::{Exceptions, Float, IEEE754};
 use crate::rational::{self, RoundingDirection, RoundingMode};
@@ -185,7 +186,7 @@ impl Context {
     /// than if rounding were done with unbounded exponent. Assumes
     /// `c_trunc` has at most `p+2` binary digits, so the half bit and
     /// quarter bits are the least significand digits of `c_trunc`.
-    fn round_tiny(&self, sign: bool, e_trunc: isize, c_trunc: &Mpz, lost: &Mpz) -> bool {
+    fn round_tiny(&self, sign: bool, e_trunc: isize, c_trunc: &Integer, lost: &Integer) -> bool {
         if c_trunc.is_zero() && lost.is_zero() {
             // easy case: exact zero
             false
@@ -201,8 +202,8 @@ impl Context {
                 true
             } else {
                 // rounding bits
-                let half_bit = c_trunc.tstbit(1);
-                let quarter_bit = c_trunc.tstbit(0);
+                let half_bit = c_trunc.get_bit(1);
+                let quarter_bit = c_trunc.get_bit(0);
                 let sticky_bit = !lost.is_zero();
                 let low_bits = quarter_bit || sticky_bit;
 
@@ -291,7 +292,7 @@ impl Context {
         // the halfway and quarter bit are the least significant parts of `c_trunc`
         // and the lower rounding bits are contained in `lost`.
         let (exp_trunc, c_trunc, lost, _, _) = rational::Context::split(num, n - 2);
-        let e_trunc = exp_trunc + c_trunc.bit_length() as isize - 1;
+        let e_trunc = exp_trunc + c_trunc.significant_bits() as isize - 1;
 
         let tiny_pre = e_trunc < self.emin();
         let tiny_post = self.round_tiny(sign, e_trunc, &c_trunc, &lost);
@@ -364,7 +365,7 @@ impl RoundingContext for Context {
             }
         } else if num.is_nar() {
             IEEE754 {
-                num: Float::Nan(num.sign(), true, Mpz::from(0)),
+                num: Float::Nan(num.sign(), true, Integer::from(0)),
                 flags: Exceptions::default(),
                 ctx: self.clone(),
             }
