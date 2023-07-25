@@ -23,7 +23,7 @@ fn assert_round_small(
     tiny_post: bool,
     carry: bool,
 ) {
-    let ctx = ieee754::Context::new(2, 4).with_rounding_mode(rm);
+    let ctx = ieee754::Context::new(2, 5).with_rounding_mode(rm);
     let rounded = ctx.round(input);
 
     assert_eq!(
@@ -65,21 +65,21 @@ fn round_small() {
     use RoundingMode::*;
 
     // test values
-    let one = Rational::Real(false, 0, Mpz::from(1));
-    let seven_8 = Rational::Real(false, -3, Mpz::from(7));
-    let three_4 = Rational::Real(false, -2, Mpz::from(3));
-    let one_2 = Rational::Real(false, -1, Mpz::from(1));
+    let pos_1 = Rational::Real(false, 0, Mpz::from(1));
+    let pos_15_16 = Rational::Real(false, -4, Mpz::from(15));
+    let pos_7_8 = Rational::Real(false, -3, Mpz::from(7));
+    let pos_3_4 = Rational::Real(false, -2, Mpz::from(3));
 
-    let neg_one = -one.clone();
-    let neg_7_8 = -seven_8.clone();
-    let neg_3_4 = -three_4.clone();
-    let neg_1_2 = -one_2.clone();
+    let neg_1 = -pos_1.clone();
+    let neg_15_16 = -pos_15_16.clone();
+    let neg_7_8 = -pos_7_8.clone();
+    let neg_3_4 = -pos_3_4.clone();
 
     // 1
     assert_round_small(
-        &one,
+        &pos_1,
         NearestTiesToEven,
-        &one,
+        &pos_1,
         false,
         false,
         false,
@@ -89,9 +89,9 @@ fn round_small() {
         false,
     );
     assert_round_small(
-        &one,
+        &pos_1,
         NearestTiesAwayZero,
-        &one,
+        &pos_1,
         false,
         false,
         false,
@@ -101,99 +101,111 @@ fn round_small() {
         false,
     );
     assert_round_small(
-        &one, ToPositive, &one, false, false, false, false, false, false, false,
+        &pos_1, ToPositive, &pos_1, false, false, false, false, false, false, false,
     );
     assert_round_small(
-        &one, ToNegative, &one, false, false, false, false, false, false, false,
+        &pos_1, ToNegative, &pos_1, false, false, false, false, false, false, false,
     );
     assert_round_small(
-        &one, ToZero, &one, false, false, false, false, false, false, false,
+        &pos_1, ToZero, &pos_1, false, false, false, false, false, false, false,
     );
     assert_round_small(
-        &one, AwayZero, &one, false, false, false, false, false, false, false,
+        &pos_1, AwayZero, &pos_1, false, false, false, false, false, false, false,
+    );
+
+    // 15/16
+    assert_round_small(
+        &pos_15_16,
+        NearestTiesToEven,
+        &pos_1,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true,
+    );
+    assert_round_small(
+        &pos_15_16,
+        NearestTiesAwayZero,
+        &pos_1,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true,
+    );
+    assert_round_small(
+        &pos_15_16, ToPositive, &pos_1, false, true, false, true, true, false, true,
+    );
+    assert_round_small(
+        &pos_15_16, ToNegative, &pos_3_4, false, true, true, true, true, true, false,
+    );
+    assert_round_small(
+        &pos_15_16, ToZero, &pos_3_4, false, true, true, true, true, true, false,
+    );
+    assert_round_small(
+        &pos_15_16, AwayZero, &pos_1, false, true, false, true, true, false, true,
     );
 
     // 7/8
     assert_round_small(
-        &seven_8,
+        &pos_7_8,
         NearestTiesToEven,
-        &one,
-        false,
-        true,
+        &pos_1,
         false,
         true,
         true,
-        false,
+        true,
+        true,
+        true,
         true,
     );
     assert_round_small(
-        &seven_8,
+        &pos_7_8,
         NearestTiesAwayZero,
-        &one,
+        &pos_1,
         false,
         true,
-        false,
         true,
         true,
-        false,
+        true,
+        true,
         true,
     );
     assert_round_small(
-        &seven_8, ToPositive, &one, false, true, false, true, true, false, true,
+        &pos_7_8, ToPositive, &pos_1, false, true, true, true, true, true, true,
     );
     assert_round_small(
-        &seven_8, ToNegative, &one_2, false, true, true, true, true, true, false,
+        &pos_7_8, ToNegative, &pos_3_4, false, true, true, true, true, true, false,
     );
     assert_round_small(
-        &seven_8, ToZero, &one_2, false, true, true, true, true, true, false,
+        &pos_7_8, ToZero, &pos_3_4, false, true, true, true, true, true, false,
     );
     assert_round_small(
-        &seven_8, AwayZero, &one, false, true, false, true, true, false, true,
+        &pos_7_8, AwayZero, &pos_1, false, true, true, true, true, true, true,
     );
 
     // 3/4
     assert_round_small(
-        &three_4,
+        &pos_3_4,
         NearestTiesToEven,
-        &one,
+        &pos_3_4,
+        false,
+        false,
+        false,
         false,
         true,
         true,
-        true,
-        true,
-        true,
-        true,
+        false,
     );
     assert_round_small(
-        &three_4,
+        &pos_3_4,
         NearestTiesAwayZero,
-        &one,
-        false,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-    );
-    assert_round_small(
-        &three_4, ToPositive, &one, false, true, true, true, true, true, true,
-    );
-    assert_round_small(
-        &three_4, ToNegative, &one_2, false, true, true, true, true, true, false,
-    );
-    assert_round_small(
-        &three_4, ToZero, &one_2, false, true, true, true, true, true, false,
-    );
-    assert_round_small(
-        &three_4, AwayZero, &one, false, true, true, true, true, true, true,
-    );
-
-    // 1/2
-    assert_round_small(
-        &one_2,
-        NearestTiesToEven,
-        &one_2,
+        &pos_3_4,
         false,
         false,
         false,
@@ -203,35 +215,23 @@ fn round_small() {
         false,
     );
     assert_round_small(
-        &one_2,
-        NearestTiesAwayZero,
-        &one_2,
-        false,
-        false,
-        false,
-        false,
-        true,
-        true,
-        false,
+        &pos_3_4, ToPositive, &pos_3_4, false, false, false, false, true, true, false,
     );
     assert_round_small(
-        &one_2, ToPositive, &one_2, false, false, false, false, true, true, false,
+        &pos_3_4, ToNegative, &pos_3_4, false, false, false, false, true, true, false,
     );
     assert_round_small(
-        &one_2, ToNegative, &one_2, false, false, false, false, true, true, false,
+        &pos_3_4, ToZero, &pos_3_4, false, false, false, false, true, true, false,
     );
     assert_round_small(
-        &one_2, ToZero, &one_2, false, false, false, false, true, true, false,
-    );
-    assert_round_small(
-        &one_2, AwayZero, &one_2, false, false, false, false, true, true, false,
+        &pos_3_4, AwayZero, &pos_3_4, false, false, false, false, true, true, false,
     );
 
     // -1
     assert_round_small(
-        &neg_one,
+        &neg_1,
         NearestTiesToEven,
-        &neg_one,
+        &neg_1,
         false,
         false,
         false,
@@ -241,9 +241,9 @@ fn round_small() {
         false,
     );
     assert_round_small(
-        &neg_one,
+        &neg_1,
         NearestTiesAwayZero,
-        &neg_one,
+        &neg_1,
         false,
         false,
         false,
@@ -253,99 +253,111 @@ fn round_small() {
         false,
     );
     assert_round_small(
-        &neg_one, ToPositive, &neg_one, false, false, false, false, false, false, false,
+        &neg_1, ToPositive, &neg_1, false, false, false, false, false, false, false,
     );
     assert_round_small(
-        &neg_one, ToNegative, &neg_one, false, false, false, false, false, false, false,
+        &neg_1, ToNegative, &neg_1, false, false, false, false, false, false, false,
     );
     assert_round_small(
-        &neg_one, ToZero, &neg_one, false, false, false, false, false, false, false,
+        &neg_1, ToZero, &neg_1, false, false, false, false, false, false, false,
     );
     assert_round_small(
-        &neg_one, AwayZero, &neg_one, false, false, false, false, false, false, false,
+        &neg_1, AwayZero, &neg_1, false, false, false, false, false, false, false,
+    );
+
+    // 15/16
+    assert_round_small(
+        &neg_15_16,
+        NearestTiesToEven,
+        &neg_1,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true,
+    );
+    assert_round_small(
+        &neg_15_16,
+        NearestTiesAwayZero,
+        &neg_1,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true,
+    );
+    assert_round_small(
+        &neg_15_16, ToPositive, &neg_3_4, false, true, true, true, true, true, false,
+    );
+    assert_round_small(
+        &neg_15_16, ToNegative, &neg_1, false, true, false, true, true, false, true,
+    );
+    assert_round_small(
+        &neg_15_16, ToZero, &neg_3_4, false, true, true, true, true, true, false,
+    );
+    assert_round_small(
+        &neg_15_16, AwayZero, &neg_1, false, true, false, true, true, false, true,
     );
 
     // 7/8
     assert_round_small(
         &neg_7_8,
         NearestTiesToEven,
-        &neg_one,
-        false,
-        true,
+        &neg_1,
         false,
         true,
         true,
-        false,
+        true,
+        true,
+        true,
         true,
     );
     assert_round_small(
         &neg_7_8,
         NearestTiesAwayZero,
-        &neg_one,
+        &neg_1,
         false,
         true,
-        false,
         true,
         true,
-        false,
+        true,
+        true,
         true,
     );
     assert_round_small(
-        &neg_7_8, ToPositive, &neg_1_2, false, true, true, true, true, true, false,
+        &neg_7_8, ToPositive, &neg_3_4, false, true, true, true, true, true, false,
     );
     assert_round_small(
-        &neg_7_8, ToNegative, &neg_one, false, true, false, true, true, false, true,
+        &neg_7_8, ToNegative, &neg_1, false, true, true, true, true, true, true,
     );
     assert_round_small(
-        &neg_7_8, ToZero, &neg_1_2, false, true, true, true, true, true, false,
+        &neg_7_8, ToZero, &neg_3_4, false, true, true, true, true, true, false,
     );
     assert_round_small(
-        &neg_7_8, AwayZero, &neg_one, false, true, false, true, true, false, true,
+        &neg_7_8, AwayZero, &neg_1, false, true, true, true, true, true, true,
     );
 
     // 3/4
     assert_round_small(
         &neg_3_4,
         NearestTiesToEven,
-        &neg_one,
+        &neg_3_4,
+        false,
+        false,
+        false,
         false,
         true,
         true,
-        true,
-        true,
-        true,
-        true,
+        false,
     );
     assert_round_small(
         &neg_3_4,
         NearestTiesAwayZero,
-        &neg_one,
-        false,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-    );
-    assert_round_small(
-        &neg_3_4, ToPositive, &neg_1_2, false, true, true, true, true, true, false,
-    );
-    assert_round_small(
-        &neg_3_4, ToNegative, &neg_one, false, true, true, true, true, true, true,
-    );
-    assert_round_small(
-        &neg_3_4, ToZero, &neg_1_2, false, true, true, true, true, true, false,
-    );
-    assert_round_small(
-        &neg_3_4, AwayZero, &neg_one, false, true, true, true, true, true, true,
-    );
-
-    // 1/2
-    assert_round_small(
-        &neg_1_2,
-        NearestTiesToEven,
-        &neg_1_2,
+        &neg_3_4,
         false,
         false,
         false,
@@ -355,27 +367,20 @@ fn round_small() {
         false,
     );
     assert_round_small(
-        &neg_1_2,
-        NearestTiesAwayZero,
-        &neg_1_2,
-        false,
-        false,
-        false,
-        false,
-        true,
-        true,
-        false,
+        &neg_3_4, ToPositive, &neg_3_4, false, false, false, false, true, true, false,
     );
     assert_round_small(
-        &neg_1_2, ToPositive, &neg_1_2, false, false, false, false, true, true, false,
+        &neg_3_4, ToNegative, &neg_3_4, false, false, false, false, true, true, false,
     );
     assert_round_small(
-        &neg_1_2, ToNegative, &neg_1_2, false, false, false, false, true, true, false,
+        &neg_3_4, ToZero, &neg_3_4, false, false, false, false, true, true, false,
     );
     assert_round_small(
-        &neg_1_2, ToZero, &neg_1_2, false, false, false, false, true, true, false,
-    );
-    assert_round_small(
-        &neg_1_2, AwayZero, &neg_1_2, false, false, false, false, true, true, false,
+        &neg_3_4, AwayZero, &neg_3_4, false, false, false, false, true, true, false,
     );
 }
+
+// #[test]
+// fn mul_small() {
+//     let ctx = ieee754::Context::new(2, 4);
+// }

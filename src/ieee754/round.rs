@@ -31,10 +31,35 @@ pub struct Context {
 }
 
 impl Context {
+    /// Implementation limit: maximum exponent size
+    pub const ES_MAX: usize = 32;
+    /// Implementation limit: minimum exponent size
+    pub const ES_MIN: usize = 2;
+    /// Implementation limit: minimum precision
+    pub const PREC_MIN: usize = 3;
+
     /// Constructs a new rounding context with the given format parameters.
     /// The default rounding mode is [`RoundingMode::NearestTiesToEven`].
     /// Both fields specifying subnormal behavior are false by default.
     pub fn new(es: usize, nbits: usize) -> Self {
+        assert!(
+            es >= Self::ES_MIN,
+            "exponent width needs to be at least {} bits, given {} bits",
+            Self::ES_MIN,
+            es
+        );
+        assert!(
+            es <= Self::ES_MAX,
+            "exponent width needs to be at most {} bits, given {} bits",
+            Self::ES_MAX,
+            es
+        );
+        assert!(
+            nbits >= es + 3,
+            "total bitwidth needs to be at least {} bits, given {} bits",
+            es + 3,
+            nbits
+        );
         Self {
             es,
             nbits,
