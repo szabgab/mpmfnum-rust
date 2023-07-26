@@ -14,7 +14,7 @@ use num_traits::{Signed, Zero};
 use rug::{Float, Integer};
 
 use crate::rational::*;
-use crate::util::{MPFRFlags, mpfr_flags};
+use crate::util::{mpfr_flags, MPFRFlags};
 
 macro_rules! mpfr_1ary {
     ($name:ident; $mpfr:ident; $cname:expr) => {

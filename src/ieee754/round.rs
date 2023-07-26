@@ -160,9 +160,9 @@ impl Context {
     }
 
     /// Returns the maximum representable value.
-    pub fn max_float(&self) -> IEEE754 {
+    pub fn max_float(&self, sign: bool) -> IEEE754 {
         IEEE754 {
-            num: Float::Normal(false, self.expmax(), bitmask(self.max_p() + 1)),
+            num: Float::Normal(sign, self.expmax(), bitmask(self.max_p())),
             flags: Exceptions::default(),
             ctx: self.clone(),
         }
@@ -315,34 +315,12 @@ impl Context {
             .with_rounding_mode(self.rm)
             .with_max_precision(max_p)
             .with_min_n(n);
-        let (rounded, lost) = rctx.round_residual(num);
 
-        // rounding components
         let sign = num.sign();
-        let e = rounded.e().unwrap();
-        let inexact = !lost.unwrap().is_zero();
+        let (rounded, lost) = rctx.round_residual(num);
+        let inexact = !lost.as_ref().unwrap().is_zero();
 
-        // step 3: check for overflow and possibly clamp exponent
-        if e > self.emax() {
-            let to_inf = Context::overflow_to_infinity(sign, self.rm);
-            return IEEE754 {
-                num: if to_inf {
-                    // rounding says to overflow to +Inf
-                    Float::Infinity(sign)
-                } else {
-                    Float::Zero(false)
-                },
-                flags: Exceptions {
-                    overflow: true,
-                    inexact: true,
-                    carry: true,
-                    ..Default::default()
-                },
-                ctx: self.clone(),
-            };
-        }
-
-        // step 4: check for underflow after rounding
+        // step 3: check for underflow after rounding
         // split again but with 2 more digits in the significant part:
         // the halfway and quarter bit are the least significant parts of `c_trunc`
         // and the lower rounding bits are contained in `lost`.
@@ -351,9 +329,47 @@ impl Context {
 
         let tiny_pre = e_trunc < self.emin();
         let tiny_post = self.round_tiny(sign, e_trunc, &c_trunc, &lost);
-        let carry = e > e_trunc;
 
-        // step 5: compose result
+        // step 4: check if we rounded to zero
+        if rounded.is_zero() {
+            // println!("{:?} {:?} {}", rounded, lost, inexact);
+            return IEEE754 {
+                num: Float::Zero(num.sign()),
+                flags: Exceptions {
+                    underflow_pre: tiny_pre && inexact,
+                    underflow_post: tiny_post && inexact,
+                    inexact,
+                    tiny_pre,
+                    tiny_post,
+                    ..Default::default()
+                },
+                ctx: self.clone(),
+            };
+        }
+
+        // step 5: check for overflow and possibly clamp exponent
+        let e = rounded.e().unwrap();
+        if e > self.emax() {
+            if Context::overflow_to_infinity(sign, self.rm) {
+                return IEEE754 {
+                    num: Float::Infinity(sign),
+                    flags: Exceptions {
+                        overflow: true,
+                        inexact: true,
+                        ..Default::default()
+                    },
+                    ctx: self.clone(),
+                };
+            } else {
+                let mut maxfloat = self.max_float(rounded.sign());
+                maxfloat.flags.overflow = true;
+                maxfloat.flags.inexact = true;
+                return maxfloat;
+            }
+        }
+
+        // step 6: compose result
+        let carry = e > e_trunc;
         if self.ftz && tiny_post {
             // flush to zero
             IEEE754 {

@@ -8,7 +8,7 @@
 
 use std::cmp::max;
 
-use mpmfnum::ops::RoundedAdd;
+use mpmfnum::ops::*;
 use mpmfnum::rational::{Rational, RoundingMode};
 use mpmfnum::RoundingContext;
 use mpmfnum::{ieee754, Number};
@@ -490,19 +490,19 @@ fn convert_round_mode(rm: RoundingMode) -> mpfr::rnd_t {
 
 type MpfrResult = (Float, (bool, bool, bool, bool, bool));
 
-fn assert_mpfr_failed(key: &str, inputs: Vec<Float>, expected: MpfrResult, actual: MpfrResult) {
+fn assert_mpfr_failed(key: String, inputs: Vec<Float>, expected: MpfrResult, actual: MpfrResult) {
     eprintln!(
         "{} at {:?} mismatch: expected {} {:?}, actual: {} {:?}",
-        key,
-        inputs,
-        expected.0,
-        expected.1,
-        actual.0,
-        actual.1,
+        key, inputs, expected.0, expected.1, actual.0, actual.1,
     );
 }
 
-fn assert_mpfr_expected(key: &str, inputs: Vec<Float>, expected: MpfrResult, actual: MpfrResult) -> bool {
+fn assert_mpfr_expected(
+    key: String,
+    inputs: Vec<Float>,
+    expected: MpfrResult,
+    actual: MpfrResult,
+) -> bool {
     // check numerical result
     let expect_num = expected.0.clone();
     let actual_num = actual.0.clone();
@@ -529,114 +529,145 @@ fn assert_mpfr_expected(key: &str, inputs: Vec<Float>, expected: MpfrResult, act
     return true;
 }
 
-fn add_exhaustive_config(ctx: &ieee754::Context) -> bool {
-    let emax = ctx.emax() as i64 + 1;
-    let emin = (ctx.emin() as i64 - ctx.max_p() as i64) + 1;
-    let mut passing = true;
+macro_rules! mpfr_test_2ary {
+    ($name:ident, $impl:ident, $cname:expr) => {
+        fn $name(ctx: &ieee754::Context) -> bool {
+            let emax = ctx.emax() + 1;
+            let emin = ctx.expmin() + 1;
+            let mut passing = true;
 
-    let p = (ctx.nbits() - ctx.es()) as u32;
-    for i in 0..(1 << ctx.nbits()) {
-        let x = ctx.bits_to_number(Integer::from(i));
-        let xf = Float::from(Rational::from(x.clone()));
-        for j in 0..(1 << ctx.nbits()) {
-            let y = ctx.bits_to_number(Integer::from(j));
-            let yf = Float::from(Rational::from(y.clone()));
+            let p = (ctx.nbits() - ctx.es()) as u32;
+            for i in 0..(1 << ctx.nbits()) {
+                let x = ctx.bits_to_number(Integer::from(i));
+                let xf = Float::from(Rational::from(x.clone()));
+                for j in 0..(1 << ctx.nbits()) {
+                    let y = ctx.bits_to_number(Integer::from(j));
+                    let yf = Float::from(Rational::from(y.clone()));
 
-            // Implementation
-            let z = ctx.add(&x, &y);
-            let flags = z.flags().clone();
-            let rf = Float::from(z);
+                    // Implementation
+                    let z = ctx.$impl(&x, &y);
+                    let flags = z.flags().clone();
+                    let rf = Float::from(z);
 
-            // MPFR
-            let mut zf = Float::new(p);
-            let mpfr_invalid: bool;
-            let mpfr_divzero: bool;
-            let mpfr_overflow: bool;
-            let mpfr_underflow: bool;
-            let mpfr_inexact: bool;
+                    // MPFR
+                    let mut zf = Float::new(p);
+                    let mpfr_invalid: bool;
+                    let mpfr_divzero: bool;
+                    let mpfr_overflow: bool;
+                    let mpfr_underflow: bool;
+                    let mpfr_inexact: bool;
 
-            let rnd = convert_round_mode(ctx.rm());
-            unsafe {
-                let old_emin = mpfr::get_emin();
-                let old_emax = mpfr::get_emax();
-                mpfr::set_emin(emin);
-                mpfr::set_emax(emax);
-                mpfr::clear_flags();
+                    let rnd = convert_round_mode(ctx.rm());
+                    unsafe {
+                        let old_emax = mpfr::get_emax();
+                        let old_emin = mpfr::get_emin();
+                        mpfr::set_emax(emax as i64);
+                        mpfr::set_emin(emin as i64);
 
-                let dst = zf.as_raw_mut();
-                let t = mpfr::add(dst, xf.as_raw(), yf.as_raw(), rnd);
-                mpfr::check_range(dst, t, rnd);
-                mpfr::subnormalize(dst, t, rnd);
+                        mpfr::clear_flags();
+                        let t = mpfr::$impl(zf.as_raw_mut(), xf.as_raw(), yf.as_raw(), rnd);
+                        mpfr::check_range(zf.as_raw_mut(), t, rnd);
+                        mpfr::subnormalize(zf.as_raw_mut(), t, rnd);
 
-                mpfr_invalid = mpfr::nanflag_p() != 0;
-                mpfr_divzero = mpfr::divby0_p() != 0;
-                mpfr_overflow = mpfr::overflow_p() != 0;
-                mpfr_inexact = mpfr::inexflag_p() != 0;
-                mpfr_underflow = mpfr_inexact && mpfr::underflow_p() != 0;
+                        mpfr_invalid = mpfr::nanflag_p() != 0;
+                        mpfr_divzero = mpfr::divby0_p() != 0;
+                        mpfr_overflow = mpfr::overflow_p() != 0;
+                        mpfr_inexact = mpfr::inexflag_p() != 0;
+                        mpfr_underflow = mpfr_inexact && mpfr::underflow_p() != 0;
 
-                mpfr::set_emin(old_emin);
-                mpfr::set_emax(old_emax);
-            }
+                        mpfr::set_emax(old_emax);
+                        mpfr::set_emin(old_emin);
+                    }
 
-            let expected = (
-                zf,
-                (mpfr_invalid,
-                mpfr_divzero,
-                mpfr_overflow,
-                mpfr_underflow,
-                mpfr_inexact)
-            );
-            let actual = (
-                rf,
-                (flags.invalid,
-                flags.divzero,
-                flags.overflow,
-                flags.underflow_post,
-                flags.inexact)
-            );
-            let inputs = vec![xf.clone(), yf];
-            if !assert_mpfr_expected("mul", inputs, expected, actual) {
-                passing = false;
-            }
-        }
-    }
-
-    return passing;
-}
-
-#[test]
-fn add_exhaustive() {
-    // parameters
-    const EMIN: usize = 2;
-    const EMAX: usize = 6;
-    const NBITS_MIN: usize = 4;
-    const NBITS_MAX: usize = 5;
-
-    let rms = [
-        RoundingMode::NearestTiesToEven,
-        // RoundingMode::ToPositive,
-        // RoundingMode::ToNegative,
-        // RoundingMode::ToZero,
-        // RoundingMode::AwayZero
-    ];
-
-    let mut total = 0;
-    let mut passed = 0;
-
-    for es in EMIN..(EMAX + 1) {
-        for nbits in max(NBITS_MIN, es + 3)..(NBITS_MAX + 1) {
-            for rm in &rms {
-                let ctx = ieee754::Context::new(es, nbits).with_rounding_mode(*rm);
-                if add_exhaustive_config(&ctx) {
-                    total += 1;
-                    passed += 1;
-                } else {
-                    total += 1;
+                    let expected = (
+                        zf,
+                        (
+                            mpfr_invalid,
+                            mpfr_divzero,
+                            mpfr_overflow,
+                            mpfr_underflow,
+                            mpfr_inexact,
+                        ),
+                    );
+                    let actual = (
+                        rf,
+                        (
+                            flags.invalid,
+                            flags.divzero,
+                            flags.overflow,
+                            flags.underflow_post,
+                            flags.inexact,
+                        ),
+                    );
+                    let inputs = vec![xf.clone(), yf];
+                    if !assert_mpfr_expected(
+                        format!("{} {:?}", $cname, ctx.rm()),
+                        inputs,
+                        expected,
+                        actual,
+                    ) {
+                        passing = false;
+                    }
                 }
             }
-        }
-    }
 
-    println!("passed {}/{} configs", passed, total);
-    assert_eq!(passed, total, "every config did not succeed");
+            return passing;
+        }
+    };
+}
+
+mpfr_test_2ary!(add_exhaustive_config, add, "add");
+mpfr_test_2ary!(mul_exhaustive_config, mul, "mul");
+
+macro_rules! test_exhaustive_2ary {
+    ($name:ident, $runner:ident, $emin:expr, $emax:expr, $nmin:expr, $nmax:expr) => {
+        #[test]
+        fn $name() {
+            // parameters
+            const EMIN: usize = $emin;
+            const EMAX: usize = $emax;
+            const NBITS_MIN: usize = $nmin;
+            const NBITS_MAX: usize = $nmax;
+
+            let rms = [
+                RoundingMode::NearestTiesToEven,
+                // RoundingMode::ToPositive,
+                // RoundingMode::ToNegative,
+                // RoundingMode::ToZero,
+                // RoundingMode::AwayZero
+            ];
+
+            let mut total = 0;
+            let mut passed = 0;
+
+            for es in EMIN..(EMAX + 1) {
+                for nbits in max(NBITS_MIN, es + 3)..(NBITS_MAX + 1) {
+                    for rm in &rms {
+                        let ctx = ieee754::Context::new(es, nbits).with_rounding_mode(*rm);
+                        if $runner(&ctx) {
+                            total += 1;
+                            passed += 1;
+                        } else {
+                            total += 1;
+                        }
+                    }
+                }
+            }
+
+            println!("passed {}/{} configs", passed, total);
+            assert_eq!(passed, total, "every config did not succeed");
+        }
+    };
+}
+
+test_exhaustive_2ary!(add_exhaustive, add_exhaustive_config, 2, 6, 4, 8);
+test_exhaustive_2ary!(mul_exhaustive, mul_exhaustive_config, 2, 6, 4, 5);
+
+#[test]
+fn sandbox() {
+    let ctx = ieee754::Context::new(2, 5);
+    let x = ctx.bits_to_number(Integer::from(2));
+    let y = ctx.bits_to_number(Integer::from(1));
+    let z = ctx.mul(&x, &y);
+    println!("{:?} * {:?} = {:?}", x, y, z);
 }

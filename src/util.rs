@@ -7,8 +7,8 @@
 // Utility functions
 //
 
-use rug::Integer;
 use gmp_mpfr_sys::mpfr;
+use rug::Integer;
 
 /// Produces a bitmask (as an Mpz) encoding `(1 << n) - 1`
 /// which can be used to extract the first `n` binary digits.
@@ -32,7 +32,7 @@ pub struct MPFRFlags {
     pub divzero: bool,
     pub overflow: bool,
     pub underflow: bool,
-    pub inexact: bool
+    pub inexact: bool,
 }
 
 pub fn mpfr_flags() -> MPFRFlags {
@@ -43,6 +43,12 @@ pub fn mpfr_flags() -> MPFRFlags {
         let inexact = mpfr::inexflag_p() != 0;
         let underflow = inexact && mpfr::underflow_p() != 0;
 
-        MPFRFlags { invalid, divzero, overflow, underflow, inexact }
+        MPFRFlags {
+            invalid,
+            divzero,
+            overflow,
+            underflow,
+            inexact,
+        }
     }
 }

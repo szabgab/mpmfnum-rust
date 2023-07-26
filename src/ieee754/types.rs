@@ -83,7 +83,7 @@ impl Exceptions {
             carry: false,
             denorm: false,
             tiny_pre: false,
-            tiny_post: false
+            tiny_post: false,
         }
     }
 }
