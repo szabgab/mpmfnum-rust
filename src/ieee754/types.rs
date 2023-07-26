@@ -69,6 +69,25 @@ pub struct Exceptions {
     pub tiny_post: bool,
 }
 
+impl Exceptions {
+    /// Constructs a new set of exceptions.
+    /// All flags are set to false.
+    pub fn new() -> Self {
+        Self {
+            invalid: false,
+            divzero: false,
+            overflow: false,
+            underflow_pre: false,
+            underflow_post: false,
+            inexact: false,
+            carry: false,
+            denorm: false,
+            tiny_pre: false,
+            tiny_post: false
+        }
+    }
+}
+
 /// IEEE 754 floating-point bitwise encoding viewed as an enumeration.
 /// Unlike [`IEEE754`], [`Float`] contains only the numerical data
 /// required to bitvector that encodes a binary floating-point number

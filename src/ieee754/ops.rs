@@ -19,7 +19,10 @@ impl RoundedAdd for Context {
         let p = self.max_p() + 3;
         let r1 = Rational::from_number(src1);
         let r2 = Rational::from_number(src2);
-        self.round(&r1.add_with_mpfr(&r2, p))
+        let (result, flags) = r1.add_with_mpfr(&r2, p);
+        let mut rounded = self.round(&result);
+        rounded.flags.invalid = flags.invalid;
+        rounded
     }
 }
 
@@ -29,6 +32,9 @@ impl RoundedMul for Context {
         let p = self.max_p() + 3;
         let r1 = Rational::from_number(src1);
         let r2 = Rational::from_number(src2);
-        self.round(&r1.mul_with_mpfr(&r2, p))
+        let (result, flags) = r1.mul_with_mpfr(&r2, p);
+        let mut rounded = self.round(&result);
+        rounded.flags.invalid = flags.invalid;
+        rounded
     }
 }

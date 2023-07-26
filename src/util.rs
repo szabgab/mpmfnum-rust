@@ -8,6 +8,7 @@
 //
 
 use rug::Integer;
+use gmp_mpfr_sys::mpfr;
 
 /// Produces a bitmask (as an Mpz) encoding `(1 << n) - 1`
 /// which can be used to extract the first `n` binary digits.
@@ -23,5 +24,25 @@ pub(crate) fn is_even(exp: isize, c: &Integer) -> bool {
         !c.get_bit(0)
     } else {
         (exp % 2) == 0
+    }
+}
+
+pub struct MPFRFlags {
+    pub invalid: bool,
+    pub divzero: bool,
+    pub overflow: bool,
+    pub underflow: bool,
+    pub inexact: bool
+}
+
+pub fn mpfr_flags() -> MPFRFlags {
+    unsafe {
+        let invalid = mpfr::nanflag_p() != 0;
+        let divzero = mpfr::divby0_p() != 0;
+        let overflow = mpfr::overflow_p() != 0;
+        let inexact = mpfr::inexflag_p() != 0;
+        let underflow = inexact && mpfr::underflow_p() != 0;
+
+        MPFRFlags { invalid, divzero, overflow, underflow, inexact }
     }
 }

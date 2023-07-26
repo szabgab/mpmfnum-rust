@@ -14,6 +14,7 @@ use num_traits::{Signed, Zero};
 use rug::{Float, Integer};
 
 use crate::rational::*;
+use crate::util::{MPFRFlags, mpfr_flags};
 
 macro_rules! mpfr_1ary {
     ($name:ident; $mpfr:ident; $cname:expr) => {
@@ -21,7 +22,7 @@ macro_rules! mpfr_1ary {
         #[doc = $cname]
         #[doc = "` to a [`Rational`] number with `p`
                  precision using MPFR, rounding to odd."]
-        pub fn $name(&self, p: usize) -> Self {
+        pub fn $name(&self, p: usize) -> (Self, MPFRFlags) {
             use mpfr::{rnd_t::RNDZ, PREC_MAX, PREC_MIN};
             assert!(
                 p as i64 > PREC_MIN && p as i64 <= PREC_MAX,
@@ -33,10 +34,14 @@ macro_rules! mpfr_1ary {
             // compute with `p - 1` bits
             let mut dst = Float::new((p - 1) as u32);
             let src = Float::from(self.clone());
-            let t = unsafe { mpfr::$mpfr(dst.as_raw_mut(), src.as_raw(), RNDZ) };
+            let (t, flags) = unsafe {
+                mpfr::clear_flags();
+                let t = mpfr::$mpfr(dst.as_raw_mut(), src.as_raw(), RNDZ);
+                (t, mpfr_flags())
+            };
 
             // apply correction to get the last bit
-            Rational::from(dst).with_ternary(t)
+            (Rational::from(dst).with_ternary(t), flags)
         }
     };
 }
@@ -47,7 +52,7 @@ macro_rules! mpfr_2ary {
         #[doc = $cname]
         #[doc = "` to two [`Rational`] numbers with `p`
                  precision using MPFR, rounding to odd."]
-        pub fn $name(&self, other: &Self, p: usize) -> Self {
+        pub fn $name(&self, other: &Self, p: usize) -> (Self, MPFRFlags) {
             use mpfr::{rnd_t::RNDZ, PREC_MAX, PREC_MIN};
             assert!(
                 p as i64 > PREC_MIN && p as i64 <= PREC_MAX,
@@ -60,10 +65,14 @@ macro_rules! mpfr_2ary {
             let mut dst = Float::new((p - 1) as u32);
             let src1 = Float::from(self.clone());
             let src2 = Float::from(other.clone());
-            let t = unsafe { mpfr::$mpfr(dst.as_raw_mut(), src1.as_raw(), src2.as_raw(), RNDZ) };
+            let (t, flags) = unsafe {
+                mpfr::clear_flags();
+                let t = mpfr::$mpfr(dst.as_raw_mut(), src1.as_raw(), src2.as_raw(), RNDZ);
+                (t, mpfr_flags())
+            };
 
             // apply correction to get the last bit
-            Rational::from(dst).with_ternary(t)
+            (Rational::from(dst).with_ternary(t), flags)
         }
     };
 }
@@ -156,12 +165,8 @@ impl Rational {
     fn with_ternary(mut self, t: i32) -> Self {
         if let Rational::Real(s, exp, c) = &self {
             // the last bit is '1' if the result is inexact (`t != 0`).
-            let c = if t == 0 {
-                Integer::from(c << 1)
-            } else {
-                Integer::from(c << 1) + 1
-            };
-            self = Rational::Real(*s, *exp, c);
+            let c = Integer::from(c << 1) + (if t == 0 { 0 } else { 1 });
+            self = Rational::Real(*s, exp - 1, c);
         }
 
         self
