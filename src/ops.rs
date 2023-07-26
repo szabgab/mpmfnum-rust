@@ -92,7 +92,7 @@ rounded_2ary!(RoundedPow, pow, "`x ^ y`");
 rounded_2ary!(RoundedHypot, hypot, "`sqrt(x^2 + y^2)`");
 rounded_2ary!(RoundedFmod, fmod, "`fmod(x, y)`");
 rounded_2ary!(RoundedRemainder, fmod, "`remainder(x, y)`");
-rounded_2ary!(RoundedAtan2, atan2, "`archtan(y / x)`");
+rounded_2ary!(RoundedAtan2, atan2, "`arctan(y / x)`");
 
 // Traits for 3-ary operators
 rounded_3ary!(RoundedFMA, fma, "`a*b + c`");
