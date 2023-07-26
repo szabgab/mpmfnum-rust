@@ -218,14 +218,7 @@ impl Context {
     /// Rounding utility function: given the truncated result and rounding
     /// bits, should the truncated result be incremented to produce
     /// the final rounded result?
-    fn round_increment(
-        &self,
-        sign: bool,
-        exp: isize,
-        c: &Integer,
-        half_bit: bool,
-        sticky_bit: bool,
-    ) -> bool {
+    fn round_increment(&self, sign: bool, c: &Integer, half_bit: bool, sticky_bit: bool) -> bool {
         let (is_nearest, rd) = self.rm.to_direction(sign);
         match (is_nearest, half_bit, sticky_bit, rd) {
             (_, false, false, _) => {
@@ -250,11 +243,11 @@ impl Context {
             }
             (true, true, false, RoundingDirection::ToEven) => {
                 // nearest, exactly halfway, ToEven => increment if odd
-                !is_even(exp, c)
+                c.is_odd()
             }
             (true, true, false, RoundingDirection::ToOdd) => {
                 // nearest, exactly halfway, ToOdd => increment if even
-                is_even(exp, c)
+                c.is_even()
             }
             (false, _, _, RoundingDirection::ToZero) => {
                 // directed, toZero => always truncate
@@ -266,11 +259,11 @@ impl Context {
             }
             (false, _, _, RoundingDirection::ToEven) => {
                 // directed, toEven => increment if odd
-                !is_even(exp, c)
+                c.is_odd()
             }
             (false, _, _, RoundingDirection::ToOdd) => {
                 // directed, toOdd => increment if even
-                is_even(exp, c)
+                c.is_even()
             }
         }
     }
@@ -313,11 +306,9 @@ impl Context {
 
         // step 3: correct if needed
         // need to decide if we should increment
-        if self.round_increment(sign, exp, &c, half_bit, sticky_bit) {
-            let len = c.significant_bits() as usize;
-
+        if self.round_increment(sign, &c, half_bit, sticky_bit) {
             c += 1;
-            if p.is_some() && len > p.unwrap() {
+            if p.is_some() && c.significant_bits() as usize > p.unwrap() {
                 c >>= 1;
                 exp += 1;
             }

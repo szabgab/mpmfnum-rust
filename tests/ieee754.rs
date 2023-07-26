@@ -616,9 +616,6 @@ macro_rules! mpfr_test_2ary {
     };
 }
 
-mpfr_test_2ary!(add_exhaustive_config, add, "add");
-mpfr_test_2ary!(mul_exhaustive_config, mul, "mul");
-
 macro_rules! test_exhaustive_2ary {
     ($name:ident, $runner:ident, $emin:expr, $emax:expr, $nmin:expr, $nmax:expr) => {
         #[test]
@@ -631,10 +628,10 @@ macro_rules! test_exhaustive_2ary {
 
             let rms = [
                 RoundingMode::NearestTiesToEven,
-                // RoundingMode::ToPositive,
-                // RoundingMode::ToNegative,
-                // RoundingMode::ToZero,
-                // RoundingMode::AwayZero
+                RoundingMode::ToPositive,
+                RoundingMode::ToNegative,
+                RoundingMode::ToZero,
+                RoundingMode::AwayZero,
             ];
 
             let mut total = 0;
@@ -660,14 +657,20 @@ macro_rules! test_exhaustive_2ary {
     };
 }
 
+mpfr_test_2ary!(add_exhaustive_config, add, "add");
+mpfr_test_2ary!(sub_exhaustive_config, sub, "sub");
+mpfr_test_2ary!(mul_exhaustive_config, mul, "mul");
+mpfr_test_2ary!(div_exhaustive_config, div, "div");
+
 test_exhaustive_2ary!(add_exhaustive, add_exhaustive_config, 2, 6, 4, 8);
-test_exhaustive_2ary!(mul_exhaustive, mul_exhaustive_config, 2, 6, 4, 5);
+test_exhaustive_2ary!(sub_exhaustive, sub_exhaustive_config, 2, 6, 4, 8);
+test_exhaustive_2ary!(mul_exhaustive, mul_exhaustive_config, 2, 6, 4, 8);
+test_exhaustive_2ary!(div_exhaustive, div_exhaustive_config, 2, 6, 4, 8);
 
 #[test]
 fn sandbox() {
-    let ctx = ieee754::Context::new(2, 5);
-    let x = ctx.bits_to_number(Integer::from(2));
-    let y = ctx.bits_to_number(Integer::from(1));
-    let z = ctx.mul(&x, &y);
-    println!("{:?} * {:?} = {:?}", x, y, z);
+    // let ctx = ieee754::Context::new(2, 5);
+    // let x = ctx.bits_to_number(Integer::from(1));
+    // let y = ctx.bits_to_number(Integer::from(6));
+    // let z = ctx.mul(&x, &y);
 }
