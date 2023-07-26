@@ -179,10 +179,10 @@ impl Rational {
     mpfr_1ary!(exp_with_mpfr; exp; "exp(x)");
     mpfr_1ary!(exp2_with_mpfr; exp2; "2^x");
     // mpfr_1ary!(exp10_with_mpfr; exp10; "exp10(x)");
-    mpfr_1ary!(expm1_with_mpfr; expm1; "e^x - 1");
     mpfr_1ary!(log_with_mpfr; log; "ln(x)");
     mpfr_1ary!(log2_with_mpfr; log2; "log2(x)");
     mpfr_1ary!(log10_with_mpfr; log10; "log10(x)");
+    mpfr_1ary!(expm1_with_mpfr; expm1; "e^x - 1");
     mpfr_1ary!(log1p_with_mpfr; log1p; "ln(x + 1)");
     mpfr_1ary!(sin_with_mpfr; sin; "sin(x)");
     mpfr_1ary!(cos_with_mpfr; cos; "cos(x)");
@@ -199,7 +199,7 @@ impl Rational {
     mpfr_1ary!(erf_with_mpfr; erf; "erf(x)");
     mpfr_1ary!(erfc_with_mpfr; erfc; "erfc(x)");
     mpfr_1ary!(tgamma_with_mpfr; gamma; "tgamma(x)");
-    mpfr_1ary!(lgamma_with_mpfr; lngamma; "erfc(x)");
+    mpfr_1ary!(lgamma_with_mpfr; lngamma; "lgamma(x)");
 
     // Binary operators
     mpfr_2ary!(add_with_mpfr; add; "x + y");
