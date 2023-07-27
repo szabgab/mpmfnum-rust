@@ -44,4 +44,4 @@ pub mod round;
 mod util;
 
 pub use number::Number;
-pub use round::RoundingContext;
+pub use round::{RoundingContext, RoundingMode};

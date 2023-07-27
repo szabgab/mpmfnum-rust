@@ -40,3 +40,83 @@ pub trait RoundingContext {
     /// wrapper, discarding the extra information.
     fn round<T: Number>(&self, num: &T) -> Self::Rounded;
 }
+
+/// Rounding modes for [`Context`].
+///
+/// The following enumeration encodes a list of rounding modes to handle
+/// correcting the mantissa when losing binary digits due to rounding.
+/// These modes are general enough to implement rounding for other number
+/// formats like IEEE 754 floating-point.
+///
+/// The IEEE 754 standard specifies five rounding modes:
+///
+/// - two "nearest" modes:
+///   - `roundTiesToEven`: rounds to the nearest representable value.
+///      In this case there is a tie, round to the representable value whose
+///      mantissa has a least significant bit of 0
+///      ([`RoundingMode::NearestTiesToEven`]).
+///   - `roundTiesToAway`: rounds to the nearest representable value.
+///      In this case there is a tie, round to the representable value with
+///      greater magnitude ([`RoundingMode::NearestTiesAwayZero`]).
+/// - three directed modes:
+///   - `roundTowardPositive`: rounds to the closest representable value
+///     in the direction of positive infinity ([`RoundingMode::ToPositive`]).
+///   - `roundTowardNegative`: rounds to the closest representable value
+///     in the direction of negative infinity ([`RoundingMode::ToNegative]).
+///   - `roundTowardZero`: rounds to the closest representable value
+///     in the direction of zero ([`RoundingMode::ToZero`]).
+///
+/// Three additional rounding modes are provided including:
+/// - [`RoundingMode::AwayZero`]: rounds to the closest representable value
+///    away from zero, towards the nearest infinity.
+/// - [`RoundingMode::ToEven`]`: rounds to the closest representable value
+///    whose mantissa has a least significant bit of 0.
+/// - [`RoundingMode::ToOdd`]`: rounds to the closest representable value
+///    whose mantissa has a least significant bit of 1.
+///
+/// The rounding behavior of zero, infinite, and not-numerical values will be
+/// unaffected by rounding mode.
+///
+#[derive(Clone, Copy, Debug)]
+pub enum RoundingMode {
+    NearestTiesToEven,
+    NearestTiesAwayZero,
+    ToPositive,
+    ToNegative,
+    ToZero,
+    AwayZero,
+    ToEven,
+    ToOdd,
+}
+
+/// Rounding direction rather than rounding _mode_.
+/// Given the sign of an unrounded number and a rounding mode,
+/// we can transform the rounding mode into a rounding direction
+/// and a boolean indicating if the direction should only be used
+/// for tie-breaking.
+#[derive(Clone, Debug)]
+pub(crate) enum RoundingDirection {
+    ToZero,
+    AwayZero,
+    ToEven,
+    ToOdd,
+}
+
+impl RoundingMode {
+    /// Converts a rounding mode and sign into a rounding direction
+    /// and a boolean indication if the direction is for tie-breaking only.
+    pub(crate) fn to_direction(self, sign: bool) -> (bool, RoundingDirection) {
+        match (self, sign) {
+            (RoundingMode::NearestTiesToEven, _) => (true, RoundingDirection::ToEven),
+            (RoundingMode::NearestTiesAwayZero, _) => (true, RoundingDirection::AwayZero),
+            (RoundingMode::ToPositive, false) => (false, RoundingDirection::AwayZero),
+            (RoundingMode::ToPositive, true) => (false, RoundingDirection::ToZero),
+            (RoundingMode::ToNegative, false) => (false, RoundingDirection::ToZero),
+            (RoundingMode::ToNegative, true) => (false, RoundingDirection::AwayZero),
+            (RoundingMode::ToZero, _) => (false, RoundingDirection::ToZero),
+            (RoundingMode::AwayZero, _) => (false, RoundingDirection::AwayZero),
+            (RoundingMode::ToEven, _) => (false, RoundingDirection::ToEven),
+            (RoundingMode::ToOdd, _) => (false, RoundingDirection::ToOdd),
+        }
+    }
+}

@@ -8,9 +8,9 @@
 
 use std::cmp::max;
 
-use mpmfnum::rational::{Rational, RoundingMode};
-use mpmfnum::RoundingContext;
-use mpmfnum::{ieee754, Number};
+use mpmfnum::ieee754;
+use mpmfnum::rational::Rational;
+use mpmfnum::{Number, RoundingContext, RoundingMode};
 
 use gmp_mpfr_sys::mpfr;
 use rug::{Float, Integer};

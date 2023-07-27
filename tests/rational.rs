@@ -10,7 +10,7 @@ use rug::{Float, Integer};
 use std::cmp::Ordering;
 
 use mpmfnum::rational::*;
-use mpmfnum::Number;
+use mpmfnum::{Number, RoundingMode};
 
 /// Testing all the required methods from [`mpmfnum::Number`].
 #[test]

@@ -35,7 +35,9 @@ macro_rules! rounded_1ary_impl {
             #[doc = "`. Specialized for [`IEEE754`] arguments."]
             pub fn $name(&self, src: &IEEE754) -> IEEE754 {
                 if src.is_nan() {
-                    self.round(src)
+                    let mut rounded = self.round(src);
+                    rounded.flags.invalid = true;
+                    rounded
                 } else {
                     <Self as $tname>::$name(self, src)
                 }
@@ -92,8 +94,14 @@ macro_rules! rounded_2ary_impl {
             #[doc = $descr]
             #[doc = "`. Specialized for [`IEEE754`] arguments."]
             pub fn $name(&self, src1: &IEEE754, src2: &IEEE754) -> IEEE754 {
-                if src1.is_nan() || src2.is_nan() {
-                    self.round(src1)
+                if src1.is_nan() {
+                    let mut rounded = self.round(src1);
+                    rounded.flags.invalid = true;
+                    rounded
+                } else if src2.is_nan() {
+                    let mut rounded = self.round(src2);
+                    rounded.flags.invalid = true;
+                    rounded
                 } else {
                     <Self as $tname>::$name(self, src1, src2)
                 }
@@ -109,7 +117,12 @@ rounded_2ary_impl!(RoundedDiv, div, div_with_mpfr, "x / y");
 rounded_2ary_impl!(RoundedPow, pow, pow_with_mpfr, "x ^ y");
 rounded_2ary_impl!(RoundedHypot, hypot, hypot_with_mpfr, "sqrt(x^2 + y^2)");
 rounded_2ary_impl!(RoundedFmod, fmod, fmod_with_mpfr, "fmod(x, y)");
-rounded_2ary_impl!(RoundedRemainder, remainder, remainder_with_mpfr, "remainder(x, y)");
+rounded_2ary_impl!(
+    RoundedRemainder,
+    remainder,
+    remainder_with_mpfr,
+    "remainder(x, y)"
+);
 rounded_2ary_impl!(RoundedAtan2, atan2, atan2_with_mpfr, "atan(y / x)");
 
 macro_rules! rounded_3ary_impl {
@@ -139,8 +152,18 @@ macro_rules! rounded_3ary_impl {
             #[doc = $descr]
             #[doc = "`. Specialized for [`IEEE754`] arguments."]
             pub fn $name(&self, src1: &IEEE754, src2: &IEEE754, src3: &IEEE754) -> IEEE754 {
-                if src1.is_nan() || src2.is_nan() || src3.is_nan() {
-                    self.round(src1)
+                if src1.is_nan() {
+                    let mut rounded = self.round(src1);
+                    rounded.flags.invalid = true;
+                    rounded
+                } else if src2.is_nan() {
+                    let mut rounded = self.round(src2);
+                    rounded.flags.invalid = true;
+                    rounded
+                } else if src3.is_nan() {
+                    let mut rounded = self.round(src2);
+                    rounded.flags.invalid = true;
+                    rounded
                 } else {
                     <Self as $tname>::$name(self, src1, src2, src3)
                 }

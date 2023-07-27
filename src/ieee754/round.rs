@@ -13,9 +13,10 @@ use num_traits::Zero;
 use rug::Integer;
 
 use crate::ieee754::{Exceptions, Float, IEEE754};
-use crate::rational::{self, RoundingDirection, RoundingMode};
+use crate::rational;
+use crate::round::RoundingDirection;
 use crate::util::bitmask;
-use crate::{Number, RoundingContext};
+use crate::{Number, RoundingContext, RoundingMode};
 
 /// Rounding contexts for IEEE 754 floating-point numbers.
 /// Must define format parameters `es` and `nbits` (see [`IEEE754`]
