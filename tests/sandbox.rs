@@ -6,22 +6,15 @@
 //
 // Sandboxing
 
+use mpmfnum::ops::*;
+use mpmfnum::ieee754;
+
 #[test]
 fn sandbox() {
-    let qnan = f32::from_bits(0x7FC00000);
-    let snan = f32::from_bits(0x7f800001);
-    let zero = 0.0_f32;
+    let ctx = ieee754::Context::new(4, 8);
+    let x = ctx.qnan();
+    let y = ctx.snan();
+    let z = ctx.add(&x, &y);
 
-    let sum1 = qnan + zero;
-    let sum2 = snan + zero;
-    let sum3 = qnan + snan;
-    let sum4 = snan + qnan;
-
-    println!(
-        "{:X} {:X} {:X} {:X}",
-        sum1.to_bits(),
-        sum2.to_bits(),
-        sum3.to_bits(),
-        sum4.to_bits()
-    );
+    println!("{:?}", z);
 }

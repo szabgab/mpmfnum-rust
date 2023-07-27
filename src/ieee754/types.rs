@@ -6,6 +6,7 @@
 //
 // The IEEE 754 floating-point type
 
+use std::cmp::Ordering;
 use std::ops::{BitAnd, BitOr};
 
 use num_traits::Zero;
@@ -339,8 +340,14 @@ impl From<IEEE754> for rug::Float {
     }
 }
 
+impl PartialOrd for IEEE754 {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Rational::from(self.clone()).partial_cmp(&Rational::from(other.clone()))
+    }
+}
+
 impl PartialEq for IEEE754 {
     fn eq(&self, other: &Self) -> bool {
-        Rational::from(self.clone()) == Rational::from(other.clone())
+        self.partial_cmp(other) == Some(Ordering::Equal)
     }
 }
