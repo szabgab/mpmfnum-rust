@@ -8,7 +8,6 @@
 
 use std::cmp::max;
 
-use mpmfnum::ops::*;
 use mpmfnum::rational::{Rational, RoundingMode};
 use mpmfnum::RoundingContext;
 use mpmfnum::{ieee754, Number};
@@ -669,8 +668,10 @@ test_exhaustive_2ary!(div_exhaustive, div_exhaustive_config, 2, 6, 4, 8);
 
 #[test]
 fn sandbox() {
-    // let ctx = ieee754::Context::new(2, 5);
-    // let x = ctx.bits_to_number(Integer::from(1));
-    // let y = ctx.bits_to_number(Integer::from(6));
-    // let z = ctx.mul(&x, &y);
+    let ctx = ieee754::Context::new(2, 5);
+    let x = ctx.bits_to_number(Integer::from(1));
+    let y = ctx.bits_to_number(Integer::from(6));
+    let z = ctx.mul(&x, &y);
+
+    println!("{:?}", z);
 }

@@ -171,11 +171,9 @@ impl Context {
     /// Converts an [`Integer`] representing an IEEE 754 bitpattern
     /// into an [`IEEE754`] type.
     pub fn bits_to_number(&self, b: Integer) -> IEEE754 {
-        assert!(
-            b < (Integer::from(1) << self.nbits),
-            "must be less than 1 << nbits"
-        );
         let p = self.nbits - self.es;
+        let limit = Integer::from(1) << self.nbits;
+        assert!(b < limit, "must be less than 1 << nbits");
 
         // decompose into bitfields
         let s = b.get_bit((self.nbits - 1) as u32);

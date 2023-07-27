@@ -22,39 +22,6 @@ macro_rules! rounded_1ary {
     };
 }
 
-macro_rules! rounded_2ary {
-    ($trait:ident, $name:ident, $descr:expr) => {
-        #[doc = "Rounded "]
-        #[doc = $descr]
-        #[doc = " for rounding contexts."]
-        pub trait $trait: RoundingContext {
-            #[doc = "Performs rounded "]
-            #[doc = $descr]
-            #[doc = "."]
-            fn $name<N1: Number, N2: Number>(&self, src1: &N1, src2: &N2) -> Self::Rounded;
-        }
-    };
-}
-
-macro_rules! rounded_3ary {
-    ($trait:ident, $name:ident, $descr:expr) => {
-        #[doc = "Rounded "]
-        #[doc = $descr]
-        #[doc = " for rounding contexts."]
-        pub trait $trait: RoundingContext {
-            #[doc = "Performs rounded "]
-            #[doc = $descr]
-            #[doc = "."]
-            fn $name<N1: Number, N2: Number, N3: Number>(
-                &self,
-                src1: &N1,
-                src2: &N2,
-                src3: &N3,
-            ) -> Self::Rounded;
-        }
-    };
-}
-
 // Traits for 1-ary operators
 rounded_1ary!(RoundedNeg, neg, "`-x`");
 rounded_1ary!(RoundedSqrt, sqrt, "`sqrt(x)`");
@@ -83,6 +50,20 @@ rounded_1ary!(RoundedErfc, erfc, "`erfc(x)`");
 rounded_1ary!(RoundedGamma, tgamma, "`tgamma(x)`");
 rounded_1ary!(RoundedLgamma, lgamma, "`lgamma(x)`");
 
+macro_rules! rounded_2ary {
+    ($trait:ident, $name:ident, $descr:expr) => {
+        #[doc = "Rounded "]
+        #[doc = $descr]
+        #[doc = " for rounding contexts."]
+        pub trait $trait: RoundingContext {
+            #[doc = "Performs rounded "]
+            #[doc = $descr]
+            #[doc = "."]
+            fn $name<N1: Number, N2: Number>(&self, src1: &N1, src2: &N2) -> Self::Rounded;
+        }
+    };
+}
+
 // Traits for 2-ary operators
 rounded_2ary!(RoundedAdd, add, "`x + y`");
 rounded_2ary!(RoundedSub, sub, "`x - y`");
@@ -91,8 +72,27 @@ rounded_2ary!(RoundedDiv, div, "`x / y`");
 rounded_2ary!(RoundedPow, pow, "`x ^ y`");
 rounded_2ary!(RoundedHypot, hypot, "`sqrt(x^2 + y^2)`");
 rounded_2ary!(RoundedFmod, fmod, "`fmod(x, y)`");
-rounded_2ary!(RoundedRemainder, fmod, "`remainder(x, y)`");
+rounded_2ary!(RoundedRemainder, remainder, "`remainder(x, y)`");
 rounded_2ary!(RoundedAtan2, atan2, "`arctan(y / x)`");
+
+macro_rules! rounded_3ary {
+    ($trait:ident, $name:ident, $descr:expr) => {
+        #[doc = "Rounded "]
+        #[doc = $descr]
+        #[doc = " for rounding contexts."]
+        pub trait $trait: RoundingContext {
+            #[doc = "Performs rounded "]
+            #[doc = $descr]
+            #[doc = "."]
+            fn $name<N1: Number, N2: Number, N3: Number>(
+                &self,
+                src1: &N1,
+                src2: &N2,
+                src3: &N3,
+            ) -> Self::Rounded;
+        }
+    };
+}
 
 // Traits for 3-ary operators
 rounded_3ary!(RoundedFMA, fma, "`a*b + c`");
