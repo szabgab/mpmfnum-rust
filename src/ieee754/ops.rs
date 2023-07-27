@@ -9,7 +9,6 @@
 //
 
 use crate::ieee754::Context;
-use crate::ieee754::IEEE754;
 use crate::ops::*;
 use crate::rational::Rational;
 use crate::{Number, RoundingContext};
@@ -26,21 +25,6 @@ macro_rules! rounded_1ary_impl {
                 rounded.flags.invalid = flags.invalid;
                 rounded.flags.divzero = flags.divzero;
                 rounded
-            }
-        }
-
-        impl Context {
-            #[doc = "Performs rounded `"]
-            #[doc = $descr]
-            #[doc = "`. Specialized for [`IEEE754`] arguments."]
-            pub fn $name(&self, src: &IEEE754) -> IEEE754 {
-                if src.is_nan() {
-                    let mut rounded = self.round(src);
-                    rounded.flags.invalid = true;
-                    rounded
-                } else {
-                    <Self as $tname>::$name(self, src)
-                }
             }
         }
     };
@@ -88,25 +72,6 @@ macro_rules! rounded_2ary_impl {
                 rounded
             }
         }
-
-        impl Context {
-            #[doc = "Performs rounded `"]
-            #[doc = $descr]
-            #[doc = "`. Specialized for [`IEEE754`] arguments."]
-            pub fn $name(&self, src1: &IEEE754, src2: &IEEE754) -> IEEE754 {
-                if src1.is_nan() {
-                    let mut rounded = self.round(src1);
-                    rounded.flags.invalid = true;
-                    rounded
-                } else if src2.is_nan() {
-                    let mut rounded = self.round(src2);
-                    rounded.flags.invalid = true;
-                    rounded
-                } else {
-                    <Self as $tname>::$name(self, src1, src2)
-                }
-            }
-        }
     };
 }
 
@@ -144,29 +109,6 @@ macro_rules! rounded_3ary_impl {
                 rounded.flags.invalid = flags.invalid;
                 rounded.flags.divzero = flags.divzero;
                 rounded
-            }
-        }
-
-        impl Context {
-            #[doc = "Performs rounded `"]
-            #[doc = $descr]
-            #[doc = "`. Specialized for [`IEEE754`] arguments."]
-            pub fn $name(&self, src1: &IEEE754, src2: &IEEE754, src3: &IEEE754) -> IEEE754 {
-                if src1.is_nan() {
-                    let mut rounded = self.round(src1);
-                    rounded.flags.invalid = true;
-                    rounded
-                } else if src2.is_nan() {
-                    let mut rounded = self.round(src2);
-                    rounded.flags.invalid = true;
-                    rounded
-                } else if src3.is_nan() {
-                    let mut rounded = self.round(src2);
-                    rounded.flags.invalid = true;
-                    rounded
-                } else {
-                    <Self as $tname>::$name(self, src1, src2, src3)
-                }
             }
         }
     };
