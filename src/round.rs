@@ -27,18 +27,23 @@ pub trait RoundingContext {
     /// The result of rounded operations under this context.
     type Rounded: Number;
 
-    /// Converts any [`Number`] to [`RoundingContext::Rounded`], rounding
-    /// the argument according to this context.
+    /// Converts a [`RoundingContext::Rounded`] value to another
+    /// [`RoundingContext::Rounded`] value, rounding according to this
+    /// context. See [`RoundingContext::mpmf_round`] for a more general
+    /// implementation of rounding from formats other than the output format.
     ///
     /// Implementation note:
     /// This is the canonical rounding function, taking any value
     /// satisfying `Number` and rounding it to type `Rounded`.
     /// Implemenations of this trait may want to implement more complicated
     /// "round" function that also return information such as an error term,
-    /// lost digits, etc.
-    /// In this case, the implementation of `round` is just
-    /// wrapper, discarding the extra information.
-    fn round<T: Number>(&self, num: &T) -> Self::Rounded;
+    /// lost digits, etc. In this case, the implementation of `round` is
+    /// just wrapper, discarding the extra information.
+    fn round(&self, val: &Self::Rounded) -> Self::Rounded;
+
+    /// Converts any [`Number`] to a [`RoundingContext::Rounded`] value,
+    /// rounding the argument according to this context.
+    fn mpmf_round<T: Number>(&self, val: &T) -> Self::Rounded;
 }
 
 /// Rounding modes for rounding contexts.

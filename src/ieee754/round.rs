@@ -455,7 +455,62 @@ impl Context {
 impl RoundingContext for Context {
     type Rounded = IEEE754;
 
-    fn round<T: Number>(&self, num: &T) -> IEEE754 {
+    /// Rounds an [`IEEE754`] value into the format specified by
+    /// this rounding context. See [`RoundingContext::round`] for the more
+    /// general implementation of rounding from formats other than the
+    /// output format.
+    fn round(&self, val: &Self::Rounded) -> Self::Rounded {
+        match &val.num {
+            Float::Zero(s) => {
+                // +/-0 is preserved
+                IEEE754 {
+                    num: Float::Zero(*s),
+                    flags: Default::default(),
+                    ctx: self.clone(),
+                }
+            }
+            Float::Infinity(s) => {
+                // +/-Inf is preserved
+                IEEE754 {
+                    num: Float::Infinity(*s),
+                    flags: Default::default(),
+                    ctx: self.clone(),
+                }
+            }
+            Float::Nan(s, _, payload) => {
+                // NaN
+                // rounding truncates the payload
+                // always quiets the result
+                let offset = self.max_p() as isize - val.ctx.max_p() as isize;
+                let payload = match offset.cmp(&0) {
+                    std::cmp::Ordering::Less => {
+                        // truncation: chop off the lower bits
+                        Integer::from(payload >> -offset)
+                    }
+                    std::cmp::Ordering::Greater => {
+                        // padding
+                        Integer::from(payload << offset)
+                    }
+                    std::cmp::Ordering::Equal => {
+                        // payload is preserved exactly
+                        payload.clone()
+                    }
+                };
+
+                IEEE754 {
+                    num: Float::Nan(*s, true, payload),
+                    flags: Default::default(),
+                    ctx: self.clone(),
+                }
+            }
+            _ => {
+                // finite, non-zero
+                self.round_finite(val)
+            }
+        }
+    }
+
+    fn mpmf_round<T: Number>(&self, num: &T) -> Self::Rounded {
         // case split by class
         if num.is_zero() {
             IEEE754 {

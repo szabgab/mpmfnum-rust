@@ -295,7 +295,11 @@ impl Default for Context {
 impl RoundingContext for Context {
     type Rounded = Rational;
 
-    fn round<T: Number>(&self, num: &T) -> Self::Rounded {
+    fn round(&self, val: &Self::Rounded) -> Self::Rounded {
+        self.mpmf_round(val)
+    }
+
+    fn mpmf_round<T: Number>(&self, num: &T) -> Self::Rounded {
         let (rounded, _) = self.round_residual(num);
         rounded
     }

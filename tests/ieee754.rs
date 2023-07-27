@@ -29,7 +29,7 @@ fn assert_round_small(
     carry: bool,
 ) {
     let ctx = ieee754::Context::new(2, 5).with_rounding_mode(rm);
-    let rounded = ctx.round(input);
+    let rounded = ctx.mpmf_round(input);
 
     assert_eq!(
         Rational::from(rounded.clone()),

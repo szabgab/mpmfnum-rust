@@ -71,7 +71,10 @@ macro_rules! rounded_2ary {
             #[doc = "Performs rounded `"]
             #[doc = $descr]
             #[doc = "`."]
-            fn $mpmf<N1: Number, N2: Number>(&self, src1: &N1, src2: &N2) -> Self::Rounded;
+            fn $mpmf<N1, N2>(&self, src1: &N1, src2: &N2) -> Self::Rounded
+            where
+                N1: Number,
+                N2: Number;
         }
     };
 }
@@ -112,12 +115,11 @@ macro_rules! rounded_3ary {
             #[doc = "Performs rounded `"]
             #[doc = $descr]
             #[doc = "`."]
-            fn $mpmf<N1: Number, N2: Number, N3: Number>(
-                &self,
-                src1: &N1,
-                src2: &N2,
-                src3: &N3,
-            ) -> Self::Rounded;
+            fn $mpmf<N1, N2, N3>(&self, src1: &N1, src2: &N2, src3: &N3) -> Self::Rounded
+            where
+                N1: Number,
+                N2: Number,
+                N3: Number;
         }
     };
 }

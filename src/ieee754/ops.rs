@@ -17,7 +17,20 @@ macro_rules! rounded_1ary_impl {
     ($tname:ident, $name:ident, $mpmf:ident, $mpfr:ident) => {
         impl $tname for Context {
             fn $name(&self, src: &Self::Rounded) -> Self::Rounded {
-                self.$mpmf(src)
+                if src.is_nan() {
+                    let mut result = self.round(src);
+                    result.flags.invalid = true;
+                    result
+                } else {
+                    let mut result = self.$mpmf(src);
+                    if result.is_nan() {
+                        // Canonical NaN
+                        let canon_nan = self.qnan();
+                        result.num = canon_nan.num;
+                    }
+
+                    result
+                }
             }
 
             fn $mpmf<N: Number>(&self, src: &N) -> Self::Rounded {
@@ -26,7 +39,7 @@ macro_rules! rounded_1ary_impl {
                 let p = self.max_p() + 3;
                 let r = Rational::from_number(src);
                 let (result, flags) = r.$mpfr(p);
-                let mut rounded = self.round(&result);
+                let mut rounded = self.mpmf_round(&result);
                 rounded.flags.invalid = flags.invalid;
                 rounded.flags.divzero = flags.divzero;
                 rounded
@@ -66,17 +79,38 @@ macro_rules! rounded_2ary_impl {
     ($tname:ident, $name:ident, $mpmf:ident, $mpfr:ident) => {
         impl $tname for Context {
             fn $name(&self, src1: &Self::Rounded, src2: &Self::Rounded) -> Self::Rounded {
-                self.$mpmf(src1, src2)
+                if src1.is_nan() {
+                    let mut result = self.round(src1);
+                    result.flags.invalid = true;
+                    result
+                } else if src2.is_nan() {
+                    let mut result = self.round(src2);
+                    result.flags.invalid = true;
+                    result
+                } else {
+                    let mut result = self.$mpmf(src1, src2);
+                    if result.is_nan() {
+                        // Canonical NaN
+                        let canon_nan = self.qnan();
+                        result.num = canon_nan.num;
+                    }
+
+                    result
+                }
             }
 
-            fn $mpmf<N1: Number, N2: Number>(&self, src1: &N1, src2: &N2) -> Self::Rounded {
+            fn $mpmf<N1, N2>(&self, src1: &N1, src2: &N2) -> Self::Rounded
+            where
+                N1: Number,
+                N2: Number,
+            {
                 // compute approximately, rounding-to-odd,
                 // with 3 rounding bits
                 let p = self.max_p() + 3;
                 let r1 = Rational::from_number(src1);
                 let r2 = Rational::from_number(src2);
                 let (result, flags) = r1.$mpfr(&r2, p);
-                let mut rounded = self.round(&result);
+                let mut rounded = self.mpmf_round(&result);
                 rounded.flags.invalid = flags.invalid;
                 rounded.flags.divzero = flags.divzero;
                 rounded
@@ -109,15 +143,36 @@ macro_rules! rounded_3ary_impl {
                 src2: &Self::Rounded,
                 src3: &Self::Rounded,
             ) -> Self::Rounded {
-                self.$mpmf(src1, src2, src3)
+                if src1.is_nan() {
+                    let mut result = self.round(src1);
+                    result.flags.invalid = true;
+                    result
+                } else if src2.is_nan() {
+                    let mut result = self.round(src2);
+                    result.flags.invalid = true;
+                    result
+                } else if src3.is_nan() {
+                    let mut result = self.round(src3);
+                    result.flags.invalid = true;
+                    result
+                } else {
+                    let mut result = self.$mpmf(src1, src2, src3);
+                    if result.is_nan() {
+                        // Canonical NaN
+                        let canon_nan = self.qnan();
+                        result.num = canon_nan.num;
+                    }
+
+                    result
+                }
             }
 
-            fn $mpmf<N1: Number, N2: Number, N3: Number>(
-                &self,
-                src1: &N1,
-                src2: &N2,
-                src3: &N3,
-            ) -> Self::Rounded {
+            fn $mpmf<N1, N2, N3>(&self, src1: &N1, src2: &N2, src3: &N3) -> Self::Rounded
+            where
+                N1: Number,
+                N2: Number,
+                N3: Number,
+            {
                 // compute approximately, rounding-to-odd,
                 // with 3 rounding bits
                 let p = self.max_p() + 3;
@@ -125,7 +180,7 @@ macro_rules! rounded_3ary_impl {
                 let r2 = Rational::from_number(src2);
                 let r3 = Rational::from_number(src3);
                 let (result, flags) = r1.$mpfr(&r2, &r3, p);
-                let mut rounded = self.round(&result);
+                let mut rounded = self.mpmf_round(&result);
                 rounded.flags.invalid = flags.invalid;
                 rounded.flags.divzero = flags.divzero;
                 rounded
