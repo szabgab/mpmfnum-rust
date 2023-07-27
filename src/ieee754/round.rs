@@ -160,11 +160,47 @@ impl Context {
         self.rm
     }
 
-    /// Returns the maximum representable value.
+    /// Returns the minimum representable value with a sign.
+    pub fn min_float(&self, sign: bool) -> IEEE754 {
+        IEEE754 {
+            num: Float::Subnormal(sign, Integer::from(1)),
+            flags: Exceptions::default(),
+            ctx: self.clone(),
+        }
+    }
+
+    /// Returns the maximum representable value with a sign.
     pub fn max_float(&self, sign: bool) -> IEEE754 {
         IEEE754 {
             num: Float::Normal(sign, self.expmax(), bitmask(self.max_p())),
             flags: Exceptions::default(),
+            ctx: self.clone(),
+        }
+    }
+
+    /// Constructs an infinity with a sign.
+    pub fn inf(&self, sign: bool) -> IEEE754 {
+        IEEE754 {
+            num: Float::Infinity(sign),
+            flags: Default::default(),
+            ctx: self.clone(),
+        }
+    }
+
+    /// Constructs a canonical, quiet NaN (unsigned, quiet bit, empty payload).
+    pub fn qnan(&self) -> IEEE754 {
+        IEEE754 {
+            num: Float::Nan(false, true, Integer::from(0)),
+            flags: Default::default(),
+            ctx: self.clone(),
+        }
+    }
+
+    /// Constructs a canonical, signaling NaN (unsigned, signal bit, 1).
+    pub fn snan(&self) -> IEEE754 {
+        IEEE754 {
+            num: Float::Nan(false, false, Integer::from(1)),
+            flags: Default::default(),
             ctx: self.clone(),
         }
     }

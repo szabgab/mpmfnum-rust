@@ -25,7 +25,7 @@ use crate::Number;
 ///
 pub trait RoundingContext {
     /// The result of rounded operations under this context.
-    type Rounded;
+    type Rounded: Number;
 
     /// Converts any [`Number`] to [`RoundingContext::Rounded`], rounding
     /// the argument according to this context.
@@ -41,7 +41,7 @@ pub trait RoundingContext {
     fn round<T: Number>(&self, num: &T) -> Self::Rounded;
 }
 
-/// Rounding modes for [`Context`].
+/// Rounding modes for rounding contexts.
 ///
 /// The following enumeration encodes a list of rounding modes to handle
 /// correcting the mantissa when losing binary digits due to rounding.
