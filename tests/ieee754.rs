@@ -9,6 +9,7 @@
 use std::cmp::max;
 
 use mpmfnum::ieee754;
+use mpmfnum::ops::*;
 use mpmfnum::rational::Rational;
 use mpmfnum::{Number, RoundingContext, RoundingMode};
 
