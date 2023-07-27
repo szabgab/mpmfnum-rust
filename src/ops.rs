@@ -23,32 +23,32 @@ macro_rules! rounded_1ary {
 }
 
 // Traits for 1-ary operators
-rounded_1ary!(RoundedNeg, neg, "`-x`");
-rounded_1ary!(RoundedSqrt, sqrt, "`sqrt(x)`");
-rounded_1ary!(RoundedCbrt, cbrt, "`cbrt(x)`");
-rounded_1ary!(RoundedExp, exp, "`exp(x)`");
-rounded_1ary!(RoundedExp2, exp2, "`2^x`");
-rounded_1ary!(RoundedLog, log, "`ln(x)`");
-rounded_1ary!(RoundedLog2, log2, "`log2(x)`");
-rounded_1ary!(RoundedLog10, log10, "`log10(x)`");
-rounded_1ary!(RoundedExpm1, expm1, "`expm1(x)`");
-rounded_1ary!(RoundedLog1p, log1p, "`log1p(x)`");
-rounded_1ary!(RoundedSin, sin, "`sin(x)`");
-rounded_1ary!(RoundedCos, cos, "`cos(x)`");
-rounded_1ary!(RoundedTan, tan, "`tan(x)`");
-rounded_1ary!(RoundedAsin, asin, "`arcsin(x)`");
-rounded_1ary!(RoundedAcos, acos, "`arccos(x)`");
-rounded_1ary!(RoundedAtan, atan, "`arctan(x)`");
-rounded_1ary!(RoundedSinh, sinh, "`sinh(x)`");
-rounded_1ary!(RoundedCosh, cosh, "`cosh(x)`");
-rounded_1ary!(RoundedTanh, tanh, "`tanh(x)`");
-rounded_1ary!(RoundedAsinh, asinh, "`arsinh(x)`");
-rounded_1ary!(RoundedAcosh, acosh, "`arcosh(x)`");
-rounded_1ary!(RoundedAtanh, atanh, "`artanh(x)`");
-rounded_1ary!(RoundedErf, erf, "`erf(x)`");
-rounded_1ary!(RoundedErfc, erfc, "`erfc(x)`");
-rounded_1ary!(RoundedGamma, tgamma, "`tgamma(x)`");
-rounded_1ary!(RoundedLgamma, lgamma, "`lgamma(x)`");
+rounded_1ary!(RoundedNeg, neg, "-x");
+rounded_1ary!(RoundedSqrt, sqrt, "sqrt(x)");
+rounded_1ary!(RoundedCbrt, cbrt, "cbrt(x)");
+rounded_1ary!(RoundedExp, exp, "exp(x)");
+rounded_1ary!(RoundedExp2, exp2, "2^x");
+rounded_1ary!(RoundedLog, log, "ln(x)");
+rounded_1ary!(RoundedLog2, log2, "log2(x)");
+rounded_1ary!(RoundedLog10, log10, "log10(x)");
+rounded_1ary!(RoundedExpm1, expm1, "expm1(x)");
+rounded_1ary!(RoundedLog1p, log1p, "log1p(x)");
+rounded_1ary!(RoundedSin, sin, "sin(x)");
+rounded_1ary!(RoundedCos, cos, "cos(x)");
+rounded_1ary!(RoundedTan, tan, "tan(x)");
+rounded_1ary!(RoundedAsin, asin, "arcsin(x)");
+rounded_1ary!(RoundedAcos, acos, "arccos(x)");
+rounded_1ary!(RoundedAtan, atan, "arctan(x)");
+rounded_1ary!(RoundedSinh, sinh, "sinh(x)");
+rounded_1ary!(RoundedCosh, cosh, "cosh(x)");
+rounded_1ary!(RoundedTanh, tanh, "tanh(x)");
+rounded_1ary!(RoundedAsinh, asinh, "arsinh(x)");
+rounded_1ary!(RoundedAcosh, acosh, "arcosh(x)");
+rounded_1ary!(RoundedAtanh, atanh, "artanh(x)");
+rounded_1ary!(RoundedErf, erf, "erf(x)");
+rounded_1ary!(RoundedErfc, erfc, "erfc(x)");
+rounded_1ary!(RoundedGamma, tgamma, "tgamma(x)");
+rounded_1ary!(RoundedLgamma, lgamma, "lgamma(x)");
 
 macro_rules! rounded_2ary {
     ($trait:ident, $name:ident, $descr:expr) => {
@@ -65,15 +65,15 @@ macro_rules! rounded_2ary {
 }
 
 // Traits for 2-ary operators
-rounded_2ary!(RoundedAdd, add, "`x + y`");
-rounded_2ary!(RoundedSub, sub, "`x - y`");
-rounded_2ary!(RoundedMul, mul, "`x * y`");
-rounded_2ary!(RoundedDiv, div, "`x / y`");
-rounded_2ary!(RoundedPow, pow, "`x ^ y`");
-rounded_2ary!(RoundedHypot, hypot, "`sqrt(x^2 + y^2)`");
-rounded_2ary!(RoundedFmod, fmod, "`fmod(x, y)`");
-rounded_2ary!(RoundedRemainder, remainder, "`remainder(x, y)`");
-rounded_2ary!(RoundedAtan2, atan2, "`arctan(y / x)`");
+rounded_2ary!(RoundedAdd, add, "x + y");
+rounded_2ary!(RoundedSub, sub, "x - y");
+rounded_2ary!(RoundedMul, mul, "x * y");
+rounded_2ary!(RoundedDiv, div, "x / y");
+rounded_2ary!(RoundedPow, pow, "x ^ y");
+rounded_2ary!(RoundedHypot, hypot, "sqrt(x^2 + y^2)");
+rounded_2ary!(RoundedFmod, fmod, "fmod(x, y)");
+rounded_2ary!(RoundedRemainder, remainder, "remainder(x, y)");
+rounded_2ary!(RoundedAtan2, atan2, "arctan(y / x)");
 
 macro_rules! rounded_3ary {
     ($trait:ident, $name:ident, $descr:expr) => {
@@ -95,4 +95,4 @@ macro_rules! rounded_3ary {
 }
 
 // Traits for 3-ary operators
-rounded_3ary!(RoundedFMA, fma, "`a*b + c`");
+rounded_3ary!(RoundedFMA, fma, "a*b + c");
