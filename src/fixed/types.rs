@@ -8,7 +8,7 @@ use crate::{rational::Rational, Number};
 /// of the representation, `scale` the position of the least-significant
 /// digit in the representation, and if it is signed.
 pub struct Fixed {
-    num: Rational,
+    pub(crate) num: Rational,
 }
 
 impl Number for Fixed {

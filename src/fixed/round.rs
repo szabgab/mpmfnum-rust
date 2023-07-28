@@ -1,4 +1,7 @@
+use rug::Integer;
+
 use crate::fixed::Fixed;
+use crate::rational::Rational;
 use crate::{RoundingContext, RoundingMode};
 
 /// Fixed-point overflow behavior.
@@ -28,7 +31,7 @@ pub enum Overflow {
 #[derive(Clone, Debug)]
 pub struct Context {
     signed: bool,
-    scale: usize,
+    scale: isize,
     nbits: usize,
     rm: RoundingMode,
     overflow: Overflow,
@@ -39,7 +42,7 @@ impl Context {
     /// The default rounding mode is truncation
     /// (see [`ToZero`][crate::RoundingMode]). The default overflow
     /// behavior is saturation (see [`Saturate`][Overflow]).
-    pub fn new(signed: bool, scale: usize, nbits: usize) -> Self {
+    pub fn new(signed: bool, scale: isize, nbits: usize) -> Self {
         Self {
             signed,
             scale,
@@ -59,6 +62,39 @@ impl Context {
     pub fn with_overflow(mut self, overflow: Overflow) -> Self {
         self.overflow = overflow;
         self
+    }
+
+    /// The maximum value in format specified by this [`Context`].
+    /// If the format is unsigned, this is just `2^scale * 2^nbits - 1`.
+    /// If the format is signed, this is just `2^scale * 2^(nbits-1) - 1`.
+    pub fn maxval(&self) -> Fixed {
+        Fixed {
+            num: Rational::Real(
+                false,
+                self.scale,
+                if self.signed {
+                    (Integer::from(1) << (self.nbits - 1)) - 1
+                } else {
+                    (Integer::from(1) << self.nbits) - 1
+                },
+            ),
+        }
+    }
+
+    /// The minimum value in a format specified by this [`Context`].
+    /// If the format is unsigned, this is just `0`.
+    /// If the format is signed, this is just `2^scale * -2^(nbits-1)`.
+    pub fn minval(&self) -> Fixed {
+        if self.signed {
+            Fixed {
+                num: Rational::zero(),
+            }
+        } else {
+            let c = Integer::from(1) << (self.nbits - 1);
+            Fixed {
+                num: Rational::Real(true, self.scale, c),
+            }
+        }
     }
 }
 
