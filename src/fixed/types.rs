@@ -1,3 +1,5 @@
+use rug::Integer;
+
 use crate::{rational::Rational, Number};
 
 /// The classic fixed-point format.
@@ -11,58 +13,58 @@ pub struct Fixed {
 
 impl Number for Fixed {
     fn radix() -> usize {
-        todo!()
+        2
     }
 
     fn sign(&self) -> bool {
-        todo!()
+        self.num.sign()
     }
 
     fn exp(&self) -> Option<isize> {
-        todo!()
+        self.num.exp()
     }
 
     fn e(&self) -> Option<isize> {
-        todo!()
+        self.num.e()
     }
 
     fn n(&self) -> Option<isize> {
-        todo!()
+        self.num.n()
     }
 
-    fn c(&self) -> Option<rug::Integer> {
-        todo!()
+    fn c(&self) -> Option<Integer> {
+        self.num.c()
     }
 
-    fn m(&self) -> Option<rug::Integer> {
-        todo!()
+    fn m(&self) -> Option<Integer> {
+        self.num.m()
     }
 
     fn p(&self) -> usize {
-        todo!()
+        self.num.p()
     }
 
     fn is_nar(&self) -> bool {
-        todo!()
+        false
     }
 
     fn is_finite(&self) -> bool {
-        todo!()
+        true
     }
 
     fn is_infinite(&self) -> bool {
-        todo!()
+        false
     }
 
     fn is_zero(&self) -> bool {
-        todo!()
+        self.num.is_zero()
     }
 
     fn is_negative(&self) -> Option<bool> {
-        todo!()
+        self.num.is_negative()
     }
 
     fn is_numerical(&self) -> bool {
-        todo!()
+        true
     }
 }

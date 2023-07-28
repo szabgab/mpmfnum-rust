@@ -36,6 +36,9 @@ pub struct Context {
 
 impl Context {
     /// Constructs new rounding context.
+    /// The default rounding mode is truncation
+    /// (see [`ToZero`][crate::RoundingMode]). The default overflow
+    /// behavior is saturation (see [`Saturate`][Overflow]).
     pub fn new(signed: bool, scale: usize, nbits: usize) -> Self {
         Self {
             signed,
@@ -44,6 +47,18 @@ impl Context {
             rm: RoundingMode::ToZero,
             overflow: Overflow::Saturate,
         }
+    }
+
+    /// Sets the rounding mode of this [`Context`].
+    pub fn with_rounding_mode(mut self, rm: RoundingMode) -> Self {
+        self.rm = rm;
+        self
+    }
+
+    /// Sets the overflow behavior of this [`Context`].
+    pub fn with_overflow(mut self, overflow: Overflow) -> Self {
+        self.overflow = overflow;
+        self
     }
 }
 

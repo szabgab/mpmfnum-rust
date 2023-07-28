@@ -26,9 +26,9 @@ pub trait RoundingContext {
     /// The result of rounded operations under this context.
     type Rounded: Number;
 
-    /// Converts a [`RoundingContext::Rounded`] value to another
-    /// [`RoundingContext::Rounded`] value, rounding according to this
-    /// context. See [`RoundingContext::mpmf_round`] for a more general
+    /// Converts a [`Rounded`][RoundingContext] value to another
+    /// [`Rounded`][RoundingContext] value, rounding according to this
+    /// context. See [`mpmf_round`][RoundingContext] for a more general
     /// implementation of rounding from formats other than the output format.
     ///
     /// Implementation note:
@@ -40,7 +40,7 @@ pub trait RoundingContext {
     /// just wrapper, discarding the extra information.
     fn round(&self, val: &Self::Rounded) -> Self::Rounded;
 
-    /// Converts any [`Number`] to a [`RoundingContext::Rounded`] value,
+    /// Converts any [`Number`] to a [`Rounded`][RoundingContext] value,
     /// rounding the argument according to this context.
     fn mpmf_round<T: Number>(&self, val: &T) -> Self::Rounded;
 }
@@ -58,27 +58,27 @@ pub trait RoundingContext {
 ///   - `roundTiesToEven`: rounds to the nearest representable value.
 ///      In this case there is a tie, round to the representable value whose
 ///      mantissa has a least significant bit of 0
-///      ([`RoundingMode::NearestTiesToEven`]).
+///      ([`NearestTiesToEven`][RoundingMode]).
 ///   - `roundTiesToAway`: rounds to the nearest representable value.
 ///      In this case there is a tie, round to the representable value with
-///      greater magnitude ([`RoundingMode::NearestTiesAwayZero`]).
+///      greater magnitude ([`NearestTiesAwayZero`][RoundingMode]).
 /// - three directed modes:
 ///   - `roundTowardPositive`: rounds to the closest representable value
-///     in the direction of positive infinity ([`RoundingMode::ToPositive`]).
+///     in the direction of positive infinity ([`ToPositive`][RoundingMode]).
 ///   - `roundTowardNegative`: rounds to the closest representable value
-///     in the direction of negative infinity ([`RoundingMode::ToNegative]).
+///     in the direction of negative infinity ([`ToNegative`][RoundingMode]).
 ///   - `roundTowardZero`: rounds to the closest representable value
-///     in the direction of zero ([`RoundingMode::ToZero`]).
+///     in the direction of zero ([`ToZero`][RoundingMode]).
 ///
 /// Three additional rounding modes are provided including:
-/// - [`RoundingMode::AwayZero`]: rounds to the closest representable value
+/// - [`AwayZero`][RoundingMode]: rounds to the closest representable value
 ///    away from zero, towards the nearest infinity.
-/// - [`RoundingMode::ToEven`]`: rounds to the closest representable value
+/// - [`ToEven`][RoundingMode]: rounds to the closest representable value
 ///    whose mantissa has a least significant bit of 0.
-/// - [`RoundingMode::ToOdd`]`: rounds to the closest representable value
+/// - [`ToOdd`][RoundingMode]: rounds to the closest representable value
 ///    whose mantissa has a least significant bit of 1.
 ///
-/// The rounding behavior of zero, infinite, and not-numerical values will be
+/// The rounding behavior of zero, infinite, and non-numerical values will be
 /// unaffected by rounding mode.
 ///
 #[derive(Clone, Copy, Debug)]
