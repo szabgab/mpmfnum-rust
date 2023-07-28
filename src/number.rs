@@ -1,8 +1,13 @@
-#![allow(unused_imports)]
+/*!
+A common trait for all number systems.
+
+The [`Number`] trait describes a common interface for all number formats.
+Due to the broad variety of computer number systems, the interface is
+narrow, supporting getters to extract basic information of the number
+including the normalized exponent, significand, sign, etc.
+*/
 
 use rug::Integer;
-
-use crate::RoundingContext;
 
 /// The "digital" number representing a real number format.
 ///
@@ -17,7 +22,8 @@ use crate::RoundingContext;
 /// `c` were extended to an infinite sequence of digits in either direction.
 /// Number systems may encode non-real numbers, notably infinity or NaN.
 ///
-/// See [`RoundingContext`] for details on rounding.
+/// See [`RoundingContext`][crate::RoundingContext]
+/// for details on rounding.
 ///
 pub trait Number {
     /// Radix of a number.

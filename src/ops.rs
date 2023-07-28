@@ -1,3 +1,10 @@
+/*!
+Traits for rounded mathematical operations.
+
+Implementations of these traits operate on [`Number`] types,
+rounding the result according to a given [`RoundingContext`].
+*/
+
 use crate::{Number, RoundingContext};
 
 macro_rules! rounded_1ary {
