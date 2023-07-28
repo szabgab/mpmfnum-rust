@@ -1,13 +1,3 @@
-// mpmfnum: a numbers library in Rust
-// Brett Saiki <bksaiki(at)gmail.com>
-// 2023
-
-// lib.rs
-//
-// Top-level file of the entire crate.
-// Exports all public functions
-//
-
 /*!
     `mpmfnum` is a numbers library supporting numerous number formats,
     precisions, and rounding modes, hence "Multi-Precision, Multi-Format"

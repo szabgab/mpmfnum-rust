@@ -1,11 +1,3 @@
-// mpmfnum: a numbers library in Rust
-// Brett Saiki <bksaiki(at)gmail.com>
-// 2023
-
-// ieee754/round.rs
-//
-// IEEE 754 floating-point rounding
-
 use std::cmp::max;
 use std::ops::{BitAnd, BitOr};
 

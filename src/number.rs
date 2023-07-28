@@ -1,19 +1,10 @@
-// mpmfnum: a numbers library in Rust
-// Brett Saiki <bksaiki(at)gmail.com>
-// 2023
-
-// number.rs
-//
-// Number trait
-//
-
 #![allow(unused_imports)]
 
 use rug::Integer;
 
 use crate::RoundingContext;
 
-/// The "digital" number representing a (projective) real number format.
+/// The "digital" number representing a real number format.
 ///
 /// All computer number systems share some characteristics.
 /// They all can be represented by a finite-precision number in
@@ -29,46 +20,46 @@ use crate::RoundingContext;
 /// See [`RoundingContext`] for details on rounding.
 ///
 pub trait Number {
-    /// Returns the radix of a number.
+    /// Radix of a number.
     /// It must be strictly positive.
     fn radix() -> usize;
 
-    /// Returns true if the number's sign bit is true.
-    /// For number formats with no notion of sign bit, the result
-    /// will always be false.
+    /// The sign bit.
+    /// For number formats with no notion of sign bit,
+    /// the result will always be false.
     fn sign(&self) -> bool;
 
-    /// Viewing this number as `(-1)^s * c * b^exp` where `c` is an integer,
-    /// returns `exp`. Only well-defined for finite, non-zero numbers.
+    /// The exponent of this number when viewed as `(-1)^s * c * b^exp`
+    /// where `c` is an integer integer. Only well-defined for finite,
+    /// non-zero numbers.
     fn exp(&self) -> Option<isize>;
 
-    /// Viewing this number as `(-1)^s * f * b^e` where `f` is a binary
-    /// fraction between 1 and 2, returns the exponent `e`. This is the
-    /// preferred IEEE 754 interpretation of an exponent. Only well-defined
-    /// for finite, non-zero numbers.
+    /// The exponent of this number when viewed as `(-1)^s * f * b^e`
+    /// where `f` is a fraction between 1 and 2. This is the preferred
+    /// IEEE 754 interpretation of an exponent. Only well-defined for
+    /// finite, non-zero numbers.
     fn e(&self) -> Option<isize>;
 
-    /// The "least absolute exponent", the place below the least
-    /// significant digit of the mantissa. Always equal to `self.exp() - 1`.
-    /// For integer formats, this is just -1. Only well-defined for finite,
-    /// non-zero numbers.
+    /// The "absolute digit", the place below the least significant
+    /// digit of the mantissa. Always equal to `self.exp() - 1`.
+    /// For integer formats, this is just -1. Only well-defined for
+    /// finite, non-zero numbers.
     fn n(&self) -> Option<isize>;
 
-    /// Viewing this number as `(-1)^s * c * b^exp` where `c` is an integer,
-    /// returns `c`. Only well-defined for finite, non-zero numbers.
+    /// The integer significand of this number when viewed as
+    /// `(-1)^s * c * b^exp`. Only well-defined for finite, non-zero
+    /// numbers. Only well-defined for finite, non-zero numbers.
     fn c(&self) -> Option<Integer>;
 
-    /// Viewing this number as `(-1)^s * c * b^exp` where `c` is an integer,
-    /// returns `(-1)^s * c`, the signed significand. Only well-defined for
-    /// finite, non-zero numbers.
+    /// The _signed_ integer significand of this number when viewed as
+    /// `(-1)^s * c * b^exp`. Only well-defined for finite, non-zero
+    /// numbers. Only well-defined for finite, non-zero numbers.
     fn m(&self) -> Option<Integer>;
 
     /// Precision of the significand.
     /// This is just `floor(logb(c))` where `b` is the radix and `c` is
-    /// the integer significand. For binary formats (`b == 2`), this
-    /// is just the number of bits required to encode `c`. For values that
-    /// do not encode numbers, intervals, or even limiting behavior,
-    /// the result is 0.
+    /// the integer significand. For values that do not encode numbers,
+    /// intervals, or even limiting behavior, the result is 0.
     fn p(&self) -> usize;
 
     /// Returns true if this number is not a real number.

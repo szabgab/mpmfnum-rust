@@ -1,11 +1,3 @@
-// mpmfnum: a numbers library in Rust
-// Brett Saiki <bksaiki(at)gmail.com>
-// 2023
-
-// ieee754.rs
-//
-// Tests for the IEEE 754 module
-
 use std::cmp::max;
 
 use mpmfnum::ieee754;

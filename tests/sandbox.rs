@@ -1,11 +1,4 @@
 // mpmfnum: a numbers library in Rust
-// Brett Saiki <bksaiki(at)gmail.com>
-// 2023
-
-// sandbox.rs
-//
-// Sandboxing
-
 use mpmfnum::RoundingContext;
 use rug::Integer;
 

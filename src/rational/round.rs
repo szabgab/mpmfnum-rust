@@ -1,11 +1,3 @@
-// mpmfnum: a numbers library in Rust
-// Brett Saiki <bksaiki(at)gmail.com>
-// 2023
-
-// rational/round.rs
-//
-// Rounding for the rational type
-
 use std::cmp::min;
 use std::ops::BitAnd;
 

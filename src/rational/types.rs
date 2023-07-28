@@ -1,11 +1,3 @@
-// mpmfnum: a numbers library in Rust
-// Brett Saiki <bksaiki(at)gmail.com>
-// 2023
-
-// rational/types.rs
-//
-// The rational number type
-
 use std::cmp::Ordering;
 use std::cmp::{max, min};
 

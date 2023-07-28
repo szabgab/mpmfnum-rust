@@ -1,11 +1,3 @@
-// mpmfnum: a numbers library in Rust
-// Brett Saiki <bksaiki(at)gmail.com>
-// 2023
-
-// round.rs
-//
-// Rounding trait
-
 use crate::Number;
 
 /// Rounding context.

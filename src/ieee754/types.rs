@@ -1,11 +1,3 @@
-// mpmfnum: a numbers library in Rust
-// Brett Saiki <bksaiki(at)gmail.com>
-// 2023
-
-// ieee754/types.rs
-//
-// The IEEE 754 floating-point type
-
 use std::cmp::Ordering;
 use std::ops::{BitAnd, BitOr};
 

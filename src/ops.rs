@@ -1,11 +1,3 @@
-// mpmfnum: a numbers library in Rust
-// Brett Saiki <bksaiki(at)gmail.com>
-// 2023
-
-// ops.rs
-//
-// Traits for mathematical operations
-
 use crate::{Number, RoundingContext};
 
 macro_rules! rounded_1ary {
@@ -22,7 +14,7 @@ macro_rules! rounded_1ary {
 
             #[doc = "Performs rounded `"]
             #[doc = $descr]
-            #[doc = "`"]
+            #[doc = "`."]
             fn $mpmf<N: Number>(&self, src: &N) -> Self::Rounded;
         }
     };

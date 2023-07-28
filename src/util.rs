@@ -1,12 +1,3 @@
-// mpmfnum: a numbers library in Rust
-// Brett Saiki <bksaiki(at)gmail.com>
-// 2023
-
-// util.rs
-//
-// Utility functions
-//
-
 use gmp_mpfr_sys::mpfr;
 use rug::Integer;
 

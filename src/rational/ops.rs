@@ -1,11 +1,3 @@
-// mpmfnum: a numbers library in Rust
-// Brett Saiki <bksaiki(at)gmail.com>
-// 2023
-
-// rational/ops.rs
-//
-// Implementations of operators
-
 use std::cmp::min;
 use std::ops::{Add, Mul, Neg, Sub};
 

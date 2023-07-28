@@ -1,11 +1,3 @@
-// mpmfnum: a numbers library in Rust
-// Brett Saiki <bksaiki(at)gmail.com>
-// 2023
-
-// rational.rs
-//
-// Tests for the rational module
-
 use rug::{Float, Integer};
 use std::cmp::Ordering;
 
