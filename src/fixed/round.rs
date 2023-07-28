@@ -1,8 +1,9 @@
+use num_traits::Signed;
 use rug::Integer;
 
 use crate::fixed::Fixed;
-use crate::rational::Rational;
-use crate::{RoundingContext, RoundingMode};
+use crate::rational::{self, Rational};
+use crate::{Number, RoundingContext, RoundingMode};
 
 /// Fixed-point overflow behavior.
 ///
@@ -98,14 +99,89 @@ impl Context {
     }
 }
 
+impl Context {
+    fn round_wrap(&self, val: Rational) -> Fixed {
+        let offset = val.exp().unwrap() - self.scale;
+        let div = Integer::from(1) << self.nbits;
+
+        let c = val.c().unwrap() << offset;
+        if self.signed {
+            let m = if val.sign() { -c } else { c };
+            let wrapped = m % div;
+            let num = Rational::Real(wrapped.is_negative(), self.scale, wrapped.abs());
+            Fixed { num }
+        } else {
+            let wrapped = c % div;
+            let num = Rational::Real(false, self.scale, wrapped);
+            Fixed { num }
+        }
+    }
+
+    fn round_finite<T: Number>(&self, val: &T) -> Fixed {
+        // step 1: compute the rounding parameters
+        // we only need the first digit we want to chop off
+        let n = self.scale - 1;
+        let rctx = rational::Context::new()
+            .with_rounding_mode(self.rm)
+            .with_min_n(n);
+
+        // step 2: round
+        let (rounded, _) = rctx.round_residual(val);
+        if !rounded.is_zero() {
+            let exp = rounded.exp().unwrap();
+            assert!(
+                exp >= self.scale,
+                "unexpected exponent, scale: {}, num: {:?}",
+                self.scale,
+                rounded
+            );
+        }
+
+        // step 3: may need to round or saturate
+        let maxval = self.maxval();
+        let minval = self.minval();
+        if rounded > maxval.num {
+            // larger than the maxval
+            match self.overflow {
+                Overflow::Wrap => self.round_wrap(rounded),
+                Overflow::Saturate => Fixed { num: maxval.num },
+            }
+        } else if rounded < minval.num {
+            // smaller than the minval
+            match self.overflow {
+                Overflow::Wrap => self.round_wrap(rounded),
+                Overflow::Saturate => Fixed { num: minval.num },
+            }
+        } else {
+            Fixed { num: rounded }
+        }
+    }
+}
+
 impl RoundingContext for Context {
     type Rounded = Fixed;
 
     fn round(&self, val: &Self::Rounded) -> Self::Rounded {
-        todo!()
+        self.mpmf_round(val)
     }
 
-    fn mpmf_round<T: crate::Number>(&self, val: &T) -> Self::Rounded {
-        todo!()
+    fn mpmf_round<T: Number>(&self, val: &T) -> Self::Rounded {
+        // case split by class
+        if val.is_zero() {
+            // zero is always representable
+            Fixed {
+                num: Rational::zero(),
+            }
+        } else if val.is_infinite() {
+            // +/- Inf goes to +MAX
+            self.maxval()
+        } else if val.is_nar() {
+            // +/- NaN goes to 0
+            Fixed {
+                num: Rational::zero(),
+            }
+        } else {
+            self.round_finite(val)
+        }
     }
 }

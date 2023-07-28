@@ -1,4 +1,3 @@
-// mpmfnum: a numbers library in Rust
 use mpmfnum::RoundingContext;
 use rug::Integer;
 

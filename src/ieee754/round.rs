@@ -336,14 +336,12 @@ impl Context {
         let max_p = self.nbits - self.es;
         let unbounded_n = num.exp().unwrap() - 1;
         let n = max(unbounded_n, self.expmin() - 1);
-
-        // step 2: round and collect the lost bits
         let rctx = rational::Context::new()
             .with_rounding_mode(self.rm)
             .with_max_precision(max_p)
             .with_min_n(n);
 
-        let sign = num.sign();
+        // step 2: round and collect the lost bits
         let (rounded, lost) = rctx.round_residual(num);
         let inexact = !lost.as_ref().unwrap().is_zero();
 
@@ -354,6 +352,7 @@ impl Context {
         let (exp_trunc, c_trunc, lost, _, _) = rational::Context::split(num, n - 2);
         let e_trunc = exp_trunc + c_trunc.significant_bits() as isize - 1;
 
+        let sign = rounded.sign();
         let tiny_pre = e_trunc < self.emin();
         let tiny_post = self.round_tiny(sign, e_trunc, &c_trunc, &lost);
 

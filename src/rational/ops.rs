@@ -188,6 +188,15 @@ impl Rational {
         }
     }
 
+    /// Scales this rational number by `2^exp` exactly.
+    /// If this number is non-real, the value is preserved.
+    pub fn scale(&self, shift: isize) -> Self {
+        match &self {
+            Rational::Real(s, exp, c) => Rational::Real(*s, exp + shift, c.clone()),
+            _ => self.clone(),
+        }
+    }
+
     /// Applies a correction to a [`Rational`] type from an MPFR ternary
     /// value to translate a rounded result of precision `p - 1` obtained
     /// with round-to-zero to a rounded result of precision `p` obtained

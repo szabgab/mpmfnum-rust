@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use rug::Integer;
 
 use crate::{rational::Rational, Number};
@@ -7,6 +9,7 @@ use crate::{rational::Rational, Number};
 /// Fixed-point numbers are parameterized by `nbits` the total bitwidth
 /// of the representation, `scale` the position of the least-significant
 /// digit in the representation, and if it is signed.
+#[derive(Clone, Debug)]
 pub struct Fixed {
     pub(crate) num: Rational,
 }
@@ -66,5 +69,23 @@ impl Number for Fixed {
 
     fn is_numerical(&self) -> bool {
         true
+    }
+}
+
+impl From<Fixed> for Rational {
+    fn from(val: Fixed) -> Self {
+        val.num
+    }
+}
+
+impl PartialEq for Fixed {
+    fn eq(&self, other: &Self) -> bool {
+        self.num == other.num
+    }
+}
+
+impl PartialOrd for Fixed {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.num.partial_cmp(&other.num)
     }
 }
