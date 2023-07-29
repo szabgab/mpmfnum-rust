@@ -31,11 +31,11 @@ pub enum Overflow {
 /// mode affects the rounding direction.
 #[derive(Clone, Debug)]
 pub struct Context {
-    signed: bool,
-    scale: isize,
-    nbits: usize,
-    rm: RoundingMode,
-    overflow: Overflow,
+    pub(crate) signed: bool,
+    pub(crate) scale: isize,
+    pub(crate) nbits: usize,
+    pub(crate) rm: RoundingMode,
+    pub(crate) overflow: Overflow,
 }
 
 impl Context {

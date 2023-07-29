@@ -5,6 +5,7 @@ This module implements fixed-point numbers with the
 [`Fixed`][crate::ieee754] type.
 */
 
+mod ops;
 mod round;
 mod types;
 
