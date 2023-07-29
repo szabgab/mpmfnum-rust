@@ -1,7 +1,7 @@
-use num_traits::Signed;
+use num_traits::{Signed, Zero};
 use rug::Integer;
 
-use crate::fixed::Fixed;
+use crate::fixed::{Exceptions, Fixed};
 use crate::rational::{self, Rational};
 use crate::{Number, RoundingContext, RoundingMode};
 
@@ -69,16 +69,20 @@ impl Context {
     /// If the format is unsigned, this is just `2^scale * 2^nbits - 1`.
     /// If the format is signed, this is just `2^scale * 2^(nbits-1) - 1`.
     pub fn maxval(&self) -> Fixed {
-        Fixed {
-            num: Rational::Real(
-                false,
-                self.scale,
-                if self.signed {
-                    (Integer::from(1) << (self.nbits - 1)) - 1
-                } else {
-                    (Integer::from(1) << self.nbits) - 1
-                },
-            ),
+        if self.signed {
+            let c = (Integer::from(1) << (self.nbits - 1)) - 1;
+            Fixed {
+                num: Rational::Real(false, self.scale, c),
+                flags: Default::default(),
+                ctx: self.clone(),
+            }
+        } else {
+            let c = (Integer::from(1) << self.nbits) - 1;
+            Fixed {
+                num: Rational::Real(false, self.scale, c),
+                flags: Default::default(),
+                ctx: self.clone(),
+            }
         }
     }
 
@@ -89,11 +93,15 @@ impl Context {
         if self.signed {
             Fixed {
                 num: Rational::zero(),
+                flags: Default::default(),
+                ctx: self.clone(),
             }
         } else {
             let c = Integer::from(1) << (self.nbits - 1);
             Fixed {
                 num: Rational::Real(true, self.scale, c),
+                flags: Default::default(),
+                ctx: self.clone(),
             }
         }
     }
@@ -107,13 +115,29 @@ impl Context {
         let c = val.c().unwrap() << offset;
         if self.signed {
             let m = if val.sign() { -c } else { c };
-            let wrapped = m % div;
+            let (mult, wrapped) = m.div_rem(div);
+            let not_representable = !mult.is_zero();
             let num = Rational::Real(wrapped.is_negative(), self.scale, wrapped.abs());
-            Fixed { num }
+            Fixed {
+                num,
+                flags: Exceptions {
+                    not_representable,
+                    ..Default::default()
+                },
+                ctx: self.clone(),
+            }
         } else {
-            let wrapped = c % div;
+            let (mult, wrapped) = c.div_rem(div);
+            let not_representable = !mult.is_zero();
             let num = Rational::Real(false, self.scale, wrapped);
-            Fixed { num }
+            Fixed {
+                num,
+                flags: Exceptions {
+                    not_representable,
+                    ..Default::default()
+                },
+                ctx: self.clone(),
+            }
         }
     }
 
@@ -126,7 +150,9 @@ impl Context {
             .with_min_n(n);
 
         // step 2: round
-        let (rounded, _) = rctx.round_residual(val);
+        let (rounded, err) = rctx.round_residual(val);
+        let inexact = !err.unwrap().is_zero();
+
         if !rounded.is_zero() {
             let exp = rounded.exp().unwrap();
             assert!(
@@ -144,16 +170,39 @@ impl Context {
             // larger than the maxval
             match self.overflow {
                 Overflow::Wrap => self.round_wrap(rounded),
-                Overflow::Saturate => Fixed { num: maxval.num },
+                Overflow::Saturate => Fixed {
+                    num: maxval.num,
+                    flags: Exceptions {
+                        inexact,
+                        not_representable: true,
+                        ..Default::default()
+                    },
+                    ctx: self.clone(),
+                },
             }
         } else if rounded < minval.num {
             // smaller than the minval
             match self.overflow {
                 Overflow::Wrap => self.round_wrap(rounded),
-                Overflow::Saturate => Fixed { num: minval.num },
+                Overflow::Saturate => Fixed {
+                    num: minval.num,
+                    flags: Exceptions {
+                        inexact,
+                        not_representable: true,
+                        ..Default::default()
+                    },
+                    ctx: self.clone(),
+                },
             }
         } else {
-            Fixed { num: rounded }
+            Fixed {
+                num: rounded,
+                flags: Exceptions {
+                    inexact,
+                    ..Default::default()
+                },
+                ctx: self.clone(),
+            }
         }
     }
 }
@@ -171,14 +220,26 @@ impl RoundingContext for Context {
             // zero is always representable
             Fixed {
                 num: Rational::zero(),
+                flags: Default::default(),
+                ctx: self.clone(),
             }
         } else if val.is_infinite() {
-            // +/- Inf goes to +MAX
-            self.maxval()
+            // +Inf goes to MAX
+            // -Inf goes to MIN
+            if val.sign() {
+                self.minval()
+            } else {
+                self.maxval()
+            }
         } else if val.is_nar() {
             // +/- NaN goes to 0
             Fixed {
                 num: Rational::zero(),
+                flags: Exceptions {
+                    not_representable: true,
+                    ..Default::default()
+                },
+                ctx: self.clone(),
             }
         } else {
             self.round_finite(val)
