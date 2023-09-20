@@ -82,11 +82,11 @@ impl Exceptions {
 }
 
 /// IEEE 754 floating-point bitwise encoding viewed as an enumeration.
-/// Unlike [`IEEE754`], [`Float`] contains only the numerical data
-/// required to bitvector that encodes a binary floating-point number
-/// as described by the IEEE 754 standard.
+/// Unlike [`IEEE754`], [`IEEE754Val`] contains only the numerical data
+/// required to encode a binary floating-point number as described by
+/// the IEEE-754 standard.
 #[derive(Clone, Debug)]
-pub enum Float {
+pub enum IEEE754Val {
     /// Signed zero: `Zero(s)`: where `s` specifies `-0` or `+0`.
     Zero(bool),
     /// Subnormal numbers: `Subnormal(s, c)` encodes `(-1)^s * c * 2^expmin`.
@@ -115,42 +115,42 @@ pub enum Float {
 /// number is created.
 #[derive(Clone, Debug)]
 pub struct IEEE754 {
-    pub(crate) num: Float,
+    pub(crate) num: IEEE754Val,
     pub(crate) flags: Exceptions,
     pub(crate) ctx: Context,
 }
 
 impl IEEE754 {
-    /// Returns the flags set during the creation of this number
+    /// Return the flags set when this number was created.
     pub fn flags(&self) -> &Exceptions {
         &self.flags
     }
 
-    /// Returns the rounding context used to create this number.
+    /// Returns the rounding context under which this number was created.
     pub fn ctx(&self) -> &Context {
         &self.ctx
     }
 
     /// Returns true if this [`IEEE754`] value is a subnormal number.
     pub fn is_subnormal(&self) -> bool {
-        matches!(self.num, Float::Subnormal(_, _))
+        matches!(self.num, IEEE754Val::Subnormal(_, _))
     }
 
     /// Returns true if this [`IEEE754`] value is a normal number.
     pub fn is_normal(&self) -> bool {
-        matches!(self.num, Float::Normal(_, _, _))
+        matches!(self.num, IEEE754Val::Normal(_, _, _))
     }
 
     /// Returns true if this [`IEEE754`] value is NaN.
     pub fn is_nan(&self) -> bool {
-        matches!(self.num, Float::Nan(_, _, _))
+        matches!(self.num, IEEE754Val::Nan(_, _, _))
     }
 
     /// Returns the NaN signaling bit as an Option.
     /// The result is None if the number is not NaN.
     pub fn nan_quiet(&self) -> Option<bool> {
         match &self.num {
-            Float::Nan(_, q, _) => Some(*q),
+            IEEE754Val::Nan(_, q, _) => Some(*q),
             _ => None,
         }
     }
@@ -159,7 +159,7 @@ impl IEEE754 {
     /// The result is None if the number is not NaN.
     pub fn nan_payload(&self) -> Option<Integer> {
         match &self.num {
-            Float::Nan(_, _, payload) => Some(payload.clone()),
+            IEEE754Val::Nan(_, _, payload) => Some(payload.clone()),
             _ => None,
         }
     }
@@ -169,20 +169,20 @@ impl IEEE754 {
     pub fn into_bits(&self) -> Integer {
         let nbits = self.ctx.nbits();
         let (s, unsigned) = match &self.num {
-            Float::Zero(s) => (*s, Integer::zero()),
-            Float::Subnormal(s, c) => (*s, c.clone()),
-            Float::Normal(s, exp, c) => {
+            IEEE754Val::Zero(s) => (*s, Integer::zero()),
+            IEEE754Val::Subnormal(s, c) => (*s, c.clone()),
+            IEEE754Val::Normal(s, exp, c) => {
                 let m = self.ctx().max_m();
                 let efield = Integer::from((exp + m as isize) + self.ctx().emax()) << m;
                 let mfield = c.clone().bitand(bitmask(m));
                 (*s, mfield.bitor(efield))
             }
-            Float::Infinity(s) => {
+            IEEE754Val::Infinity(s) => {
                 let m = self.ctx().max_m();
                 let efield = bitmask(self.ctx.es()) << m;
                 (*s, efield)
             }
-            Float::Nan(s, q, payload) => {
+            IEEE754Val::Nan(s, q, payload) => {
                 let m = self.ctx().max_m() as isize;
                 let efield = bitmask(self.ctx.es()) << m;
                 let qfield = if *q {
@@ -210,53 +210,53 @@ impl Number for IEEE754 {
 
     fn sign(&self) -> bool {
         match &self.num {
-            Float::Zero(s) => *s,
-            Float::Subnormal(s, _) => *s,
-            Float::Normal(s, _, _) => *s,
-            Float::Infinity(s) => *s,
-            Float::Nan(s, _, _) => *s,
+            IEEE754Val::Zero(s) => *s,
+            IEEE754Val::Subnormal(s, _) => *s,
+            IEEE754Val::Normal(s, _, _) => *s,
+            IEEE754Val::Infinity(s) => *s,
+            IEEE754Val::Nan(s, _, _) => *s,
         }
     }
 
     fn exp(&self) -> Option<isize> {
         match &self.num {
-            Float::Zero(_) => None,
-            Float::Subnormal(_, _) => Some(self.ctx().expmin()),
-            Float::Normal(_, exp, _) => Some(*exp),
-            Float::Infinity(_) => None,
-            Float::Nan(_, _, _) => None,
+            IEEE754Val::Zero(_) => None,
+            IEEE754Val::Subnormal(_, _) => Some(self.ctx().expmin()),
+            IEEE754Val::Normal(_, exp, _) => Some(*exp),
+            IEEE754Val::Infinity(_) => None,
+            IEEE754Val::Nan(_, _, _) => None,
         }
     }
 
     fn e(&self) -> Option<isize> {
         match &self.num {
-            Float::Zero(_) => None,
-            Float::Subnormal(_, c) => {
+            IEEE754Val::Zero(_) => None,
+            IEEE754Val::Subnormal(_, c) => {
                 Some((self.ctx().expmin() - 1) + (c.significant_bits() as isize))
             }
-            Float::Normal(_, exp, c) => Some((*exp - 1) + (c.significant_bits() as isize)),
-            Float::Infinity(_) => None,
-            Float::Nan(_, _, _) => None,
+            IEEE754Val::Normal(_, exp, c) => Some((*exp - 1) + (c.significant_bits() as isize)),
+            IEEE754Val::Infinity(_) => None,
+            IEEE754Val::Nan(_, _, _) => None,
         }
     }
 
     fn n(&self) -> Option<isize> {
         match &self.num {
-            Float::Zero(_) => None,
-            Float::Subnormal(_, _) => Some(self.ctx().expmin() - 1),
-            Float::Normal(_, exp, _) => Some(exp - 1),
-            Float::Infinity(_) => None,
-            Float::Nan(_, _, _) => None,
+            IEEE754Val::Zero(_) => None,
+            IEEE754Val::Subnormal(_, _) => Some(self.ctx().expmin() - 1),
+            IEEE754Val::Normal(_, exp, _) => Some(exp - 1),
+            IEEE754Val::Infinity(_) => None,
+            IEEE754Val::Nan(_, _, _) => None,
         }
     }
 
     fn c(&self) -> Option<Integer> {
         match &self.num {
-            Float::Zero(_) => Some(Integer::zero()),
-            Float::Subnormal(_, c) => Some(c.clone()),
-            Float::Normal(_, _, c) => Some(c.clone()),
-            Float::Infinity(_) => None,
-            Float::Nan(_, _, _) => None,
+            IEEE754Val::Zero(_) => Some(Integer::zero()),
+            IEEE754Val::Subnormal(_, c) => Some(c.clone()),
+            IEEE754Val::Normal(_, _, c) => Some(c.clone()),
+            IEEE754Val::Infinity(_) => None,
+            IEEE754Val::Nan(_, _, _) => None,
         }
     }
 
@@ -266,56 +266,59 @@ impl Number for IEEE754 {
 
     fn p(&self) -> usize {
         match &self.num {
-            Float::Zero(_) => 0,
-            Float::Subnormal(_, c) => c.significant_bits() as usize,
-            Float::Normal(_, _, c) => c.significant_bits() as usize,
-            Float::Infinity(_) => 0,
-            Float::Nan(_, _, _) => 0,
+            IEEE754Val::Zero(_) => 0,
+            IEEE754Val::Subnormal(_, c) => c.significant_bits() as usize,
+            IEEE754Val::Normal(_, _, c) => c.significant_bits() as usize,
+            IEEE754Val::Infinity(_) => 0,
+            IEEE754Val::Nan(_, _, _) => 0,
         }
     }
 
     fn is_nar(&self) -> bool {
-        matches!(&self.num, Float::Infinity(_) | Float::Nan(_, _, _))
+        matches!(
+            &self.num,
+            IEEE754Val::Infinity(_) | IEEE754Val::Nan(_, _, _)
+        )
     }
 
     fn is_finite(&self) -> bool {
         matches!(
             &self.num,
-            Float::Zero(_) | Float::Subnormal(_, _) | Float::Normal(_, _, _)
+            IEEE754Val::Zero(_) | IEEE754Val::Subnormal(_, _) | IEEE754Val::Normal(_, _, _)
         )
     }
 
     fn is_infinite(&self) -> bool {
-        matches!(&self.num, Float::Infinity(_))
+        matches!(&self.num, IEEE754Val::Infinity(_))
     }
 
     fn is_zero(&self) -> bool {
-        matches!(&self.num, Float::Zero(_))
+        matches!(&self.num, IEEE754Val::Zero(_))
     }
 
     fn is_negative(&self) -> Option<bool> {
         match &self.num {
-            Float::Zero(s) => Some(*s),
-            Float::Subnormal(s, _) => Some(*s),
-            Float::Normal(s, _, _) => Some(*s),
-            Float::Infinity(s) => Some(*s),
-            Float::Nan(_, _, _) => None,
+            IEEE754Val::Zero(s) => Some(*s),
+            IEEE754Val::Subnormal(s, _) => Some(*s),
+            IEEE754Val::Normal(s, _, _) => Some(*s),
+            IEEE754Val::Infinity(s) => Some(*s),
+            IEEE754Val::Nan(_, _, _) => None,
         }
     }
 
     fn is_numerical(&self) -> bool {
-        !matches!(&self.num, Float::Nan(_, _, _))
+        !matches!(&self.num, IEEE754Val::Nan(_, _, _))
     }
 }
 
 impl From<IEEE754> for Rational {
     fn from(val: IEEE754) -> Self {
         match val.num {
-            Float::Zero(_) => Rational::zero(),
-            Float::Subnormal(s, c) => Rational::Real(s, val.ctx.expmin(), c),
-            Float::Normal(s, exp, c) => Rational::Real(s, exp, c),
-            Float::Infinity(s) => Rational::Infinite(s),
-            Float::Nan(_, _, _) => Rational::Nan,
+            IEEE754Val::Zero(_) => Rational::zero(),
+            IEEE754Val::Subnormal(s, c) => Rational::Real(s, val.ctx.expmin(), c),
+            IEEE754Val::Normal(s, exp, c) => Rational::Real(s, exp, c),
+            IEEE754Val::Infinity(s) => Rational::Infinite(s),
+            IEEE754Val::Nan(_, _, _) => Rational::Nan,
         }
     }
 }

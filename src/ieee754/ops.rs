@@ -12,21 +12,28 @@ macro_rules! rounded_1ary_impl {
                     result.flags.invalid = true;
                     result
                 } else {
-                    let mut result = self.$mpmf(src);
+                    // may need to interpret subnormals as 0
+                    let mut result = if self.daz() && src.is_subnormal() {
+                        self.$mpmf(&src.ctx.zero(src.sign()))
+                    } else {
+                        self.$mpmf(src)
+                    };
+
+                    // override NaNs
                     if result.is_nan() {
-                        // Canonical NaN
                         let canon_nan = self.qnan();
                         result.num = canon_nan.num;
                     }
 
+                    // set flags and return
+                    result.flags.denorm = src.is_subnormal();
                     result
                 }
             }
 
             fn $mpmf<N: Number>(&self, src: &N) -> Self::Rounded {
-                // compute approximately, rounding-to-odd,
-                // with 3 rounding bits
-                let p = self.max_p() + 3;
+                // compute with 2 additional bits, rounding-to-odd
+                let p = self.max_p() + 2;
                 let r = Rational::from_number(src);
                 let (result, flags) = r.$mpfr(p);
                 let mut rounded = self.mpmf_round(&result);
@@ -78,13 +85,26 @@ macro_rules! rounded_2ary_impl {
                     result.flags.invalid = true;
                     result
                 } else {
-                    let mut result = self.$mpmf(src1, src2);
+                    // may need to interpret subnormals as 0
+                    let daz1 = self.daz() && src1.is_subnormal();
+                    let daz2 = self.daz() && src2.is_subnormal();
+                    let mut result = match (daz1, daz2) {
+                        (false, false) => self.$mpmf(src1, src2),
+                        (false, true) => self.$mpmf(src1, &src2.ctx.zero(src2.sign())),
+                        (true, false) => self.$mpmf(&src1.ctx.zero(src1.sign()), src2),
+                        (true, true) => {
+                            self.$mpmf(&src1.ctx.zero(src1.sign()), &src2.ctx.zero(src2.sign()))
+                        }
+                    };
+
+                    // override NaNs
                     if result.is_nan() {
-                        // Canonical NaN
                         let canon_nan = self.qnan();
                         result.num = canon_nan.num;
                     }
 
+                    // set flags and return
+                    result.flags.denorm = src1.is_subnormal() || src2.is_subnormal();
                     result
                 }
             }
@@ -94,9 +114,8 @@ macro_rules! rounded_2ary_impl {
                 N1: Number,
                 N2: Number,
             {
-                // compute approximately, rounding-to-odd,
-                // with 3 rounding bits
-                let p = self.max_p() + 3;
+                // compute with 2 additional bits, rounding-to-odd
+                let p = self.max_p() + 2;
                 let r1 = Rational::from_number(src1);
                 let r2 = Rational::from_number(src2);
                 let (result, flags) = r1.$mpfr(&r2, p);
@@ -146,13 +165,46 @@ macro_rules! rounded_3ary_impl {
                     result.flags.invalid = true;
                     result
                 } else {
-                    let mut result = self.$mpmf(src1, src2, src3);
+                    // may need to interpret subnormals as 0
+                    let daz1 = self.daz() && src1.is_subnormal();
+                    let daz2 = self.daz() && src2.is_subnormal();
+                    let daz3 = self.daz() && src3.is_subnormal();
+                    let mut result = match (daz1, daz2, daz3) {
+                        (false, false, false) => self.$mpmf(src1, src2, src3),
+                        (false, false, true) => self.$mpmf(src1, src2, &src3.ctx.zero(src3.sign())),
+                        (false, true, false) => self.$mpmf(src1, &src2.ctx.zero(src2.sign()), src3),
+                        (false, true, true) => self.$mpmf(
+                            src1,
+                            &src2.ctx.zero(src2.sign()),
+                            &src3.ctx.zero(src3.sign()),
+                        ),
+                        (true, false, false) => self.$mpmf(&src1.ctx.zero(src1.sign()), src2, src3),
+                        (true, false, true) => self.$mpmf(
+                            &src1.ctx.zero(src1.sign()),
+                            src2,
+                            &src3.ctx.zero(src3.sign()),
+                        ),
+                        (true, true, false) => self.$mpmf(
+                            &src1.ctx.zero(src1.sign()),
+                            &src2.ctx.zero(src2.sign()),
+                            src3,
+                        ),
+                        (true, true, true) => self.$mpmf(
+                            &src1.ctx.zero(src1.sign()),
+                            &src2.ctx.zero(src2.sign()),
+                            &src3.ctx.zero(src3.sign()),
+                        ),
+                    };
+
+                    // override NaNs
                     if result.is_nan() {
-                        // Canonical NaN
                         let canon_nan = self.qnan();
                         result.num = canon_nan.num;
                     }
 
+                    // set flags and return
+                    result.flags.denorm =
+                        src1.is_subnormal() || src2.is_subnormal() || src3.is_subnormal();
                     result
                 }
             }
@@ -163,9 +215,8 @@ macro_rules! rounded_3ary_impl {
                 N2: Number,
                 N3: Number,
             {
-                // compute approximately, rounding-to-odd,
-                // with 3 rounding bits
-                let p = self.max_p() + 3;
+                // compute with 2 additional bits, rounding-to-odd
+                let p = self.max_p() + 2;
                 let r1 = Rational::from_number(src1);
                 let r2 = Rational::from_number(src2);
                 let r3 = Rational::from_number(src3);

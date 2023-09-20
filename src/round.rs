@@ -16,32 +16,33 @@ use crate::Number;
 /// how the "lost" digits will affect the final output. Thus, rounding
 /// enforces a particular "format" for digital numbers, but they should
 /// just be considered unbounded real numbers when in isolation.
-/// The characteristics of the rounding operation may be summarized as
-/// in a "rounding context". All mathematicaly evaluation is done under
+/// The characteristics of the rounding operation are summarized in a
+/// "rounding context". All mathematical evaluation is done under
 /// a particular rounding context.
 ///
 /// See [`Number`] for details on the number trait.
 ///
 pub trait RoundingContext {
-    /// The result of rounded operations under this context.
+    /// Result type of operations under this context.
     type Rounded: Number;
 
-    /// Converts a [`Rounded`][RoundingContext] value to another
-    /// [`Rounded`][RoundingContext] value, rounding according to this
-    /// context. See [`mpmf_round`][RoundingContext] for a more general
-    /// implementation of rounding from formats other than the output format.
+    /// Rounds a [`RoundingContext::Rounded`] value to another
+    /// [`RoundingContext::Rounded`] value according to this context.
+    ///
+    /// See [`RoundingContext::mpmf_round`] for a more general implementation
+    /// of rounding from formats other than the output format.
+    fn round(&self, val: &Self::Rounded) -> Self::Rounded;
+
+    /// Converts any [`Number`] to a [`RoundingContext::Rounded`] value,
+    /// rounding the argument according to this context.
     ///
     /// Implementation note:
     /// This is the canonical rounding function, taking any value
     /// satisfying `Number` and rounding it to type `Rounded`.
     /// Implemenations of this trait may want to implement more complicated
     /// "round" function that also return information such as an error term,
-    /// lost digits, etc. In this case, the implementation of `round` is
-    /// just wrapper, discarding the extra information.
-    fn round(&self, val: &Self::Rounded) -> Self::Rounded;
-
-    /// Converts any [`Number`] to a [`Rounded`][RoundingContext] value,
-    /// rounding the argument according to this context.
+    /// lost digits, etc. In this case, the implementation of `round` may
+    /// just be a wrapper, discarding the extra information.
     fn mpmf_round<T: Number>(&self, val: &T) -> Self::Rounded;
 }
 
@@ -96,7 +97,7 @@ pub enum RoundingMode {
 /// Rounding direction rather than rounding _mode_.
 /// Given the sign of an unrounded number and a rounding mode,
 /// we can transform the rounding mode into a rounding direction
-/// and a boolean indicating if the direction should only be used
+/// and a boolean indicating if the direction should onlybe used
 /// for tie-breaking.
 #[derive(Clone, Debug)]
 pub(crate) enum RoundingDirection {
