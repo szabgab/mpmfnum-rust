@@ -35,7 +35,7 @@ pub trait RoundingContext {
 
     /// Converts any [`Number`] to a [`RoundingContext::Rounded`] value,
     /// rounding the argument according to this context.
-    /// 
+    ///
     /// Implementation note:
     /// This is the canonical rounding function, taking any value
     /// satisfying `Number` and rounding it to type `Rounded`.

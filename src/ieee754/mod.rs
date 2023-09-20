@@ -11,6 +11,6 @@ mod number;
 mod ops;
 mod round;
 
-pub use number::{Exceptions, Float, IEEE754};
+pub use number::{Exceptions, IEEE754Val, IEEE754};
 pub use ops::*;
 pub use round::Context;

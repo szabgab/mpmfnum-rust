@@ -3,7 +3,7 @@ use std::ops::{BitAnd, BitOr};
 use num_traits::Zero;
 use rug::Integer;
 
-use crate::ieee754::{Exceptions, Float, IEEE754};
+use crate::ieee754::{Exceptions, IEEE754Val, IEEE754};
 use crate::rational::{self, Rational};
 use crate::round::RoundingDirection;
 use crate::util::bitmask;
@@ -154,7 +154,7 @@ impl Context {
     /// Returns the minimum representable value with a sign.
     pub fn min_float(&self, sign: bool) -> IEEE754 {
         IEEE754 {
-            num: Float::Subnormal(sign, Integer::from(1)),
+            num: IEEE754Val::Subnormal(sign, Integer::from(1)),
             flags: Exceptions::default(),
             ctx: self.clone(),
         }
@@ -163,7 +163,7 @@ impl Context {
     /// Returns the maximum representable value with a sign.
     pub fn max_float(&self, sign: bool) -> IEEE754 {
         IEEE754 {
-            num: Float::Normal(sign, self.expmax(), bitmask(self.max_p())),
+            num: IEEE754Val::Normal(sign, self.expmax(), bitmask(self.max_p())),
             flags: Exceptions::default(),
             ctx: self.clone(),
         }
@@ -172,7 +172,7 @@ impl Context {
     /// Constructs an infinity with a sign.
     pub fn inf(&self, sign: bool) -> IEEE754 {
         IEEE754 {
-            num: Float::Infinity(sign),
+            num: IEEE754Val::Infinity(sign),
             flags: Default::default(),
             ctx: self.clone(),
         }
@@ -181,7 +181,7 @@ impl Context {
     /// Constructs a canonical, quiet NaN (unsigned, quiet bit, empty payload).
     pub fn qnan(&self) -> IEEE754 {
         IEEE754 {
-            num: Float::Nan(false, true, Integer::from(0)),
+            num: IEEE754Val::Nan(false, true, Integer::from(0)),
             flags: Default::default(),
             ctx: self.clone(),
         }
@@ -190,7 +190,7 @@ impl Context {
     /// Constructs a canonical, signaling NaN (unsigned, signal bit, 1).
     pub fn snan(&self) -> IEEE754 {
         IEEE754 {
-            num: Float::Nan(false, false, Integer::from(1)),
+            num: IEEE754Val::Nan(false, false, Integer::from(1)),
             flags: Default::default(),
             ctx: self.clone(),
         }
@@ -214,26 +214,26 @@ impl Context {
             // subnormal or zero
             if m.is_zero() {
                 // zero
-                Float::Zero(s)
+                IEEE754Val::Zero(s)
             } else {
                 // subnormal
-                Float::Subnormal(s, m)
+                IEEE754Val::Subnormal(s, m)
             }
         } else if e_norm <= self.emax() {
             // normal
             let c = (Integer::from(1) << (p - 1)).bitor(m);
             let exp = e_norm.to_isize().unwrap() - (p as isize - 1);
-            Float::Normal(s, exp, c)
+            IEEE754Val::Normal(s, exp, c)
         } else {
             // non-real
             if m.is_zero() {
                 // infinity
-                Float::Infinity(s)
+                IEEE754Val::Infinity(s)
             } else {
                 // nan
                 let quiet = m.get_bit((p - 2) as u32);
                 let payload = m.bitand(bitmask(p - 2));
-                Float::Nan(s, quiet, payload)
+                IEEE754Val::Nan(s, quiet, payload)
             }
         };
 
@@ -274,22 +274,26 @@ impl Context {
         }
 
         let e_trunc = num.e().unwrap();
-        if e_trunc + 1 < self.emin() {
-            // far below the subnormal boundary
-            true
-        } else if e_trunc + 1 > self.emin() {
-            // far above the subnormal boundary
-            false
-        } else {
-            // near the subnormal boundary
-            // follow the IEEE specification and round with unbounded exponent
-            let unbounded_ctx = rational::Context::new()
-                .with_rounding_mode(self.rm)
-                .with_max_precision(self.max_p());
-            let unbounded = unbounded_ctx.mpmf_round(num);
+        match e_trunc.cmp(&(self.emin() - 1)) {
+            std::cmp::Ordering::Less => {
+                // far below the subnormal boundary
+                true
+            }
+            std::cmp::Ordering::Greater => {
+                // far above the subnormal boundary
+                false
+            }
+            std::cmp::Ordering::Equal => {
+                // near the subnormal boundary
+                // follow the IEEE specification and round with unbounded exponent
+                let unbounded_ctx = rational::Context::new()
+                    .with_rounding_mode(self.rm)
+                    .with_max_precision(self.max_p());
+                let unbounded = unbounded_ctx.mpmf_round(num);
 
-            // tiny if below MIN_NORM
-            unbounded.e().unwrap() < self.emin()
+                // tiny if below MIN_NORM
+                unbounded.e().unwrap() < self.emin()
+            }
         }
     }
 
@@ -308,7 +312,7 @@ impl Context {
         // rounded result is zero
         if unbounded.is_zero() {
             return IEEE754 {
-                num: Float::Zero(unbounded.sign()),
+                num: IEEE754Val::Zero(unbounded.sign()),
                 flags: Exceptions {
                     underflow_pre: tiny_pre && inexact,
                     underflow_post: tiny_post && inexact,
@@ -327,7 +331,7 @@ impl Context {
             let sign = unbounded.sign();
             if Context::overflow_to_infinity(sign, self.rm) {
                 return IEEE754 {
-                    num: Float::Infinity(sign),
+                    num: IEEE754Val::Infinity(sign),
                     flags: Exceptions {
                         overflow: true,
                         inexact: true,
@@ -347,7 +351,7 @@ impl Context {
         if self.ftz && tiny_post {
             // flush to zero
             return IEEE754 {
-                num: Float::Zero(unbounded.sign()),
+                num: IEEE754Val::Zero(unbounded.sign()),
                 flags: Exceptions {
                     underflow_pre: true,
                     underflow_post: true,
@@ -366,7 +370,7 @@ impl Context {
             let sign = unbounded.sign();
             let c = unbounded.c().unwrap();
             IEEE754 {
-                num: Float::Subnormal(sign, c),
+                num: IEEE754Val::Subnormal(sign, c),
                 flags: Exceptions {
                     underflow_pre: tiny_pre && inexact,
                     underflow_post: tiny_post && inexact,
@@ -383,7 +387,7 @@ impl Context {
             let exp = unbounded.exp().unwrap();
             let c = unbounded.c().unwrap();
             IEEE754 {
-                num: Float::Normal(sign, exp, c),
+                num: IEEE754Val::Normal(sign, exp, c),
                 flags: Exceptions {
                     underflow_pre: tiny_pre && inexact,
                     underflow_post: tiny_post && inexact,
@@ -445,23 +449,23 @@ impl RoundingContext for Context {
     /// output format.
     fn round(&self, val: &Self::Rounded) -> Self::Rounded {
         match &val.num {
-            Float::Zero(s) => {
+            IEEE754Val::Zero(s) => {
                 // +/-0 is preserved
                 IEEE754 {
-                    num: Float::Zero(*s),
+                    num: IEEE754Val::Zero(*s),
                     flags: Default::default(),
                     ctx: self.clone(),
                 }
             }
-            Float::Infinity(s) => {
+            IEEE754Val::Infinity(s) => {
                 // +/-Inf is preserved
                 IEEE754 {
-                    num: Float::Infinity(*s),
+                    num: IEEE754Val::Infinity(*s),
                     flags: Default::default(),
                     ctx: self.clone(),
                 }
             }
-            Float::Nan(s, _, payload) => {
+            IEEE754Val::Nan(s, _, payload) => {
                 // NaN
                 // rounding truncates the payload
                 // always quiets the result
@@ -482,7 +486,7 @@ impl RoundingContext for Context {
                 };
 
                 IEEE754 {
-                    num: Float::Nan(*s, true, payload),
+                    num: IEEE754Val::Nan(*s, true, payload),
                     flags: Default::default(),
                     ctx: self.clone(),
                 }
@@ -498,19 +502,19 @@ impl RoundingContext for Context {
         // case split by class
         if num.is_zero() {
             IEEE754 {
-                num: Float::Zero(num.sign()),
+                num: IEEE754Val::Zero(num.sign()),
                 flags: Exceptions::default(),
                 ctx: self.clone(),
             }
         } else if num.is_infinite() {
             IEEE754 {
-                num: Float::Infinity(num.sign()),
+                num: IEEE754Val::Infinity(num.sign()),
                 flags: Exceptions::default(),
                 ctx: self.clone(),
             }
         } else if num.is_nar() {
             IEEE754 {
-                num: Float::Nan(num.sign(), true, Integer::from(0)),
+                num: IEEE754Val::Nan(num.sign(), true, Integer::from(0)),
                 flags: Exceptions::default(),
                 ctx: self.clone(),
             }
