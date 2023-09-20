@@ -7,9 +7,7 @@ use crate::{Number, RoundingContext, RoundingMode};
 
 /// Result type of [`Context::round_prepare`].
 pub(crate) struct RoundPrepareResult {
-    pub sign: bool,
-    pub exp: isize,
-    pub c: Integer,
+    pub num: Rational,
     pub halfway_bit: bool,
     pub quarter_bit: bool,
     pub sticky_bit: bool,
@@ -96,12 +94,21 @@ impl Context {
     /// the digit at position `n`, and the second capturing digits at or
     /// below the digit at position `n`.
     pub(crate) fn split_at<T: Number>(num: &T, n: isize) -> (Rational, Rational) {
+        // easy case: splitting zero
+        if num.is_zero() {
+            let s = num.sign();
+            let high = Rational::Real(s, n + 1, Integer::from(0));
+            let low = Rational::Real(s, n, Integer::from(0));
+            return (high, low);
+        }
+
         // number components
         let s = num.sign();
         let e = num.e().unwrap();
         let exp = num.exp().unwrap();
         let c = num.c().unwrap();
 
+        // case split by split point offset
         if n >= e {
             // split point is above the significant digits
             let high = Rational::Real(s, n + 1, Integer::from(0));
@@ -174,18 +181,12 @@ impl Context {
         let sticky_bit = !low.is_zero();
 
         // compose result
-        let result = RoundPrepareResult {
-            sign: num.sign(),
-            exp: high.exp().unwrap(),
-            c: high.c().unwrap(),
+        RoundPrepareResult {
+            num: high,
             halfway_bit,
             quarter_bit,
             sticky_bit,
-        };
-
-        assert_eq!(result.exp, n + 1, "exponent not in the right place!");
-
-        result
+        }
     }
 
     /// Rounding utility function: given the truncated result and rounding
@@ -256,9 +257,10 @@ impl Context {
         rm: RoundingMode,
     ) -> Rational {
         // truncated result
-        let sign = split.sign;
-        let mut exp = split.exp;
-        let mut c = split.c;
+        let (sign, mut exp, mut c) = match split.num {
+            Rational::Real(s, exp, c) => (s, exp, c),
+            _ => panic!("unreachable"),
+        };
 
         // rounding bits
         let halfway_bit = split.halfway_bit;
@@ -291,6 +293,44 @@ impl Context {
 
         // return the rounded number
         rounded.canonicalize()
+    }
+
+    /// Rounds a finite [`Number`] also returning the digits
+    /// rounded off as a [`Rational`] value.
+    pub fn round_residual<T: Number>(&self, num: &T) -> (Rational, Option<Rational>) {
+        assert!(
+            self.max_p.is_some() || self.min_n.is_some(),
+            "must specify either maximum precision or least absolute digit"
+        );
+
+        // case split by class
+        if num.is_zero() {
+            // zero
+            (Rational::zero(), Some(Rational::zero()))
+        } else if num.is_infinite() {
+            // infinite number
+            let s = num.is_negative().unwrap();
+            (Rational::Infinite(s), None)
+        } else if num.is_nar() {
+            // other non-real
+            (Rational::Nan, None)
+        } else {
+            // finite, non-zero value
+            
+            // step 1: compute the first digit we will split off
+            let (p, n) = self.round_params(num);
+
+            // step 2: split the significand at binary digit `n`
+            // inefficient implementation, but we'll just split twice
+            let (_, low) = Self::split_at(num, n);
+            let split = Self::round_prepare(num, n);
+
+            // step 3: finalize the rounding
+            let rounded = Self::round_finalize(split, p, self.rm);
+
+            // return the rounded number
+            (rounded.canonicalize(), Some(low))
+        }
     }
 }
 

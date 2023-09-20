@@ -266,69 +266,30 @@ impl Context {
     /// is sufficient for computing this condition. This condition is
     /// satisfied when the rounded result would have been smaller than
     /// MIN_NORM if the exponent were unbounded (but non-zero).
-    fn round_tiny(&self, split: &rational::RoundPrepareResult) -> bool {
-        let trunc = Rational::Real(split.sign, split.exp, split.c.clone());
-        let halfway_bit = split.halfway_bit;
-        let quarter_bit = split.quarter_bit;
-        let sticky_bit = split.sticky_bit;
-        let inexact = halfway_bit || quarter_bit || sticky_bit;
-
-        if trunc.is_zero() && inexact {
-            // exact zero
+    fn round_tiny<T: Number>(&self, num: &T) -> bool {
+        // easy case: exact zero
+        if num.is_zero() {
+            // tininess requires result be non-zero
             return false;
         }
 
-        let e_trunc = trunc.e().unwrap();
+        let e_trunc = num.e().unwrap();
         if e_trunc + 1 < self.emin() {
             // far below the subnormal boundary
-            false
+            true
         } else if e_trunc + 1 > self.emin() {
             // far above the subnormal boundary
-            true
+            false
         } else {
             // near the subnormal boundary
-
-            // only care if we are between TINY_VAL and MIN_NORM
-            // input has mantissa    `xx...xx|xx`
-            // TINY_VAL has mantissa `01...11|10`
-            let tiny_val = bitmask(self.max_p()) << 1;
-            if trunc.c().unwrap() < tiny_val {
-                // below TINY_VAL, so definitely tiny
-                true
-            } else {
-                // need to check the rounding bits to resolve
-                let low_bits = quarter_bit || sticky_bit;
-
-                // case split on rounding mode
-                match self.rm.to_direction(trunc.sign()) {
-                    (true, _) => {
-                        // nearest modes:
-                        // tie will always round up to MIN_NORM
-                        !halfway_bit || !quarter_bit
-                    }
-                    (_, RoundingDirection::ToZero) => {
-                        // rounding always goes to MAX_SUB rather
-                        // than TINY_VAL
-                        true
-                    }
-                    (_, RoundingDirection::AwayZero) => {
-                        // exactly halfway would round to TINY_VAL rather
-                        // than MAX_NORM
-                        !halfway_bit || !low_bits
-                    }
-                    (_, RoundingDirection::ToEven) => {
-                        // MIN_NORM and MAX_SUB have even lsbs:
-                        // all values except TINY_VAL round to either
-                        // MIN_NORM or MAX_SUB
-                        !halfway_bit || !low_bits
-                    }
-                    (_, RoundingDirection::ToOdd) => {
-                        // MIN_NORM and MAX_SUB have even lsbs:
-                        // all values except MAX_SUB round to TINY_VAL
-                        true
-                    }
-                }
-            }
+            // follow the IEEE specification and round with unbounded exponent
+            let unbounded_ctx = rational::Context::new()
+                .with_rounding_mode(self.rm)
+                .with_max_precision(self.max_p());
+            let unbounded = unbounded_ctx.mpmf_round(num);
+            
+            // tiny if below MIN_NORM
+            unbounded.e().unwrap() < self.emin()
         }
     }
 
@@ -342,6 +303,7 @@ impl Context {
         tiny_pre: bool,
         tiny_post: bool,
         inexact: bool,
+        carry: bool
     ) -> IEEE754 {
         // rounded result is zero
         if unbounded.is_zero() {
@@ -380,8 +342,6 @@ impl Context {
                 return maxfloat;
             }
         }
-
-        let carry = false;
 
         // check if we need flush subnormals
         if self.ftz && tiny_post {
@@ -446,7 +406,7 @@ impl Context {
         // `min_n` when rounding using the rational number rounding context.
         let (p, n) = rational::Context::new()
             .with_rounding_mode(self.rm)
-            .with_max_precision(self.nbits - self.es)
+            .with_max_precision(self.max_p())
             .with_min_n(self.expmin() - 1)
             .round_params(num);
 
@@ -462,15 +422,16 @@ impl Context {
             // need to actually compute the flags
             let e_trunc = num.e().unwrap();
             let tiny_pre = e_trunc < self.emin();
-            let tiny_post = self.round_tiny(&split);
+            let tiny_post = self.round_tiny(num);
             (tiny_pre, tiny_post)
         };
 
         // step 4: finalize the rounding (unbounded exponent)
         let unbounded = rational::Context::round_finalize(split, p, self.rm);
+        let carry = !num.is_zero() && !unbounded.is_zero() && unbounded.e().unwrap() > num.e().unwrap();
 
         // step 5: finalize the rounded (bounded exponent)
-        self.round_finalize(unbounded, tiny_pre, tiny_post, inexact)
+        self.round_finalize(unbounded, tiny_pre, tiny_post, inexact, carry)
     }
 }
 
