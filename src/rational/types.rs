@@ -184,12 +184,12 @@ impl Number for Rational {
 }
 
 impl Rational {
-    /// Constructs zero.
+    /// Constructs the canonical zero for this format.
     pub fn zero() -> Self {
         Rational::Real(false, 0, Integer::from(0))
     }
 
-    /// Constructs positive one.
+    /// Constructs the canonical +1 for this format.
     pub fn one() -> Self {
         Rational::Real(false, 0, Integer::from(1))
     }
@@ -209,20 +209,21 @@ impl Rational {
         }
     }
 
-    /// Returns true if the binary digit at place `n` is `1`
-    /// when viewing this number as a sequence of infinite digits.
-    pub fn bit(&self, idx: isize) -> bool {
+    /// Returns the `n`th absolute binary digit.
+    pub fn get_bit(&self, n: isize) -> bool {
         match self {
             Rational::Nan => false,
             Rational::Infinite(_) => false,
             Rational::Real(_, _, c) if c.is_zero() => false,
             Rational::Real(_, exp, c) => {
-                if idx < *exp || idx > self.e().unwrap() {
+                let e = self.e().unwrap();
+                let exp = *exp;
+                if n < exp || n > e {
                     // below the least significant digit or above
                     // the most significant digit
                     false
                 } else {
-                    c.get_bit((idx - *exp) as u32)
+                    c.get_bit((n - exp) as u32)
                 }
             }
         }

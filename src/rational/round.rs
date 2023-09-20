@@ -1,13 +1,19 @@
-use std::cmp::min;
-use std::ops::BitAnd;
-
-use num_traits::Zero;
 use rug::Integer;
 
 use crate::rational::Rational;
 use crate::round::RoundingDirection;
 use crate::util::*;
 use crate::{Number, RoundingContext, RoundingMode};
+
+/// Result type of [`Context::round_prepare`].
+pub(crate) struct RoundPrepareResult {
+    pub sign: bool,
+    pub exp: isize,
+    pub c: Integer,
+    pub halfway_bit: bool,
+    pub quarter_bit: bool,
+    pub sticky_bit: bool,
+}
 
 /// Rounding contexts for rational numbers.
 ///
@@ -86,53 +92,113 @@ impl Context {
     }
 
     /// Rounding utility function: splits a [`Number`] at binary digit `n`,
-    /// returning five values: the position of the least siginficant digit
-    /// of `num` above `n`, the binary digits above the `n`th place,
-    /// the binary digits at or below the `n`th place, and the two
-    /// subsequent binary digits at the digit `n` and `n-1` (the halfway
-    /// and sticky rounding bits).
-    pub(crate) fn split<T: Number>(num: &T, n: isize) -> (isize, Integer, Integer, bool, bool) {
+    /// returning two rational numbers: the first capturing digits above
+    /// the digit at position `n`, and the second capturing digits at or
+    /// below the digit at position `n`.
+    pub(crate) fn split_at<T: Number>(num: &T, n: isize) -> (Rational, Rational) {
         // number components
+        let s = num.sign();
+        let e = num.e().unwrap();
         let exp = num.exp().unwrap();
         let c = num.c().unwrap();
 
-        // shift amount
-        let offset = n - (exp - 1);
+        if n >= e {
+            // split point is above the significant digits
+            let high = Rational::Real(s, n + 1, Integer::from(0));
+            let low = Rational::Real(s, exp, c);
+            (high, low)
+        } else if n < exp {
+            // split point is below the significant digits
+            let high = Rational::Real(s, exp, c);
+            let low = Rational::Real(s, n, Integer::from(0));
+            (high, low)
+        } else {
+            // split point is within the significant digits
+            let offset = n - (exp - 1);
+            let mask = bitmask(offset as usize);
+            let c_high = c.clone() >> offset;
+            let c_low = c & mask;
 
-        // compute the truncated result asnd lost binary digits
-        match offset.cmp(&0) {
-            std::cmp::Ordering::Greater => {
-                // shifting off bits
-                let max_lost = c.significant_bits() as usize;
-                let exp = exp + offset;
-                let truncated = c.clone() >> (offset as usize);
-                let c_lost = c.bitand(bitmask(min(offset as usize, max_lost)));
-                let half_bit = c_lost.get_bit((offset - 1) as u32);
-                let sticky_bit = !c_lost
-                    .clone()
-                    .bitand(bitmask((offset - 1) as usize))
-                    .is_zero();
-                (exp, truncated, c_lost, half_bit, sticky_bit)
+            let high = Rational::Real(s, n + 1, c_high);
+            let low = Rational::Real(s, exp, c_low);
+            (high, low)
+        }
+    }
+
+    /// Rounding utility function: returns the rounding parameters
+    /// necessary to perform rounding under this context for a
+    /// given [`Number`].
+    pub(crate) fn round_params<T: Number>(&self, num: &T) -> (Option<usize>, isize) {
+        match (self.max_p, self.min_n) {
+            (None, None) => {
+                // unreachable
+                panic!(
+                    "at least one rounding parameter must be specified: max_p={:?}, min_n={:?}",
+                    self.max_p, self.min_n
+                );
             }
-            std::cmp::Ordering::Equal => {
-                // keeping all the bits
-                (exp, c, Integer::from(0), false, false)
+            (None, Some(min_n)) => {
+                // fixed-point rounding:
+                // limited by n, precision is unbounded
+                (None, min_n)
             }
-            std::cmp::Ordering::Less => {
-                // need to adding padding to the right,
-                // exactly -offset binary digits
-                let exp = exp + offset;
-                let c = c << -offset as usize;
-                (exp, c, Integer::from(0), false, false)
+            (Some(max_p), None) => {
+                // floating-point rounding:
+                // limited by precision, exponent is unbounded
+                (Some(max_p), num.e().unwrap() - (max_p as isize))
+            }
+            (Some(max_p), Some(min_n)) => {
+                // floating-point rounding with subnormalization:
+                // limited by precision or exponent
+                let unbounded_n = num.e().unwrap() - (max_p as isize);
+                let n = std::cmp::max(min_n, unbounded_n);
+                (Some(max_p), n)
             }
         }
+    }
+
+    /// Rounding utility function: splits a [`Number`] at binary digit `n`,
+    /// returning the digits above that position as a [`Rational`] number,
+    /// two subsequent digits at the `n`th and `n-1`th position, and an
+    /// inexact bit if there are any lower order digits.
+    pub(crate) fn round_prepare<T: Number>(num: &T, n: isize) -> RoundPrepareResult {
+        // split number at the `n`th digit
+        let (high, low) = Self::split_at(num, n);
+
+        // split the lower part at the `n-2`th digit
+        let (mid, low) = Self::split_at(&low, n - 2);
+
+        // compute the rounding bits
+        let halfway_bit = mid.get_bit(n);
+        let quarter_bit = mid.get_bit(n - 1);
+        let sticky_bit = !low.is_zero();
+
+        // compose result
+        let result = RoundPrepareResult {
+            sign: num.sign(),
+            exp: high.exp().unwrap(),
+            c: high.c().unwrap(),
+            halfway_bit,
+            quarter_bit,
+            sticky_bit,
+        };
+
+        assert_eq!(result.exp, n + 1, "exponent not in the right place!");
+
+        result
     }
 
     /// Rounding utility function: given the truncated result and rounding
     /// bits, should the truncated result be incremented to produce
     /// the final rounded result?
-    fn round_increment(&self, sign: bool, c: &Integer, half_bit: bool, sticky_bit: bool) -> bool {
-        let (is_nearest, rd) = self.rm.to_direction(sign);
+    fn round_increment(
+        sign: bool,
+        c: &Integer,
+        half_bit: bool,
+        sticky_bit: bool,
+        rm: RoundingMode,
+    ) -> bool {
+        let (is_nearest, rd) = rm.to_direction(sign);
         match (is_nearest, half_bit, sticky_bit, rd) {
             (_, false, false, _) => {
                 // exact => truncate
@@ -181,45 +247,25 @@ impl Context {
         }
     }
 
-    /// Rounds a finite [`Number`].
-    /// Called by the public [`Number::round`] function
-    fn round_finite<T: Number>(&self, num: &T) -> (Rational, Option<Rational>) {
-        // step 1: compute the first digit we will split off
-        let (p, n) = match (self.max_p, self.min_n) {
-            (None, None) => {
-                // unreachable
-                panic!("unreachable")
-            }
-            (None, Some(min_n)) => {
-                // fixed-point rounding:
-                // limited by n, precision is unbounded
-                (None, min_n)
-            }
-            (Some(max_p), None) => {
-                // floating-point rounding:
-                // limited by precision, exponent is unbounded
-                (Some(max_p), num.e().unwrap() - (max_p as isize))
-            }
-            (Some(max_p), Some(min_n)) => {
-                // floating-point rounding:
-                // limited by precision or exponent;
-                // we may have subnormalization
-                let unbounded_n = num.e().unwrap() - (max_p as isize);
-                let n = std::cmp::max(min_n, unbounded_n);
-                (Some(max_p), n)
-            }
-        };
+    /// Rounding utility function: finishes the rounding procedure
+    /// by possibly incrementing the mantissa; the decision is
+    /// based on rounding mode and rounding bits.
+    pub(crate) fn round_finalize(
+        split: RoundPrepareResult,
+        p: Option<usize>,
+        rm: RoundingMode,
+    ) -> Rational {
+        // truncated result
+        let sign = split.sign;
+        let mut exp = split.exp;
+        let mut c = split.c;
 
-        // step 2: split the significand at binary digit `n`
-        let sign = num.sign();
-        let (mut exp, mut c, c_lost, half_bit, sticky_bit) = Self::split(num, n);
+        // rounding bits
+        let halfway_bit = split.halfway_bit;
+        let sticky_bit = split.quarter_bit || split.sticky_bit;
 
-        // sanity check
-        assert_eq!(exp, n + 1, "exponent not in the right place!");
-
-        // step 3: correct if needed
-        // need to decide if we should increment
-        if self.round_increment(sign, &c, half_bit, sticky_bit) {
+        // correct if needed
+        if Self::round_increment(sign, &c, halfway_bit, sticky_bit, rm) {
             c += 1;
             if p.is_some() && c.significant_bits() as usize > p.unwrap() {
                 c >>= 1;
@@ -227,54 +273,24 @@ impl Context {
             }
         }
 
-        // step 4: compose result
-        let rounded = Rational::Real(sign, exp, c);
-        let exp_lost = num.n().unwrap() + 1;
-        let lost = if rounded.is_zero() {
-            // all bits lost and the result is rounded
-            // so we give `c_lost` the "sign" of the result
-            // which is just the sign of `num`.
-            Rational::Real(sign, exp_lost, c_lost)
-        } else {
-            // some bits are lost, `lost` will be unsigned
-            Rational::Real(false, exp_lost, c_lost)
-        };
-
-        // Returns the rounded number and the binary digits lost
-        // as a sum
-        (rounded.canonicalize(), Some(lost.canonicalize()))
+        Rational::Real(sign, exp, c)
     }
 
-    /// Rounds a [`Number`] type to a [`Rational`]. The function returns
-    /// a pair: the actual rounding value, and an [`Option`] containing
-    /// the lost binary digits encoded as a rational number if the rounded
-    /// result was finite or [`None`] otherwise. The lost digits _do not_
-    /// necessarily represent an error term `err` where
-    /// `num = round(num) + err` for every rounding mode, but it is exactly
-    /// the error term when rounding is implemented via truncation.
-    /// The lost digits are unsigned unless the rounded value is zero, in
-    /// which case, the sign is just the sign of `num`.
-    pub fn round_residual<T: Number>(&self, num: &T) -> (Rational, Option<Rational>) {
-        assert!(
-            self.max_p.is_some() || self.min_n.is_some(),
-            "must specify either maximum precision or least absolute digit"
-        );
+    /// Rounds a finite [`Number`].
+    ///
+    /// Called by the public [`Number::round`] function.
+    fn round_finite<T: Number>(&self, num: &T) -> Rational {
+        // step 1: compute the first digit we will split off
+        let (p, n) = self.round_params(num);
 
-        // case split by class
-        if num.is_zero() {
-            // zero
-            (Rational::zero(), Some(Rational::zero()))
-        } else if num.is_infinite() {
-            // infinite number
-            let s = num.is_negative().unwrap();
-            (Rational::Infinite(s), None)
-        } else if num.is_nar() {
-            // other non-real
-            (Rational::Nan, None)
-        } else {
-            // finite, non-zero value
-            self.round_finite(num)
-        }
+        // step 2: split the significand at binary digit `n`
+        let split = Self::round_prepare(num, n);
+
+        // step 3: finalize the rounding
+        let rounded = Self::round_finalize(split, p, self.rm);
+
+        // return the rounded number
+        rounded.canonicalize()
     }
 }
 
@@ -292,7 +308,25 @@ impl RoundingContext for Context {
     }
 
     fn mpmf_round<T: Number>(&self, num: &T) -> Self::Rounded {
-        let (rounded, _) = self.round_residual(num);
-        rounded
+        assert!(
+            self.max_p.is_some() || self.min_n.is_some(),
+            "must specify either maximum precision or least absolute digit"
+        );
+
+        // case split by class
+        if num.is_zero() {
+            // zero
+            Rational::zero()
+        } else if num.is_infinite() {
+            // infinite number
+            let s = num.is_negative().unwrap();
+            Rational::Infinite(s)
+        } else if num.is_nar() {
+            // other non-real
+            Rational::Nan
+        } else {
+            // finite, non-zero value
+            self.round_finite(num)
+        }
     }
 }

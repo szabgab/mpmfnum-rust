@@ -96,7 +96,7 @@ pub enum RoundingMode {
 /// Rounding direction rather than rounding _mode_.
 /// Given the sign of an unrounded number and a rounding mode,
 /// we can transform the rounding mode into a rounding direction
-/// and a boolean indicating if the direction should only be used
+/// and a boolean indicating if the direction should onlybe used
 /// for tie-breaking.
 #[derive(Clone, Debug)]
 pub(crate) enum RoundingDirection {
