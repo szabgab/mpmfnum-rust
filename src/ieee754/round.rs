@@ -287,7 +287,7 @@ impl Context {
                 .with_rounding_mode(self.rm)
                 .with_max_precision(self.max_p());
             let unbounded = unbounded_ctx.mpmf_round(num);
-            
+
             // tiny if below MIN_NORM
             unbounded.e().unwrap() < self.emin()
         }
@@ -303,7 +303,7 @@ impl Context {
         tiny_pre: bool,
         tiny_post: bool,
         inexact: bool,
-        carry: bool
+        carry: bool,
     ) -> IEEE754 {
         // rounded result is zero
         if unbounded.is_zero() {
@@ -414,7 +414,7 @@ impl Context {
         let split = rational::Context::round_prepare(num, n);
 
         // step 3: compute certain exception flags
-        let inexact = split.halfway_bit || split.quarter_bit || split.sticky_bit;
+        let inexact = split.halfway_bit || split.sticky_bit;
         let (tiny_pre, tiny_post) = if num.is_zero() {
             // exact zero result means no tininess
             (false, false)
@@ -428,7 +428,8 @@ impl Context {
 
         // step 4: finalize the rounding (unbounded exponent)
         let unbounded = rational::Context::round_finalize(split, p, self.rm);
-        let carry = !num.is_zero() && !unbounded.is_zero() && unbounded.e().unwrap() > num.e().unwrap();
+        let carry =
+            !num.is_zero() && !unbounded.is_zero() && unbounded.e().unwrap() > num.e().unwrap();
 
         // step 5: finalize the rounded (bounded exponent)
         self.round_finalize(unbounded, tiny_pre, tiny_post, inexact, carry)

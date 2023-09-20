@@ -9,7 +9,6 @@ use crate::{Number, RoundingContext, RoundingMode};
 pub(crate) struct RoundPrepareResult {
     pub num: Rational,
     pub halfway_bit: bool,
-    pub quarter_bit: bool,
     pub sticky_bit: bool,
 }
 
@@ -166,25 +165,24 @@ impl Context {
 
     /// Rounding utility function: splits a [`Number`] at binary digit `n`,
     /// returning the digits above that position as a [`Rational`] number,
-    /// two subsequent digits at the `n`th and `n-1`th position, and an
-    /// inexact bit if there are any lower order digits.
+    /// the next digit at the `n`th position (also called the guard bit),
+    /// and an inexact bit if there are any lower order digits (also called
+    /// the sticky bit).
     pub(crate) fn round_prepare<T: Number>(num: &T, n: isize) -> RoundPrepareResult {
         // split number at the `n`th digit
         let (high, low) = Self::split_at(num, n);
 
-        // split the lower part at the `n-2`th digit
-        let (mid, low) = Self::split_at(&low, n - 2);
+        // split the lower part at the `n-1`th digit
+        let (half, low) = Self::split_at(&low, n - 1);
 
         // compute the rounding bits
-        let halfway_bit = mid.get_bit(n);
-        let quarter_bit = mid.get_bit(n - 1);
+        let halfway_bit = half.get_bit(n);
         let sticky_bit = !low.is_zero();
 
         // compose result
         RoundPrepareResult {
             num: high,
             halfway_bit,
-            quarter_bit,
             sticky_bit,
         }
     }
@@ -264,7 +262,7 @@ impl Context {
 
         // rounding bits
         let halfway_bit = split.halfway_bit;
-        let sticky_bit = split.quarter_bit || split.sticky_bit;
+        let sticky_bit = split.sticky_bit;
 
         // correct if needed
         if Self::round_increment(sign, &c, halfway_bit, sticky_bit, rm) {
@@ -316,12 +314,12 @@ impl Context {
             (Rational::Nan, None)
         } else {
             // finite, non-zero value
-            
+
             // step 1: compute the first digit we will split off
             let (p, n) = self.round_params(num);
 
             // step 2: split the significand at binary digit `n`
-            // inefficient implementation, but we'll just split twice
+            // inefficient: we'll just split twice
             let (_, low) = Self::split_at(num, n);
             let split = Self::round_prepare(num, n);
 

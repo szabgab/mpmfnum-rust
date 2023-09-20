@@ -7,10 +7,9 @@ This module implements unbounded digital numbers with the
 interchange format between various number systems.
 */
 
+mod number;
 mod ops;
 mod round;
-mod types;
 
+pub use number::{Rational, NAN, NEG_INF, POS_INF};
 pub use round::Context;
-pub use types::Rational;
-pub use types::{NAN, NEG_INF, POS_INF};

@@ -24,9 +24,8 @@ macro_rules! rounded_1ary_impl {
             }
 
             fn $mpmf<N: Number>(&self, src: &N) -> Self::Rounded {
-                // compute approximately, rounding-to-odd,
-                // with 3 rounding bits
-                let p = self.max_p() + 3;
+                // compute with 2 additional bits, rounding-to-odd
+                let p = self.max_p() + 2;
                 let r = Rational::from_number(src);
                 let (result, flags) = r.$mpfr(p);
                 let mut rounded = self.mpmf_round(&result);
@@ -94,9 +93,8 @@ macro_rules! rounded_2ary_impl {
                 N1: Number,
                 N2: Number,
             {
-                // compute approximately, rounding-to-odd,
-                // with 3 rounding bits
-                let p = self.max_p() + 3;
+                // compute with 2 additional bits, rounding-to-odd
+                let p = self.max_p() + 2;
                 let r1 = Rational::from_number(src1);
                 let r2 = Rational::from_number(src2);
                 let (result, flags) = r1.$mpfr(&r2, p);
@@ -163,9 +161,8 @@ macro_rules! rounded_3ary_impl {
                 N2: Number,
                 N3: Number,
             {
-                // compute approximately, rounding-to-odd,
-                // with 3 rounding bits
-                let p = self.max_p() + 3;
+                // compute with 2 additional bits, rounding-to-odd
+                let p = self.max_p() + 2;
                 let r1 = Rational::from_number(src1);
                 let r2 = Rational::from_number(src2);
                 let r3 = Rational::from_number(src3);

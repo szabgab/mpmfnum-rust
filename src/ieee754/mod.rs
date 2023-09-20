@@ -7,10 +7,10 @@ This module implements IEEE 754 floating-point numbers with the
 the [`Context`][crate::ieee754] type.
 */
 
+mod number;
 mod ops;
 mod round;
-mod types;
 
+pub use number::{Exceptions, Float, IEEE754};
 pub use ops::*;
 pub use round::Context;
-pub use types::{Exceptions, Float, IEEE754};
