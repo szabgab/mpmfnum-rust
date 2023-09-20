@@ -5,9 +5,9 @@ This module implements fixed-point numbers with the
 [`Fixed`][crate::ieee754] type.
 */
 
+mod number;
 mod ops;
 mod round;
-mod types;
 
+pub use number::{Exceptions, Fixed};
 pub use round::{Context, Overflow};
-pub use types::{Exceptions, Fixed};

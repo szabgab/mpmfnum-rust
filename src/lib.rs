@@ -16,7 +16,7 @@ Planned number systems include fixed-point numbers, integers,
 posits, logarithmic numbers, and more.
 */
 
-pub mod fixed;
+pub mod fixed_point;
 pub mod ieee754;
 pub mod number;
 pub mod ops;
@@ -24,7 +24,7 @@ pub mod rational;
 pub mod round;
 mod util;
 
-pub use crate::fixed::Fixed;
+pub use crate::fixed_point::Fixed;
 pub use crate::ieee754::IEEE754;
 pub use crate::number::Number;
 pub use crate::round::RoundingContext;

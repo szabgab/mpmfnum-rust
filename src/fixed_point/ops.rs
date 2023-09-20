@@ -1,4 +1,4 @@
-use crate::fixed::Context;
+use crate::fixed_point::Context;
 use crate::ops::*;
 use crate::rational::Rational;
 use crate::{Number, RoundingContext};

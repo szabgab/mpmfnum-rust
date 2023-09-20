@@ -1,7 +1,7 @@
 use num_traits::{Signed, Zero};
 use rug::Integer;
 
-use crate::fixed::{Exceptions, Fixed};
+use crate::fixed_point::{Exceptions, Fixed};
 use crate::rational::{self, Rational};
 use crate::{Number, RoundingContext, RoundingMode};
 
