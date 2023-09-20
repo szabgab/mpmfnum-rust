@@ -12,15 +12,15 @@ use crate::{Number, RoundingContext, RoundingMode};
 /// Rounding contexts for IEEE 754 floating-point numbers.
 /// Must define format parameters `es` and `nbits` (see [`IEEE754`]
 /// for a description of these fields). The rounding mode
-/// affects the rounding direction. The `dtz` and `ftz` fields
+/// affects the rounding direction. The `daz` and `ftz` fields
 /// specify subnormal handling specifically before an operation
-/// `dtz` and after rounding `ftz`.
+/// `daz` and after rounding `ftz`.
 #[derive(Clone, Debug)]
 pub struct Context {
     es: usize,
     nbits: usize,
     rm: RoundingMode,
-    dtz: bool,
+    daz: bool,
     ftz: bool,
 }
 
@@ -58,7 +58,7 @@ impl Context {
             es,
             nbits,
             rm: RoundingMode::NearestTiesToEven,
-            dtz: false,
+            daz: false,
             ftz: false,
         }
     }
@@ -70,9 +70,9 @@ impl Context {
     }
 
     /// Sets the subnormal argument behavior.
-    /// If enabled, any subnormal argument will be flushed to zero.
-    pub fn with_dtz(mut self, enable: bool) -> Self {
-        self.dtz = enable;
+    /// If enabled, any subnormal argument will be interpreted as zero.
+    pub fn with_daz(mut self, enable: bool) -> Self {
+        self.daz = enable;
         self
     }
 
@@ -90,6 +90,21 @@ impl Context {
     /// has a limit at 31 bits.
     pub fn es(&self) -> usize {
         self.es
+    }
+
+    /// Returns the rounding mode of this context.
+    pub fn rm(&self) -> RoundingMode {
+        self.rm
+    }
+
+    /// Returns the daz (denormals-are-zero) field.
+    pub fn daz(&self) -> bool {
+        self.daz
+    }
+
+    /// Returns the ftz (flush-to-zero) field.
+    pub fn ftz(&self) -> bool {
+        self.ftz
     }
 
     /// Returns the total bitwidth of the format produced by this context
@@ -146,9 +161,13 @@ impl Context {
         self.emax()
     }
 
-    /// Returns the rounding mode of this context.
-    pub fn rm(&self) -> RoundingMode {
-        self.rm
+    /// Returns a signed zero.
+    pub fn zero(&self, sign: bool) -> IEEE754 {
+        IEEE754 {
+            num: IEEE754Val::Zero(sign),
+            flags: Exceptions::default(),
+            ctx: self.clone(),
+        }
     }
 
     /// Returns the minimum representable value with a sign.
