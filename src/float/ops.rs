@@ -3,16 +3,17 @@ use std::ops::{Add, Mul, Neg, Sub};
 
 use gmp_mpfr_sys::mpfr;
 use num_traits::{Signed, Zero};
-use rug::{Float, Integer};
+use rug::Float as MPFRFloat;
+use rug::Integer;
 
-use crate::rational::*;
+use crate::float::*;
 use crate::util::{mpfr_flags, MPFRFlags};
 
 macro_rules! mpfr_1ary {
     ($name:ident, $mpfr:ident, $cname:expr) => {
         #[doc = "Applies `"]
         #[doc = $cname]
-        #[doc = "` to a [`Rational`] number with `p`
+        #[doc = "` to a [`Float`] number with `p`
                  precision using MPFR, rounding to odd."]
         pub fn $name(&self, p: usize) -> (Self, MPFRFlags) {
             use mpfr::{rnd_t::RNDZ, PREC_MAX, PREC_MIN};
@@ -24,8 +25,8 @@ macro_rules! mpfr_1ary {
             );
 
             // compute with `p - 1` bits
-            let mut dst = Float::new((p - 1) as u32);
-            let src = Float::from(self.clone());
+            let mut dst = MPFRFloat::new((p - 1) as u32);
+            let src = MPFRFloat::from(self.clone());
             let (t, flags) = unsafe {
                 mpfr::clear_flags();
                 let t = mpfr::$mpfr(dst.as_raw_mut(), src.as_raw(), RNDZ);
@@ -33,7 +34,7 @@ macro_rules! mpfr_1ary {
             };
 
             // apply correction to get the last bit
-            (Rational::from(dst).with_ternary(t), flags)
+            (Float::from(dst).with_ternary(t), flags)
         }
     };
 }
@@ -42,7 +43,7 @@ macro_rules! mpfr_2ary {
     ($name:ident, $mpfr:ident, $cname:expr) => {
         #[doc = "Applies `"]
         #[doc = $cname]
-        #[doc = "` to two [`Rational`] numbers with `p`
+        #[doc = "` to two [`Float`] numbers with `p`
                  precision using MPFR, rounding to odd."]
         pub fn $name(&self, other: &Self, p: usize) -> (Self, MPFRFlags) {
             use mpfr::{rnd_t::RNDZ, PREC_MAX, PREC_MIN};
@@ -54,9 +55,9 @@ macro_rules! mpfr_2ary {
             );
 
             // compute with `p - 1` bits
-            let mut dst = Float::new((p - 1) as u32);
-            let src1 = Float::from(self.clone());
-            let src2 = Float::from(other.clone());
+            let mut dst = MPFRFloat::new((p - 1) as u32);
+            let src1 = MPFRFloat::from(self.clone());
+            let src2 = MPFRFloat::from(other.clone());
             let (t, flags) = unsafe {
                 mpfr::clear_flags();
                 let t = mpfr::$mpfr(dst.as_raw_mut(), src1.as_raw(), src2.as_raw(), RNDZ);
@@ -64,7 +65,7 @@ macro_rules! mpfr_2ary {
             };
 
             // apply correction to get the last bit
-            (Rational::from(dst).with_ternary(t), flags)
+            (Float::from(dst).with_ternary(t), flags)
         }
     };
 }
@@ -73,7 +74,7 @@ macro_rules! mpfr_3ary {
     ($name:ident, $mpfr:ident, $cname:expr) => {
         #[doc = "Applies `"]
         #[doc = $cname]
-        #[doc = "` to three [`Rational`] numbers with `p`
+        #[doc = "` to three [`Float`] numbers with `p`
                  precision using MPFR, rounding to odd."]
         pub fn $name(&self, other1: &Self, other2: &Self, p: usize) -> (Self, MPFRFlags) {
             use mpfr::{rnd_t::RNDZ, PREC_MAX, PREC_MIN};
@@ -85,10 +86,10 @@ macro_rules! mpfr_3ary {
             );
 
             // compute with `p - 1` bits
-            let mut dst = Float::new((p - 1) as u32);
-            let src1 = Float::from(self.clone());
-            let src2 = Float::from(other1.clone());
-            let src3 = Float::from(other2.clone());
+            let mut dst = MPFRFloat::new((p - 1) as u32);
+            let src1 = MPFRFloat::from(self.clone());
+            let src2 = MPFRFloat::from(other1.clone());
+            let src3 = MPFRFloat::from(other2.clone());
             let (t, flags) = unsafe {
                 mpfr::clear_flags();
                 let t = mpfr::$mpfr(
@@ -102,13 +103,13 @@ macro_rules! mpfr_3ary {
             };
 
             // apply correction to get the last bit
-            (Rational::from(dst).with_ternary(t), flags)
+            (Float::from(dst).with_ternary(t), flags)
         }
     };
 }
 
-impl Rational {
-    /// Adds two numbers of type [`Rational`] exactly.
+impl Float {
+    /// Adds two numbers of type [`Float`] exactly.
     /// Addition of non-real values follows the usual IEEE 754 rules.
     pub fn add_exact(&self, other: &Self) -> Self {
         match (&self, other) {
@@ -155,7 +156,7 @@ impl Rational {
         }
     }
 
-    /// Multiplies two numbers of type [`Rational`] exactly.
+    /// Multiplies two numbers of type [`Float`] exactly.
     /// Multiplication of non-real values follows the usual
     /// IEEE 754 rules.
     pub fn mul_exact(&self, other: &Self) -> Self {
@@ -188,15 +189,15 @@ impl Rational {
         }
     }
 
-    /// Applies a correction to a [`Rational`] type from an MPFR ternary
+    /// Applies a correction to a [`Float`] type from an MPFR ternary
     /// value to translate a rounded result of precision `p - 1` obtained
     /// with round-to-zero to a rounded result of precision `p` obtained
     /// with round-to-odd.
     fn with_ternary(mut self, t: i32) -> Self {
-        if let Rational::Real(s, exp, c) = &self {
+        if let Float::Real(s, exp, c) = &self {
             // the last bit is '1' if the result is inexact (`t != 0`).
             let c = Integer::from(c << 1) + (if t == 0 { 0 } else { 1 });
-            self = Rational::Real(*s, exp - 1, c);
+            self = Float::Real(*s, exp - 1, c);
         }
 
         self
@@ -246,8 +247,8 @@ impl Rational {
     mpfr_3ary!(fma_with_mpfr, fma, "a * b + c");
 }
 
-impl Neg for Rational {
-    type Output = Rational;
+impl Neg for Float {
+    type Output = Float;
 
     fn neg(self) -> Self::Output {
         match &self {
@@ -258,7 +259,7 @@ impl Neg for Rational {
     }
 }
 
-impl Add for Rational {
+impl Add for Float {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -266,7 +267,7 @@ impl Add for Rational {
     }
 }
 
-impl Sub for Rational {
+impl Sub for Float {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -274,7 +275,7 @@ impl Sub for Rational {
     }
 }
 
-impl Mul for Rational {
+impl Mul for Float {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {

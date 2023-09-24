@@ -2,25 +2,27 @@ use std::cmp::Ordering;
 use std::cmp::{max, min};
 
 use num_traits::{Signed, Zero};
-use rug::{Float, Integer};
+use rug::Float as MPFRFloat;
+use rug::Integer;
 
 use gmp_mpfr_sys::gmp::mpz_t;
 use gmp_mpfr_sys::mpfr;
 
 use crate::Number;
 
-/// The rational number format.
-///
-/// This is not a traditional rational number `p/q` where `p` and `q`
-/// are integers (canonically, `p` is signed). Instead, this type defines
-/// a _fixed-width_ rational number `(-1)^s * c * 2^e` where `c` is a
-/// binary-encoded integer with a maximum bitwidth. Like rational numbers,
-/// `e` is theoretically unbounded and may be as large or small as needed.
-/// Rational numbers may encode a non-real number (see [`NAN`]) which is
+/// The floating-point number format.
+/// 
+/// This is not an IEEE-754 style floating-point number.
+/// This type defines a base-2 scientific number `(-1)^s * c * 2^e`
+/// where `c` is a fixed-precision unsigned-integer and
+/// `e` is theoretically unbounded  any integer
+/// (In practice, this is an [`isize`] value).
+/// 
+/// Any [`Float`] value may encode a non-real number (see [`NAN`]) which is
 /// interpreted as a NaN (neither finite nor infinite). All operations
 /// canonicalize -0 to +0 (no sign bit).
 #[derive(Debug, Clone)]
-pub enum Rational {
+pub enum Float {
     /// A finite (real) number specified by the canonical triple
     /// of sign, exponent, significand.
     Real(bool, isize, Integer),
@@ -30,180 +32,180 @@ pub enum Rational {
     Nan,
 }
 
-/// An instantiation of [`Rational::Nan`].
-pub const NAN: Rational = Rational::Nan;
+/// An instantiation of [`Float::Nan`].
+pub const NAN: Float = Float::Nan;
 
-/// An instantiation of [`Rational::Infinite`] with positive sign.
-pub const POS_INF: Rational = Rational::Infinite(false);
+/// An instantiation of [`Float::Infinite`] with positive sign.
+pub const POS_INF: Float = Float::Infinite(false);
 
-/// An instantiation of [`Rational::Infinite`] with negative sign.
-pub const NEG_INF: Rational = Rational::Infinite(true);
+/// An instantiation of [`Float::Infinite`] with negative sign.
+pub const NEG_INF: Float = Float::Infinite(true);
 
-// Implements the `Number` trait for `Rational`.
-// See `Rational` for a description of the trait and its members.
-impl Number for Rational {
+// Implements the `Number` trait for `Float`.
+// See `Float` for a description of the trait and its members.
+impl Number for Float {
     fn radix() -> usize {
         2
     }
 
     fn sign(&self) -> bool {
         match self {
-            Rational::Real(s, _, _) => *s,
-            Rational::Infinite(s) => *s,
-            Rational::Nan => false,
+            Float::Real(s, _, _) => *s,
+            Float::Infinite(s) => *s,
+            Float::Nan => false,
         }
     }
 
     fn exp(&self) -> Option<isize> {
         match self {
-            Rational::Real(_, exp, c) => {
+            Float::Real(_, exp, c) => {
                 if c.is_zero() {
                     None
                 } else {
                     Some(*exp)
                 }
             }
-            Rational::Infinite(_) => None,
-            Rational::Nan => None,
+            Float::Infinite(_) => None,
+            Float::Nan => None,
         }
     }
 
     fn e(&self) -> Option<isize> {
         // (exp - 1) + len(c)
         match self {
-            Rational::Real(_, exp, c) => {
+            Float::Real(_, exp, c) => {
                 if c.is_zero() {
                     None
                 } else {
                     Some((exp - 1) + c.significant_bits() as isize)
                 }
             }
-            Rational::Infinite(_) => None,
-            Rational::Nan => None,
+            Float::Infinite(_) => None,
+            Float::Nan => None,
         }
     }
 
     fn n(&self) -> Option<isize> {
         match self {
             // exp - 1
-            Rational::Real(_, exp, c) => {
+            Float::Real(_, exp, c) => {
                 if c.is_zero() {
                     None
                 } else {
                     Some(exp - 1)
                 }
             }
-            Rational::Infinite(_) => None,
-            Rational::Nan => None,
+            Float::Infinite(_) => None,
+            Float::Nan => None,
         }
     }
 
     fn c(&self) -> Option<Integer> {
         match self {
-            Rational::Real(_, _, c) => Some(c.clone()),
-            Rational::Infinite(_) => None,
-            Rational::Nan => None,
+            Float::Real(_, _, c) => Some(c.clone()),
+            Float::Infinite(_) => None,
+            Float::Nan => None,
         }
     }
 
     fn m(&self) -> Option<Integer> {
         match self {
-            Rational::Real(s, _, c) => {
+            Float::Real(s, _, c) => {
                 if *s {
                     Some(-c.clone())
                 } else {
                     Some(c.clone())
                 }
             }
-            Rational::Infinite(_) => None,
-            Rational::Nan => None,
+            Float::Infinite(_) => None,
+            Float::Nan => None,
         }
     }
 
     fn p(&self) -> usize {
         match self {
-            Rational::Real(_, _, c) => c.significant_bits() as usize,
-            Rational::Infinite(_) => 0,
-            Rational::Nan => 0,
+            Float::Real(_, _, c) => c.significant_bits() as usize,
+            Float::Infinite(_) => 0,
+            Float::Nan => 0,
         }
     }
 
     fn is_nar(&self) -> bool {
         match self {
-            Rational::Real(_, _, _) => false,
-            Rational::Infinite(_) => true,
-            Rational::Nan => true,
+            Float::Real(_, _, _) => false,
+            Float::Infinite(_) => true,
+            Float::Nan => true,
         }
     }
 
     fn is_finite(&self) -> bool {
         match self {
-            Rational::Real(_, _, _) => true,
-            Rational::Infinite(_) => false,
-            Rational::Nan => false,
+            Float::Real(_, _, _) => true,
+            Float::Infinite(_) => false,
+            Float::Nan => false,
         }
     }
 
     fn is_infinite(&self) -> bool {
         match self {
-            Rational::Real(_, _, _) => false,
-            Rational::Infinite(_) => true,
-            Rational::Nan => false,
+            Float::Real(_, _, _) => false,
+            Float::Infinite(_) => true,
+            Float::Nan => false,
         }
     }
 
     fn is_zero(&self) -> bool {
         match self {
-            Rational::Real(_, _, c) => c.is_zero(),
-            Rational::Infinite(_) => false,
-            Rational::Nan => false,
+            Float::Real(_, _, c) => c.is_zero(),
+            Float::Infinite(_) => false,
+            Float::Nan => false,
         }
     }
 
     fn is_negative(&self) -> Option<bool> {
         match self {
-            Rational::Real(s, _, c) => {
+            Float::Real(s, _, c) => {
                 if c.is_zero() {
                     None
                 } else {
                     Some(*s)
                 }
             }
-            Rational::Infinite(s) => Some(*s),
-            Rational::Nan => None,
+            Float::Infinite(s) => Some(*s),
+            Float::Nan => None,
         }
     }
 
     fn is_numerical(&self) -> bool {
         match self {
-            Rational::Real(_, _, _) => true,
-            Rational::Infinite(_) => true,
-            Rational::Nan => false,
+            Float::Real(_, _, _) => true,
+            Float::Infinite(_) => true,
+            Float::Nan => false,
         }
     }
 }
 
-impl Rational {
+impl Float {
     /// Constructs the canonical zero for this format.
     pub fn zero() -> Self {
-        Rational::Real(false, 0, Integer::from(0))
+        Float::Real(false, 0, Integer::from(0))
     }
 
     /// Constructs the canonical +1 for this format.
     pub fn one() -> Self {
-        Rational::Real(false, 0, Integer::from(1))
+        Float::Real(false, 0, Integer::from(1))
     }
 
     /// Returns true if the number is [`NAN`].
     pub fn is_nan(&self) -> bool {
-        matches!(self, Rational::Nan)
+        matches!(self, Float::Nan)
     }
 
     /// Canonicalizes this number.
-    /// All zeros are mapped to [`Rational::Real(false, 0, 0)`].
+    /// All zeros are mapped to [`Float::Real(false, 0, 0)`].
     pub fn canonicalize(&self) -> Self {
         if self.is_zero() {
-            Rational::zero()
+            Float::zero()
         } else {
             self.clone()
         }
@@ -212,10 +214,10 @@ impl Rational {
     /// Returns the `n`th absolute binary digit.
     pub fn get_bit(&self, n: isize) -> bool {
         match self {
-            Rational::Nan => false,
-            Rational::Infinite(_) => false,
-            Rational::Real(_, _, c) if c.is_zero() => false,
-            Rational::Real(_, exp, c) => {
+            Float::Nan => false,
+            Float::Infinite(_) => false,
+            Float::Real(_, _, c) if c.is_zero() => false,
+            Float::Real(_, exp, c) => {
                 let e = self.e().unwrap();
                 let exp = *exp;
                 if n < exp || n > e {
@@ -229,9 +231,9 @@ impl Rational {
         }
     }
 
-    /// Constructs a rational number from a [`Number`].
-    /// This is the default conversion function from any implementation
-    /// of the trait.
+    /// Constructs a [`Float`] value from a [`Number`].
+    /// This is the default conversion function from
+    /// any implementation of the [`Number`] trait.
     pub fn from_number<N: Number>(val: &N) -> Self {
         // case split by class
         if !val.is_numerical() {
@@ -250,12 +252,12 @@ impl Rational {
     }
 }
 
-impl PartialOrd for Rational {
+impl PartialOrd for Float {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match (self, other) {
-            (Rational::Nan, _) => None,
-            (_, Rational::Nan) => None,
-            (Rational::Infinite(s1), Rational::Infinite(s2)) => {
+            (Float::Nan, _) => None,
+            (_, Float::Nan) => None,
+            (Float::Infinite(s1), Float::Infinite(s2)) => {
                 if *s1 == *s2 {
                     // infinities of the same sign
                     Some(Ordering::Equal)
@@ -267,7 +269,7 @@ impl PartialOrd for Rational {
                     Some(Ordering::Greater)
                 }
             }
-            (Rational::Infinite(s), _) => {
+            (Float::Infinite(s), _) => {
                 if *s {
                     // -Inf < finite
                     Some(Ordering::Less)
@@ -276,7 +278,7 @@ impl PartialOrd for Rational {
                     Some(Ordering::Greater)
                 }
             }
-            (_, Rational::Infinite(s)) => {
+            (_, Float::Infinite(s)) => {
                 if *s {
                     // finite > -Inf
                     Some(Ordering::Greater)
@@ -285,7 +287,7 @@ impl PartialOrd for Rational {
                     Some(Ordering::Less)
                 }
             }
-            (Rational::Real(s1, exp1, c1), Rational::Real(s2, exp2, c2)) => {
+            (Float::Real(s1, exp1, c1), Float::Real(s2, exp2, c2)) => {
                 // finite <?> finite
                 // check for zero
                 if c1.is_zero() && c2.is_zero() {
@@ -333,7 +335,7 @@ impl PartialOrd for Rational {
     }
 }
 
-impl PartialEq for Rational {
+impl PartialEq for Float {
     fn eq(&self, other: &Self) -> bool {
         match self.partial_cmp(other) {
             Some(Ordering::Equal) => true,
@@ -343,23 +345,23 @@ impl PartialEq for Rational {
     }
 }
 
-impl From<Rational> for rug::Float {
-    fn from(val: Rational) -> Self {
+impl From<Float> for MPFRFloat {
+    fn from(val: Float) -> Self {
         use rug::float::*;
         match val {
-            Rational::Nan => Float::with_val(prec_min(), Special::Nan),
-            Rational::Infinite(s) => {
+            Float::Nan => MPFRFloat::with_val(prec_min(), Special::Nan),
+            Float::Infinite(s) => {
                 if s {
                     rug::Float::with_val(prec_min(), Special::NegInfinity)
                 } else {
                     rug::Float::with_val(prec_min(), Special::Infinity)
                 }
             }
-            Rational::Real(s, exp, c) => {
+            Float::Real(s, exp, c) => {
                 if c.is_zero() {
-                    Float::with_val(prec_min(), 0.0)
+                    MPFRFloat::with_val(prec_min(), 0.0)
                 } else {
-                    let mut f = Float::new(max(1, c.significant_bits()));
+                    let mut f = MPFRFloat::new(max(1, c.significant_bits()));
                     let rnd = mpfr::rnd_t::RNDN;
                     let exp = exp as i64;
                     let m = if s { -c } else { c };
@@ -379,8 +381,8 @@ impl From<Rational> for rug::Float {
     }
 }
 
-impl From<rug::Float> for Rational {
-    fn from(val: rug::Float) -> Self {
+impl From<MPFRFloat> for Float {
+    fn from(val: MPFRFloat) -> Self {
         if val.is_nan() {
             Self::Nan
         } else if val.is_infinite() {

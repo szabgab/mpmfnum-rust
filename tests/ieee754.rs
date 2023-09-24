@@ -2,16 +2,17 @@ use std::cmp::max;
 
 use mpmfnum::ieee754;
 use mpmfnum::ops::*;
-use mpmfnum::rational::Rational;
+use mpmfnum::float::Float;
 use mpmfnum::{Number, RoundingContext, RoundingMode};
 
 use gmp_mpfr_sys::mpfr;
-use rug::{Float, Integer};
+use rug::Float as MPFRFloat;
+use rug::Integer;
 
 fn assert_round_small(
-    input: &Rational,
+    input: &Float,
     rm: RoundingMode,
-    output: &Rational,
+    output: &Float,
     overflow: bool,
     underflow_pre: bool,
     underflow_post: bool,
@@ -24,7 +25,7 @@ fn assert_round_small(
     let rounded = ctx.mpmf_round(input);
 
     assert_eq!(
-        Rational::from(rounded.clone()),
+        Float::from(rounded.clone()),
         *output,
         "mismatched result",
     );
@@ -62,10 +63,10 @@ fn round_small() {
     use RoundingMode::*;
 
     // test values
-    let pos_1 = Rational::Real(false, 0, Integer::from(1));
-    let pos_15_16 = Rational::Real(false, -4, Integer::from(15));
-    let pos_7_8 = Rational::Real(false, -3, Integer::from(7));
-    let pos_3_4 = Rational::Real(false, -2, Integer::from(3));
+    let pos_1 = Float::Real(false, 0, Integer::from(1));
+    let pos_15_16 = Float::Real(false, -4, Integer::from(15));
+    let pos_7_8 = Float::Real(false, -3, Integer::from(7));
+    let pos_3_4 = Float::Real(false, -2, Integer::from(3));
 
     let neg_1 = -pos_1.clone();
     let neg_15_16 = -pos_15_16.clone();
@@ -480,9 +481,9 @@ fn convert_round_mode(rm: RoundingMode) -> mpfr::rnd_t {
     }
 }
 
-type MpfrResult = (Float, (bool, bool, bool, bool, bool));
+type MpfrResult = (MPFRFloat, (bool, bool, bool, bool, bool));
 
-fn assert_mpfr_failed(key: String, inputs: Vec<Float>, expected: MpfrResult, actual: MpfrResult) {
+fn assert_mpfr_failed(key: String, inputs: Vec<MPFRFloat>, expected: MpfrResult, actual: MpfrResult) {
     eprintln!(
         "{} at {:?} mismatch: expected {} {:?}, actual: {} {:?}",
         key, inputs, expected.0, expected.1, actual.0, actual.1,
@@ -491,7 +492,7 @@ fn assert_mpfr_failed(key: String, inputs: Vec<Float>, expected: MpfrResult, act
 
 fn assert_mpfr_expected(
     key: String,
-    inputs: Vec<Float>,
+    inputs: Vec<MPFRFloat>,
     expected: MpfrResult,
     actual: MpfrResult,
 ) -> bool {
@@ -531,18 +532,18 @@ macro_rules! mpfr_test_2ary {
             let p = (ctx.nbits() - ctx.es()) as u32;
             for i in 0..(1 << ctx.nbits()) {
                 let x = ctx.bits_to_number(Integer::from(i));
-                let xf = Float::from(Rational::from(x.clone()));
+                let xf = MPFRFloat::from(Float::from(x.clone()));
                 for j in 0..(1 << ctx.nbits()) {
                     let y = ctx.bits_to_number(Integer::from(j));
-                    let yf = Float::from(Rational::from(y.clone()));
+                    let yf = MPFRFloat::from(Float::from(y.clone()));
 
                     // Implementation
                     let z = ctx.$impl(&x, &y);
                     let flags = z.flags().clone();
-                    let rf = Float::from(z);
+                    let rf = MPFRFloat::from(z);
 
                     // MPFR
-                    let mut zf = Float::new(p);
+                    let mut zf = MPFRFloat::new(p);
                     let mpfr_invalid: bool;
                     let mpfr_divzero: bool;
                     let mpfr_overflow: bool;

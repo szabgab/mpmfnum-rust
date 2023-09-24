@@ -6,7 +6,7 @@ use rug::Integer;
 
 use crate::ieee754::Context;
 use crate::util::bitmask;
-use crate::{rational::Rational, Number};
+use crate::{float::Float, Number};
 
 /// Exception flags to signal certain properties of the rounded result.
 ///
@@ -311,14 +311,14 @@ impl Number for IEEE754 {
     }
 }
 
-impl From<IEEE754> for Rational {
+impl From<IEEE754> for Float {
     fn from(val: IEEE754) -> Self {
         match val.num {
-            IEEE754Val::Zero(_) => Rational::zero(),
-            IEEE754Val::Subnormal(s, c) => Rational::Real(s, val.ctx.expmin(), c),
-            IEEE754Val::Normal(s, exp, c) => Rational::Real(s, exp, c),
-            IEEE754Val::Infinity(s) => Rational::Infinite(s),
-            IEEE754Val::Nan(_, _, _) => Rational::Nan,
+            IEEE754Val::Zero(_) => Float::zero(),
+            IEEE754Val::Subnormal(s, c) => Float::Real(s, val.ctx.expmin(), c),
+            IEEE754Val::Normal(s, exp, c) => Float::Real(s, exp, c),
+            IEEE754Val::Infinity(s) => Float::Infinite(s),
+            IEEE754Val::Nan(_, _, _) => Float::Nan,
         }
     }
 }
@@ -326,7 +326,7 @@ impl From<IEEE754> for Rational {
 impl From<IEEE754> for rug::Float {
     fn from(val: IEEE754) -> Self {
         let s = val.sign();
-        let f = rug::Float::from(Rational::from(val));
+        let f = rug::Float::from(Float::from(val));
         if f.is_zero() && s {
             -f
         } else {
@@ -337,7 +337,7 @@ impl From<IEEE754> for rug::Float {
 
 impl PartialOrd for IEEE754 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Rational::from(self.clone()).partial_cmp(&Rational::from(other.clone()))
+        Float::from(self.clone()).partial_cmp(&Float::from(other.clone()))
     }
 }
 

@@ -4,7 +4,7 @@ use num_traits::Zero;
 use rug::Integer;
 
 use crate::ieee754::{Exceptions, IEEE754Val, IEEE754};
-use crate::rational::{self, Rational};
+use crate::float::{Float, FloatContext};
 use crate::round::RoundingDirection;
 use crate::util::bitmask;
 use crate::{Number, RoundingContext, RoundingMode};
@@ -281,7 +281,7 @@ impl Context {
     }
 
     /// Rounding utility function: returns true if the result will be tiny
-    /// after rounding. The result of [`rational::Context::round_prepare`]
+    /// after rounding. The result of [`round_prepare`][crate::float::FloatContext::round_prepare]
     /// is sufficient for computing this condition. This condition is
     /// satisfied when the rounded result would have been smaller than
     /// MIN_NORM if the exponent were unbounded (but non-zero).
@@ -305,7 +305,7 @@ impl Context {
             std::cmp::Ordering::Equal => {
                 // near the subnormal boundary
                 // follow the IEEE specification and round with unbounded exponent
-                let unbounded_ctx = rational::Context::new()
+                let unbounded_ctx = FloatContext::new()
                     .with_rounding_mode(self.rm)
                     .with_max_precision(self.max_p());
                 let unbounded = unbounded_ctx.mpmf_round(num);
@@ -322,7 +322,7 @@ impl Context {
     /// set in this function.
     fn round_finalize(
         &self,
-        unbounded: Rational,
+        unbounded: Float,
         tiny_pre: bool,
         tiny_post: bool,
         inexact: bool,
@@ -423,18 +423,18 @@ impl Context {
 
     /// Rounds a finite (non-zero) number.
     fn round_finite<T: Number>(&self, num: &T) -> IEEE754 {
-        // step 1: rounding as a fixed-precision rational number first,
+        // step 1: rounding as an unbounded, fixed-precision floating-point,
         // so we need to compute the context parameters; IEEE 754 numbers
         // support subnormalization so we need to set both `max_p` and
-        // `min_n` when rounding using the rational number rounding context.
-        let (p, n) = rational::Context::new()
+        // `min_n` when rounding with a FloatContext.
+        let (p, n) = FloatContext::new()
             .with_rounding_mode(self.rm)
             .with_max_precision(self.max_p())
             .with_min_n(self.expmin() - 1)
             .round_params(num);
 
         // step 2: split the significand at binary digit `n`
-        let split = rational::Context::round_prepare(num, n);
+        let split = FloatContext::round_prepare(num, n);
 
         // step 3: compute certain exception flags
         let inexact = split.halfway_bit || split.sticky_bit;
@@ -450,11 +450,11 @@ impl Context {
         };
 
         // step 4: finalize the rounding (unbounded exponent)
-        let unbounded = rational::Context::round_finalize(split, p, self.rm);
+        let unbounded = FloatContext::round_finalize(split, p, self.rm);
         let carry =
             !num.is_zero() && !unbounded.is_zero() && unbounded.e().unwrap() > num.e().unwrap();
 
-        // step 5: finalize the rounded (bounded exponent)
+        // step 5: finalize the rounding (bounded exponent)
         self.round_finalize(unbounded, tiny_pre, tiny_post, inexact, carry)
     }
 }
