@@ -30,7 +30,7 @@ pub enum Overflow {
 /// in the format. Formats may either be signed or unsigned. The rounding
 /// mode affects the rounding direction.
 #[derive(Clone, Debug)]
-pub struct Context {
+pub struct FixedContext {
     pub(crate) signed: bool,
     pub(crate) scale: isize,
     pub(crate) nbits: usize,
@@ -38,7 +38,7 @@ pub struct Context {
     pub(crate) overflow: Overflow,
 }
 
-impl Context {
+impl FixedContext {
     /// Constructs new rounding context.
     /// The default rounding mode is truncation
     /// (see [`ToZero`][crate::RoundingMode]). The default overflow
@@ -53,19 +53,19 @@ impl Context {
         }
     }
 
-    /// Sets the rounding mode of this [`Context`].
+    /// Sets the rounding mode of this [`FixedContext`].
     pub fn with_rounding_mode(mut self, rm: RoundingMode) -> Self {
         self.rm = rm;
         self
     }
 
-    /// Sets the overflow behavior of this [`Context`].
+    /// Sets the overflow behavior of this [`FixedContext`].
     pub fn with_overflow(mut self, overflow: Overflow) -> Self {
         self.overflow = overflow;
         self
     }
 
-    /// The maximum value in format specified by this [`Context`].
+    /// The maximum value in format specified by this [`FixedContext`].
     /// If the format is unsigned, this is just `2^scale * 2^nbits - 1`.
     /// If the format is signed, this is just `2^scale * 2^(nbits-1) - 1`.
     pub fn maxval(&self) -> Fixed {
@@ -86,7 +86,7 @@ impl Context {
         }
     }
 
-    /// The minimum value in a format specified by this [`Context`].
+    /// The minimum value in a format specified by this [`FixedContext`].
     /// If the format is unsigned, this is just `0`.
     /// If the format is signed, this is just `2^scale * -2^(nbits-1)`.
     pub fn minval(&self) -> Fixed {
@@ -107,8 +107,8 @@ impl Context {
     }
 }
 
-impl Context {
-    fn round_wrap(&self, val: Rational) -> Fixed {
+impl FixedContext {
+    fn round_wrap(&self, val: Rational) -> Rational {
         let offset = val.exp().unwrap() - self.scale;
         let div = Integer::from(1) << self.nbits;
 
@@ -116,43 +116,28 @@ impl Context {
         if self.signed {
             let m = if val.sign() { -c } else { c };
             let (mult, wrapped) = m.div_rem(div);
-            let not_representable = !mult.is_zero();
-            let num = Rational::Real(wrapped.is_negative(), self.scale, wrapped.abs());
-            Fixed {
-                num,
-                flags: Exceptions {
-                    not_representable,
-                    ..Default::default()
-                },
-                ctx: self.clone(),
-            }
+            Rational::Real(wrapped.is_negative(), self.scale, wrapped.abs())
         } else {
             let (mult, wrapped) = c.div_rem(div);
-            let not_representable = !mult.is_zero();
-            let num = Rational::Real(false, self.scale, wrapped);
-            Fixed {
-                num,
-                flags: Exceptions {
-                    not_representable,
-                    ..Default::default()
-                },
-                ctx: self.clone(),
-            }
+            Rational::Real(false, self.scale, wrapped)
         }
     }
 
-    fn round_finite<T: Number>(&self, val: &T) -> Fixed {
-        // step 1: compute the rounding parameters
-        // we only need the first digit we want to chop off
-        let n = self.scale - 1;
-        let rctx = RationalContext::new()
-            .with_rounding_mode(self.rm)
-            .with_min_n(n);
+    fn round_finite<T: Number>(&self, num: &T) -> Fixed {
+        // step 1: rounding as a unbounded fixed-point number
+        // so we need to compute the context parameters; we only set
+        // `min_n` when rounding with a RationalContext, the first
+        // digit we want to chop off.
+        let (p, n) = RationalContext::new()
+            .with_min_n(self.scale - 1)
+            .round_params(num);
 
-        // step 2: round
-        let (rounded, err) = rctx.round_residual(val);
-        let inexact = !err.unwrap().is_zero();
+        // step 2: split the significand at binary digit `n`
+        let split = RationalContext::round_prepare(num, n);
+        let inexact = split.halfway_bit || split.sticky_bit;
 
+        // step 3: finalize (fixed point)
+        let rounded = RationalContext::round_finalize(split, p, self.rm);
         if !rounded.is_zero() {
             let exp = rounded.exp().unwrap();
             assert!(
@@ -168,31 +153,31 @@ impl Context {
         let minval = self.minval();
         if rounded > maxval.num {
             // larger than the maxval
-            match self.overflow {
-                Overflow::Wrap => self.round_wrap(rounded),
-                Overflow::Saturate => Fixed {
-                    num: maxval.num,
-                    flags: Exceptions {
-                        inexact,
-                        not_representable: true,
-                        ..Default::default()
-                    },
-                    ctx: self.clone(),
+            Fixed {
+                num: match self.overflow {
+                    Overflow::Wrap => self.round_wrap(rounded),
+                    Overflow::Saturate => maxval.num,
                 },
+                flags: Exceptions {
+                    inexact,
+                    overflow: true,
+                    ..Default::default()
+                },
+                ctx: self.clone(),
             }
         } else if rounded < minval.num {
             // smaller than the minval
-            match self.overflow {
-                Overflow::Wrap => self.round_wrap(rounded),
-                Overflow::Saturate => Fixed {
-                    num: minval.num,
-                    flags: Exceptions {
-                        inexact,
-                        not_representable: true,
-                        ..Default::default()
-                    },
-                    ctx: self.clone(),
+            Fixed {
+                num: match self.overflow {
+                    Overflow::Wrap => self.round_wrap(rounded),
+                    Overflow::Saturate => minval.num,
                 },
+                flags: Exceptions {
+                    inexact,
+                    underflow: false,
+                    ..Default::default()
+                },
+                ctx: self.clone(),
             }
         } else {
             Fixed {
@@ -207,7 +192,7 @@ impl Context {
     }
 }
 
-impl RoundingContext for Context {
+impl RoundingContext for FixedContext {
     type Rounded = Fixed;
 
     fn round(&self, val: &Self::Rounded) -> Self::Rounded {
@@ -236,7 +221,7 @@ impl RoundingContext for Context {
             Fixed {
                 num: Rational::zero(),
                 flags: Exceptions {
-                    not_representable: true,
+                    invalid: true,
                     ..Default::default()
                 },
                 ctx: self.clone(),

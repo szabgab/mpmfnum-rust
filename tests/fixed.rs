@@ -9,7 +9,7 @@ fn assert_round_small(
     input: &Rational,
     output: &Rational,
 ) {
-    let ctx = fixed_point::Context::new(signed, scale, nbits);
+    let ctx = fixed_point::FixedContext::new(signed, scale, nbits);
     let rounded = ctx.mpmf_round(input);
 
     assert_eq!(

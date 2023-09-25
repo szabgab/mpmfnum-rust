@@ -86,7 +86,7 @@ impl Rational {
             }
         }
     }
-    
+
     /// Scales this rational number by `2^exp` exactly.
     /// If this number is non-real, the value is preserved.
     pub fn scale(&self, shift: isize) -> Self {

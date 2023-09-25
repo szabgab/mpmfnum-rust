@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use rug::Integer;
 
-use crate::fixed_point::Context;
+use crate::fixed_point::FixedContext;
 use crate::{rational::Rational, Number};
 
 /// Exception flags to signal certain properties of the rounded result.
@@ -12,9 +12,10 @@ use crate::{rational::Rational, Number};
 /// certain conditions. This module implements two exceptions:
 ///
 /// - _invalid operation_: no useful definable result;
-/// - _not representable_: the rounded result with unbounded exponent
-///     was either larger than the maximum representable value or
-///     smaller than the minimum representable value.
+/// - _overflow_: the rounded result with unbounded range
+///     was larger than the maximum representable value;
+/// - _underflow_: the rounded result with unbounded range
+///     was smaller than the minimum representable value;
 /// - _inexact_: the result would be different had both the exponent
 ///     range and precision been unbounded.
 ///
@@ -22,7 +23,8 @@ use crate::{rational::Rational, Number};
 pub struct Exceptions {
     // defined in the IEEE 754 standard
     pub invalid: bool,
-    pub not_representable: bool,
+    pub overflow: bool,
+    pub underflow: bool,
     pub inexact: bool,
 }
 
@@ -39,7 +41,7 @@ pub struct Exceptions {
 pub struct Fixed {
     pub(crate) num: Rational,
     pub(crate) flags: Exceptions,
-    pub(crate) ctx: Context,
+    pub(crate) ctx: FixedContext,
 }
 
 impl Fixed {
@@ -49,7 +51,7 @@ impl Fixed {
     }
 
     /// Returns the rounding context used to create this number.
-    pub fn ctx(&self) -> &Context {
+    pub fn ctx(&self) -> &FixedContext {
         &self.ctx
     }
 }

@@ -1,12 +1,12 @@
-use crate::fixed_point::Context;
-use crate::ops::*;
+use crate::fixed_point::FixedContext;
 use crate::math::*;
+use crate::ops::*;
 use crate::rational::Rational;
 use crate::{Number, RoundingContext};
 
 macro_rules! rounded_1ary_impl {
     ($tname:ident, $name:ident, $mpmf:ident, $mpfr:ident) => {
-        impl $tname for Context {
+        impl $tname for FixedContext {
             fn $name(&self, src: &Self::Rounded) -> Self::Rounded {
                 self.$mpmf(src)
             }
@@ -54,7 +54,7 @@ rounded_1ary_impl!(RoundedLgamma, lgamma, mpmf_lgamma, mpfr_lgamma);
 
 macro_rules! rounded_2ary_impl {
     ($tname:ident, $name:ident, $mpmf:ident, $mpfr:ident) => {
-        impl $tname for Context {
+        impl $tname for FixedContext {
             fn $name(&self, src1: &Self::Rounded, src2: &Self::Rounded) -> Self::Rounded {
                 self.$mpmf(src1, src2)
             }
@@ -90,7 +90,7 @@ rounded_2ary_impl!(RoundedAtan2, atan2, mpmf_atan2, mpfr_atan2);
 
 macro_rules! rounded_3ary_impl {
     ($tname:ident, $name:ident, $mpmf:ident, $mpfr:ident) => {
-        impl $tname for Context {
+        impl $tname for FixedContext {
             fn $name(
                 &self,
                 src1: &Self::Rounded,
