@@ -67,10 +67,10 @@ impl Rational {
 /// Unary RTO operations.
 macro_rules! mpfr_1ary {
     ($name:ident, $mpfr:ident, $cname:expr) => {
-        #[doc = "Given a [`Rational`] value, computes `"]
+        #[doc = "Computes `"]
         #[doc = $cname]
-        #[doc = "` using MPFR to produce the round-to-odd
-            result with `p` binary digits of precision."]
+        #[doc = "` to produce the round-to-odd result with
+            `p` binary digits of precision."]
         pub fn $name(src: Rational, p: usize) -> RTOResult {
             assert!(
                 p as i64 > mpfr::PREC_MIN && p as i64 <= mpfr::PREC_MAX,
@@ -101,10 +101,10 @@ macro_rules! mpfr_1ary {
 /// Binary RTO operations.
 macro_rules! mpfr_2ary {
     ($name:ident, $mpfr:ident, $cname:expr) => {
-        #[doc = "Given [`Rational`] values, computes `"]
+        #[doc = "Computes `"]
         #[doc = $cname]
-        #[doc = "` using MPFR to produce the round-to-odd
-            result with `p` binary digits of precision."]
+        #[doc = "` to produce the round-to-odd result with
+            `p` binary digits of precision."]
         pub fn $name(src1: Rational, src2: Rational, p: usize) -> RTOResult {
             assert!(
                 p as i64 > mpfr::PREC_MIN && p as i64 <= mpfr::PREC_MAX,
@@ -141,10 +141,10 @@ macro_rules! mpfr_2ary {
 /// Ternary RTO operations.
 macro_rules! mpfr_3ary {
     ($name:ident, $mpfr:ident, $cname:expr) => {
-        #[doc = "Given [`Rational`] values, computes `"]
+        #[doc = "Computes `"]
         #[doc = $cname]
-        #[doc = "` using MPFR to produce the round-to-odd
-            result with `p` binary digits of precision."]
+        #[doc = "` to produce the round-to-odd result with
+            `p` binary digits of precision."]
         pub fn $name(src1: Rational, src2: Rational, src3: Rational, p: usize) -> RTOResult {
             assert!(
                 p as i64 > mpfr::PREC_MIN && p as i64 <= mpfr::PREC_MAX,

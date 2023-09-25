@@ -16,7 +16,9 @@ see the [`IEEE754`][crate::ieee754] crate
 */
 
 mod number;
+mod ops;
 mod round;
 
 pub use number::{Exceptions, Float};
+pub use ops::*;
 pub use round::FloatContext;
