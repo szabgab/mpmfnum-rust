@@ -1,7 +1,7 @@
-use crate::float::Float;
 use crate::ieee754::IEEE754Context;
 use crate::math::*;
 use crate::ops::*;
+use crate::rational::Rational;
 use crate::{Number, RoundingContext};
 
 macro_rules! rounded_1ary_impl {
@@ -35,7 +35,7 @@ macro_rules! rounded_1ary_impl {
             fn $mpmf<N: Number>(&self, src: &N) -> Self::Rounded {
                 // compute with 2 additional bits, rounding-to-odd
                 let p = self.max_p() + 2;
-                let r = Float::from_number(src);
+                let r = Rational::from_number(src);
                 let result = $mpfr(r, p);
                 let mut rounded = self.mpmf_round(result.num());
                 rounded.flags.invalid = result.flags().invalid;
@@ -117,8 +117,8 @@ macro_rules! rounded_2ary_impl {
             {
                 // compute with 2 additional bits, rounding-to-odd
                 let p = self.max_p() + 2;
-                let r1 = Float::from_number(src1);
-                let r2 = Float::from_number(src2);
+                let r1 = Rational::from_number(src1);
+                let r2 = Rational::from_number(src2);
                 let result = $mpfr(r1, r2, p);
                 let mut rounded = self.mpmf_round(result.num());
                 rounded.flags.invalid = result.flags().invalid;
@@ -213,9 +213,9 @@ macro_rules! rounded_3ary_impl {
             {
                 // compute with 2 additional bits, rounding-to-odd
                 let p = self.max_p() + 2;
-                let r1 = Float::from_number(src1);
-                let r2 = Float::from_number(src2);
-                let r3 = Float::from_number(src3);
+                let r1 = Rational::from_number(src1);
+                let r2 = Rational::from_number(src2);
+                let r3 = Rational::from_number(src3);
                 let result = $mpfr(r1, r2, r3, p);
                 let mut rounded = self.mpmf_round(result.num());
                 rounded.flags.invalid = result.flags().invalid;

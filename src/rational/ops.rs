@@ -4,10 +4,10 @@ use std::ops::{Add, Mul, Neg, Sub};
 use num_traits::{Signed, Zero};
 use rug::Integer;
 
-use crate::float::*;
+use crate::rational::Rational;
 
-impl Float {
-    /// Adds two numbers of type [`Float`] exactly.
+impl Rational {
+    /// Adds two numbers of type [`Rational`] exactly.
     /// Addition of non-real values follows the usual IEEE 754 rules.
     pub fn add_exact(&self, other: &Self) -> Self {
         match (&self, other) {
@@ -54,7 +54,7 @@ impl Float {
         }
     }
 
-    /// Multiplies two numbers of type [`Float`] exactly.
+    /// Multiplies two numbers of type [`Rational`] exactly.
     /// Multiplication of non-real values follows the usual
     /// IEEE 754 rules.
     pub fn mul_exact(&self, other: &Self) -> Self {
@@ -88,8 +88,8 @@ impl Float {
     }
 }
 
-impl Neg for Float {
-    type Output = Float;
+impl Neg for Rational {
+    type Output = Rational;
 
     fn neg(self) -> Self::Output {
         match &self {
@@ -100,7 +100,7 @@ impl Neg for Float {
     }
 }
 
-impl Add for Float {
+impl Add for Rational {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -108,7 +108,7 @@ impl Add for Float {
     }
 }
 
-impl Sub for Float {
+impl Sub for Rational {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -116,7 +116,7 @@ impl Sub for Float {
     }
 }
 
-impl Mul for Float {
+impl Mul for Rational {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {

@@ -6,27 +6,27 @@ Round-to-odd is a special rounding mode that supports safe re-rounding
 at slightly lower precision in any othe standard rounding modes.
 MPFR does not support round-to-odd natively, but we can emulate it.
 
-All computation is done using [`Float`] values.
+All computation is done using [`Rational`] values.
 */
 
 use gmp_mpfr_sys::mpfr;
 use num_traits::Zero;
-use rug::Float as MPFRFloat;
+use rug::Float;
 
-use crate::float::Float;
+use crate::rational::Rational;
 use crate::util::{mpfr_flags, MPFRFlags};
 
 /// Result type of round-to-odd arithmetic.
 #[derive(Clone, Debug)]
 pub struct RTOResult {
-    num: Float,
+    num: Rational,
     prec: usize,
     flags: MPFRFlags,
 }
 
 impl RTOResult {
     /// The numerical result of an operation.
-    pub fn num(&self) -> &Float {
+    pub fn num(&self) -> &Rational {
         &self.num
     }
 
@@ -41,14 +41,14 @@ impl RTOResult {
     }
 }
 
-impl Float {
-    /// Applies a correction to a [`Float`] type from an MPFR ternary
+impl Rational {
+    /// Applies a correction to a [`Rational`] type from an MPFR ternary
     /// value to translate a rounded result of precision `p - 1` obtained
     /// with round-to-zero to a rounded result of precision `p` obtained
     /// with round-to-odd.
     pub(crate) fn with_ternary(mut self, t: i32) -> Self {
         // correction only required for non-zero real values
-        if let Float::Real(_, exp, c) = &mut self {
+        if let Rational::Real(_, exp, c) = &mut self {
             if !c.is_zero() {
                 // LSB is 1 iff ternary value is non-zero; else 0
                 *c <<= 1;
@@ -66,11 +66,11 @@ impl Float {
 /// Unary RTO operations.
 macro_rules! mpfr_1ary {
     ($name:ident, $mpfr:ident, $cname:expr) => {
-        #[doc = "Given a [`Float`] value, computes `"]
+        #[doc = "Given a [`Rational`] value, computes `"]
         #[doc = $cname]
         #[doc = "` using MPFR to produce the round-to-odd
             result with `p` binary digits of precision."]
-        pub fn $name(src: Float, p: usize) -> RTOResult {
+        pub fn $name(src: Rational, p: usize) -> RTOResult {
             assert!(
                 p as i64 > mpfr::PREC_MIN && p as i64 <= mpfr::PREC_MAX,
                 "precision must be between {} and {}",
@@ -79,8 +79,8 @@ macro_rules! mpfr_1ary {
             );
 
             // compute with `p - 1` bits
-            let mut dst = MPFRFloat::new((p - 1) as u32);
-            let src = MPFRFloat::from(src);
+            let mut dst = Float::new((p - 1) as u32);
+            let src = Float::from(src);
             let (t, flags) = unsafe {
                 mpfr::clear_flags();
                 let t = mpfr::$mpfr(dst.as_raw_mut(), src.as_raw(), mpfr::rnd_t::RNDZ);
@@ -89,7 +89,7 @@ macro_rules! mpfr_1ary {
 
             // apply correction to get the last bit and compose
             RTOResult {
-                num: Float::from(dst).with_ternary(t),
+                num: Rational::from(dst).with_ternary(t),
                 prec: p,
                 flags,
             }
@@ -100,11 +100,11 @@ macro_rules! mpfr_1ary {
 /// Binary RTO operations.
 macro_rules! mpfr_2ary {
     ($name:ident, $mpfr:ident, $cname:expr) => {
-        #[doc = "Given [`Float`] values, computes `"]
+        #[doc = "Given [`Rational`] values, computes `"]
         #[doc = $cname]
         #[doc = "` using MPFR to produce the round-to-odd
             result with `p` binary digits of precision."]
-        pub fn $name(src1: Float, src2: Float, p: usize) -> RTOResult {
+        pub fn $name(src1: Rational, src2: Rational, p: usize) -> RTOResult {
             assert!(
                 p as i64 > mpfr::PREC_MIN && p as i64 <= mpfr::PREC_MAX,
                 "precision must be between {} and {}",
@@ -113,9 +113,9 @@ macro_rules! mpfr_2ary {
             );
 
             // compute with `p - 1` bits
-            let mut dst = MPFRFloat::new((p - 1) as u32);
-            let src1 = MPFRFloat::from(src1);
-            let src2 = MPFRFloat::from(src2);
+            let mut dst = Float::new((p - 1) as u32);
+            let src1 = Float::from(src1);
+            let src2 = Float::from(src2);
             let (t, flags) = unsafe {
                 mpfr::clear_flags();
                 let t = mpfr::$mpfr(
@@ -129,7 +129,7 @@ macro_rules! mpfr_2ary {
 
             // apply correction to get the last bit and compose
             RTOResult {
-                num: Float::from(dst).with_ternary(t),
+                num: Rational::from(dst).with_ternary(t),
                 prec: p,
                 flags,
             }
@@ -140,11 +140,11 @@ macro_rules! mpfr_2ary {
 /// Ternary RTO operations.
 macro_rules! mpfr_3ary {
     ($name:ident, $mpfr:ident, $cname:expr) => {
-        #[doc = "Given [`Float`] values, computes `"]
+        #[doc = "Given [`Rational`] values, computes `"]
         #[doc = $cname]
         #[doc = "` using MPFR to produce the round-to-odd
             result with `p` binary digits of precision."]
-        pub fn $name(src1: Float, src2: Float, src3: Float, p: usize) -> RTOResult {
+        pub fn $name(src1: Rational, src2: Rational, src3: Rational, p: usize) -> RTOResult {
             assert!(
                 p as i64 > mpfr::PREC_MIN && p as i64 <= mpfr::PREC_MAX,
                 "precision must be between {} and {}",
@@ -153,10 +153,10 @@ macro_rules! mpfr_3ary {
             );
 
             // compute with `p - 1` bits
-            let mut dst = MPFRFloat::new((p - 1) as u32);
-            let src1 = MPFRFloat::from(src1);
-            let src2 = MPFRFloat::from(src2);
-            let src3 = MPFRFloat::from(src3);
+            let mut dst = Float::new((p - 1) as u32);
+            let src1 = Float::from(src1);
+            let src2 = Float::from(src2);
+            let src3 = Float::from(src3);
             let (t, flags) = unsafe {
                 mpfr::clear_flags();
                 let t = mpfr::$mpfr(
@@ -171,7 +171,7 @@ macro_rules! mpfr_3ary {
 
             // apply correction to get the last bit and compose
             RTOResult {
-                num: Float::from(dst).with_ternary(t),
+                num: Rational::from(dst).with_ternary(t),
                 prec: p,
                 flags,
             }

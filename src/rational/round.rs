@@ -1,24 +1,24 @@
 use rug::Integer;
 
-use super::Float;
+use crate::rational::Rational;
 use crate::round::RoundingDirection;
 use crate::util::*;
 use crate::{Number, RoundingContext, RoundingMode};
 
-/// Result type of [`FloatContext::round_prepare`].
+/// Result type of [`RationalContext::round_prepare`].
 pub(crate) struct RoundPrepareResult {
-    pub num: Float,
+    pub num: Rational,
     pub halfway_bit: bool,
     pub sticky_bit: bool,
 }
 
 /// Rounding contexts for floating-point numbers.
 ///
-/// Rounding a digital number to a fixed-precision floating-point numbers
-/// takes three parameters: a maximum precision (see [`Number::p`]),
-/// the minimum absolute digit (see [`Number::n`]), and a rounding
-/// mode [`RoundingMode`]. Rounding will theoretically work for all
-/// real values. The requested precision may be as small as one or zero bits,
+/// Rounding a number to a (bounded) rational number takes three parameters:
+/// a maximum precision (see [`Number::p`]), the minimum absolute digit
+/// (see [`Number::n`]), and a rounding mode [`RoundingMode`].
+/// Rounding will theoretically work for all real values.
+/// The requested precision may be as small as one or zero bits,
 /// but there is no way to place an upper bound on the resulting exponent;
 /// infinity and NaN will not be rounded.
 ///
@@ -39,13 +39,13 @@ pub(crate) struct RoundPrepareResult {
 /// defined by [`RoundingMode`].
 ///
 #[derive(Clone, Debug)]
-pub struct FloatContext {
+pub struct RationalContext {
     max_p: Option<usize>,
     min_n: Option<isize>,
     rm: RoundingMode,
 }
 
-impl FloatContext {
+impl RationalContext {
     /// Constructs a rounding arguments with default arguments.
     /// Neither `max_p` nor `min_n` are specified so rounding
     /// will panic. The default rounding mode is
@@ -89,15 +89,15 @@ impl FloatContext {
     }
 
     /// Rounding utility function: splits a [`Number`] at binary digit `n`,
-    /// returning two [`Float] values: the first capturing digits above
+    /// returning two [`Rational`] values: the first capturing digits above
     /// the digit at position `n`, and the second capturing digits at or
     /// below the digit at position `n`.
-    pub(crate) fn split_at<T: Number>(num: &T, n: isize) -> (Float, Float) {
+    pub(crate) fn split_at<T: Number>(num: &T, n: isize) -> (Rational, Rational) {
         // easy case: splitting zero
         if num.is_zero() {
             let s = num.sign();
-            let high = Float::Real(s, n + 1, Integer::from(0));
-            let low = Float::Real(s, n, Integer::from(0));
+            let high = Rational::Real(s, n + 1, Integer::from(0));
+            let low = Rational::Real(s, n, Integer::from(0));
             return (high, low);
         }
 
@@ -110,13 +110,13 @@ impl FloatContext {
         // case split by split point offset
         if n >= e {
             // split point is above the significant digits
-            let high = Float::Real(s, n + 1, Integer::from(0));
-            let low = Float::Real(s, exp, c);
+            let high = Rational::Real(s, n + 1, Integer::from(0));
+            let low = Rational::Real(s, exp, c);
             (high, low)
         } else if n < exp {
             // split point is below the significant digits
-            let high = Float::Real(s, exp, c);
-            let low = Float::Real(s, n, Integer::from(0));
+            let high = Rational::Real(s, exp, c);
+            let low = Rational::Real(s, n, Integer::from(0));
             (high, low)
         } else {
             // split point is within the significant digits
@@ -125,8 +125,8 @@ impl FloatContext {
             let c_high = c.clone() >> offset;
             let c_low = c & mask;
 
-            let high = Float::Real(s, n + 1, c_high);
-            let low = Float::Real(s, exp, c_low);
+            let high = Rational::Real(s, n + 1, c_high);
+            let low = Rational::Real(s, exp, c_low);
             (high, low)
         }
     }
@@ -164,7 +164,7 @@ impl FloatContext {
     }
 
     /// Rounding utility function: splits a [`Number`] at binary digit `n`,
-    /// returning the digits above that position as a [`Float`] number,
+    /// returning the digits above that position as a [`Rational`] number,
     /// the next digit at the `n`th position (also called the guard bit),
     /// and an inexact bit if there are any lower order digits (also called
     /// the sticky bit).
@@ -253,10 +253,10 @@ impl FloatContext {
         split: RoundPrepareResult,
         p: Option<usize>,
         rm: RoundingMode,
-    ) -> Float {
+    ) -> Rational {
         // truncated result
         let (sign, mut exp, mut c) = match split.num {
-            Float::Real(s, exp, c) => (s, exp, c),
+            Rational::Real(s, exp, c) => (s, exp, c),
             _ => panic!("unreachable"),
         };
 
@@ -273,13 +273,13 @@ impl FloatContext {
             }
         }
 
-        Float::Real(sign, exp, c)
+        Rational::Real(sign, exp, c)
     }
 
     /// Rounds a finite [`Number`].
     ///
     /// Called by the public [`Number::round`] function.
-    fn round_finite<T: Number>(&self, num: &T) -> Float {
+    fn round_finite<T: Number>(&self, num: &T) -> Rational {
         // step 1: compute the first digit we will split off
         let (p, n) = self.round_params(num);
 
@@ -294,8 +294,8 @@ impl FloatContext {
     }
 
     /// Rounds a finite [`Number`] also returning the digits
-    /// rounded off as a [`Float`] value.
-    pub fn round_residual<T: Number>(&self, num: &T) -> (Float, Option<Float>) {
+    /// rounded off as a [`Rational`] value.
+    pub fn round_residual<T: Number>(&self, num: &T) -> (Rational, Option<Rational>) {
         assert!(
             self.max_p.is_some() || self.min_n.is_some(),
             "must specify either maximum precision or least absolute digit"
@@ -304,14 +304,14 @@ impl FloatContext {
         // case split by class
         if num.is_zero() {
             // zero
-            (Float::zero(), Some(Float::zero()))
+            (Rational::zero(), Some(Rational::zero()))
         } else if num.is_infinite() {
             // infinite number
             let s = num.is_negative().unwrap();
-            (Float::Infinite(s), None)
+            (Rational::Infinite(s), None)
         } else if num.is_nar() {
             // other non-real
-            (Float::Nan, None)
+            (Rational::Nan, None)
         } else {
             // finite, non-zero value
 
@@ -332,14 +332,14 @@ impl FloatContext {
     }
 }
 
-impl Default for FloatContext {
+impl Default for RationalContext {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl RoundingContext for FloatContext {
-    type Rounded = Float;
+impl RoundingContext for RationalContext {
+    type Rounded = Rational;
 
     fn round(&self, val: &Self::Rounded) -> Self::Rounded {
         self.mpmf_round(val)
@@ -354,14 +354,14 @@ impl RoundingContext for FloatContext {
         // case split by class
         if num.is_zero() {
             // zero
-            Float::zero()
+            Rational::zero()
         } else if num.is_infinite() {
             // infinite number
             let s = num.is_negative().unwrap();
-            Float::Infinite(s)
+            Rational::Infinite(s)
         } else if num.is_nar() {
             // other non-real
-            Float::Nan
+            Rational::Nan
         } else {
             // finite, non-zero value
             self.round_finite(num)

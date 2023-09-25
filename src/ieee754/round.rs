@@ -3,8 +3,8 @@ use std::ops::{BitAnd, BitOr};
 use num_traits::Zero;
 use rug::Integer;
 
-use crate::float::{Float, FloatContext};
 use crate::ieee754::{Exceptions, IEEE754Val, IEEE754};
+use crate::rational::{Rational, RationalContext};
 use crate::round::RoundingDirection;
 use crate::util::bitmask;
 use crate::{Number, RoundingContext, RoundingMode};
@@ -305,7 +305,7 @@ impl IEEE754Context {
             std::cmp::Ordering::Equal => {
                 // near the subnormal boundary
                 // follow the IEEE specification and round with unbounded exponent
-                let unbounded_ctx = FloatContext::new()
+                let unbounded_ctx = RationalContext::new()
                     .with_rounding_mode(self.rm)
                     .with_max_precision(self.max_p());
                 let unbounded = unbounded_ctx.mpmf_round(num);
@@ -322,7 +322,7 @@ impl IEEE754Context {
     /// set in this function.
     fn round_finalize(
         &self,
-        unbounded: Float,
+        unbounded: Rational,
         tiny_pre: bool,
         tiny_post: bool,
         inexact: bool,
@@ -427,14 +427,14 @@ impl IEEE754Context {
         // so we need to compute the context parameters; IEEE 754 numbers
         // support subnormalization so we need to set both `max_p` and
         // `min_n` when rounding with a FloatIEEE754Context.
-        let (p, n) = FloatContext::new()
+        let (p, n) = RationalContext::new()
             .with_rounding_mode(self.rm)
             .with_max_precision(self.max_p())
             .with_min_n(self.expmin() - 1)
             .round_params(num);
 
         // step 2: split the significand at binary digit `n`
-        let split = FloatContext::round_prepare(num, n);
+        let split = RationalContext::round_prepare(num, n);
 
         // step 3: compute certain exception flags
         let inexact = split.halfway_bit || split.sticky_bit;
@@ -450,7 +450,7 @@ impl IEEE754Context {
         };
 
         // step 4: finalize the rounding (unbounded exponent)
-        let unbounded = FloatContext::round_finalize(split, p, self.rm);
+        let unbounded = RationalContext::round_finalize(split, p, self.rm);
         let carry =
             !num.is_zero() && !unbounded.is_zero() && unbounded.e().unwrap() > num.e().unwrap();
 
@@ -463,7 +463,7 @@ impl RoundingContext for IEEE754Context {
     type Rounded = IEEE754;
 
     /// Rounds an [`IEEE754`] value into the format specified by
-    /// this rounding context. See [`RoundingIEEE754Context::round`] for the more
+    /// this rounding context. See [`RoundingContext::round`] for the more
     /// general implementation of rounding from formats other than the
     /// output format.
     fn round(&self, val: &Self::Rounded) -> Self::Rounded {
