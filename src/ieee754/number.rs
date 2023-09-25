@@ -85,7 +85,7 @@ impl Exceptions {
 /// IEEE 754 floating-point bitwise encoding viewed as an enumeration.
 /// Unlike [`IEEE754`], [`IEEE754Val`] contains only the numerical data
 /// required to encode a binary floating-point number as described by
-/// the IEEE-754 standard.
+/// the IEEE 754 standard.
 #[derive(Clone, Debug)]
 pub enum IEEE754Val {
     /// Signed zero: `Zero(s)`: where `s` specifies `-0` or `+0`.
@@ -107,10 +107,11 @@ pub enum IEEE754Val {
     Nan(bool, bool, Integer),
 }
 
-/// The IEEE 754 floating-point type.
+/// The IEEE 754 floating-point format.
 ///
-/// Parameterized by `es`, the bitwidth of the exponent field, and `nbits`,
-/// the total bitwidth of the floating-point encoding. In addition to
+/// This is the floating-point format described in the IEEE 754 standard.
+///
+///  In addition to
 /// numerical data, each [`IEEE754`] value has an [`Exceptions`] instance
 /// as well as a rounding context that are set when the floating-point
 /// number is created.
@@ -165,8 +166,7 @@ impl IEEE754 {
         }
     }
 
-    /// Converts this [`IEEE754`] to an [`Integer`] representing
-    /// an IEEE 754 bitpattern.
+    /// Converts this [`IEEE754`] to an [`Integer`] representing an IEEE 754 bitpattern.
     pub fn into_bits(&self) -> Integer {
         let nbits = self.ctx.nbits();
         let (s, unsigned) = match &self.num {

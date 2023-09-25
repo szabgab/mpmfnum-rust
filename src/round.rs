@@ -1,5 +1,5 @@
 /*!
-Rounding numbers.
+Common rounding utilities.
 
 This module supports rounding contexts, implementations of rounding
 from arbitrary-precision numbers to a particular number format.

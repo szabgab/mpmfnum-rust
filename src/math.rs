@@ -1,10 +1,11 @@
 /*!
-The mathematical core of this crate:
-round-to-odd arithmetic using MPFR.
+Round-to-odd arithmetic.
 
-Round-to-odd is a special rounding mode that supports safe re-rounding
-at slightly lower precision in any othe standard rounding modes.
-MPFR does not support round-to-odd natively, but we can emulate it.
+The mathematical core of this crate.
+Round-to-odd is a special rounding mode that allows safe
+re-rounding at slightly lower precision using the standard
+rounding modes. MPFR does not support round-to-odd natively,
+but we can emulate it.
 
 All computation is done using [`Rational`] values.
 */

@@ -11,13 +11,16 @@ This is the API documentation.
 
 The library defines a universal trait for all number types [`Number`],
 and a universal trait for "rounding contexts" [`RoundingContext`].
-Supported number systems include generic base-2 numbers in scientific notation,
-[`Rational`], and IEEE-754 style floating-point numbers [`IEEE754`].
+Supported number systems include
+  unnormalized scientific numbers [`Rational`][crate::rational::Rational],
+  floating-point numbers with unbounded exponent [`Float`][crate::float::Float],
+  and IEEE 754 style floating-point numbers [`IEEE754`][crate::ieee754::IEEE754].
 
 Planned number systems include fixed-point numbers, integers,
 posits, logarithmic numbers, and more.
 */
 
+pub mod float;
 pub mod ieee754;
 pub mod math;
 pub mod number;
