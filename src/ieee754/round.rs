@@ -3,8 +3,8 @@ use std::ops::{BitAnd, BitOr};
 use num_traits::Zero;
 use rug::Integer;
 
-use crate::ieee754::{Exceptions, IEEE754Val, IEEE754};
 use crate::float::{Float, FloatContext};
+use crate::ieee754::{Exceptions, IEEE754Val, IEEE754};
 use crate::round::RoundingDirection;
 use crate::util::bitmask;
 use crate::{Number, RoundingContext, RoundingMode};

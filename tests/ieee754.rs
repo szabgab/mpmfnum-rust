@@ -1,8 +1,8 @@
 use std::cmp::max;
 
+use mpmfnum::float::Float;
 use mpmfnum::ieee754;
 use mpmfnum::ops::*;
-use mpmfnum::float::Float;
 use mpmfnum::{Number, RoundingContext, RoundingMode};
 
 use gmp_mpfr_sys::mpfr;
@@ -24,11 +24,7 @@ fn assert_round_small(
     let ctx = ieee754::IEEE754Context::new(2, 5).with_rounding_mode(rm);
     let rounded = ctx.mpmf_round(input);
 
-    assert_eq!(
-        Float::from(rounded.clone()),
-        *output,
-        "mismatched result",
-    );
+    assert_eq!(Float::from(rounded.clone()), *output, "mismatched result",);
     assert_eq!(
         rounded.flags().overflow,
         overflow,
@@ -483,7 +479,12 @@ fn convert_round_mode(rm: RoundingMode) -> mpfr::rnd_t {
 
 type MpfrResult = (MPFRFloat, (bool, bool, bool, bool, bool));
 
-fn assert_mpfr_failed(key: String, inputs: Vec<MPFRFloat>, expected: MpfrResult, actual: MpfrResult) {
+fn assert_mpfr_failed(
+    key: String,
+    inputs: Vec<MPFRFloat>,
+    expected: MpfrResult,
+    actual: MpfrResult,
+) {
     eprintln!(
         "{} at {:?} mismatch: expected {} {:?}, actual: {} {:?}",
         key, inputs, expected.0, expected.1, actual.0, actual.1,

@@ -20,5 +20,5 @@ mod ops;
 mod round;
 
 pub use number::Float;
-pub use round::FloatContext;
 pub use number::{NAN, NEG_INF, POS_INF};
+pub use round::FloatContext;

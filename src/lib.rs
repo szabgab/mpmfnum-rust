@@ -19,9 +19,11 @@ posits, logarithmic numbers, and more.
 
 pub mod float;
 pub mod ieee754;
+pub mod math;
 pub mod number;
 pub mod ops;
 pub mod round;
+
 mod util;
 
 pub use crate::number::Number;

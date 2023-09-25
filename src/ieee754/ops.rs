@@ -1,6 +1,7 @@
-use crate::ieee754::IEEE754Context;
-use crate::ops::*;
 use crate::float::Float;
+use crate::ieee754::IEEE754Context;
+use crate::math::*;
+use crate::ops::*;
 use crate::{Number, RoundingContext};
 
 macro_rules! rounded_1ary_impl {
@@ -35,42 +36,42 @@ macro_rules! rounded_1ary_impl {
                 // compute with 2 additional bits, rounding-to-odd
                 let p = self.max_p() + 2;
                 let r = Float::from_number(src);
-                let (result, flags) = r.$mpfr(p);
-                let mut rounded = self.mpmf_round(&result);
-                rounded.flags.invalid = flags.invalid;
-                rounded.flags.divzero = flags.divzero;
+                let result = $mpfr(r, p);
+                let mut rounded = self.mpmf_round(result.num());
+                rounded.flags.invalid = result.flags().invalid;
+                rounded.flags.divzero = result.flags().divzero;
                 rounded
             }
         }
     };
 }
 
-rounded_1ary_impl!(RoundedNeg, neg, mpmf_neg, neg_with_mpfr);
-rounded_1ary_impl!(RoundedSqrt, sqrt, mpmf_sqrt, sqrt_with_mpfr);
-rounded_1ary_impl!(RoundedCbrt, cbrt, mpmf_cbrt, cbrt_with_mpfr);
-rounded_1ary_impl!(RoundedExp, exp, mpmf_exp, exp_with_mpfr);
-rounded_1ary_impl!(RoundedExp2, exp2, mpmf_exp2, exp2_with_mpfr);
-rounded_1ary_impl!(RoundedLog, log, mpmf_log, log_with_mpfr);
-rounded_1ary_impl!(RoundedLog2, log2, mpmf_log2, log2_with_mpfr);
-rounded_1ary_impl!(RoundedLog10, log10, mpmf_log10, log10_with_mpfr);
-rounded_1ary_impl!(RoundedExpm1, expm1, mpmf_expm1, expm1_with_mpfr);
-rounded_1ary_impl!(RoundedLog1p, log1p, mpmf_log1p, log1p_with_mpfr);
-rounded_1ary_impl!(RoundedSin, sin, mpmf_sin, sin_with_mpfr);
-rounded_1ary_impl!(RoundedCos, cos, mpmf_cos, cos_with_mpfr);
-rounded_1ary_impl!(RoundedTan, tan, mpmf_tan, tan_with_mpfr);
-rounded_1ary_impl!(RoundedAsin, asin, mpmf_asin, asin_with_mpfr);
-rounded_1ary_impl!(RoundedAcos, acos, mpmf_acos, acos_with_mpfr);
-rounded_1ary_impl!(RoundedAtan, atan, mpmf_atan, atan_with_mpfr);
-rounded_1ary_impl!(RoundedSinh, sinh, mpmf_sinh, sinh_with_mpfr);
-rounded_1ary_impl!(RoundedCosh, cosh, mpmf_cosh, cosh_with_mpfr);
-rounded_1ary_impl!(RoundedTanh, tanh, mpmf_tanh, tanh_with_mpfr);
-rounded_1ary_impl!(RoundedAsinh, asinh, mpmf_asinh, asinh_with_mpfr);
-rounded_1ary_impl!(RoundedAcosh, acosh, mpmf_acosh, acosh_with_mpfr);
-rounded_1ary_impl!(RoundedAtanh, atanh, mpmf_atanh, atanh_with_mpfr);
-rounded_1ary_impl!(RoundedErf, erf, mpmf_erf, erf_with_mpfr);
-rounded_1ary_impl!(RoundedErfc, erfc, mpmf_erfc, erfc_with_mpfr);
-rounded_1ary_impl!(RoundedGamma, tgamma, mpmf_tgamma, tgamma_with_mpfr);
-rounded_1ary_impl!(RoundedLgamma, lgamma, mpmf_lgamma, lgamma_with_mpfr);
+rounded_1ary_impl!(RoundedNeg, neg, mpmf_neg, mpfr_neg);
+rounded_1ary_impl!(RoundedSqrt, sqrt, mpmf_sqrt, mpfr_sqrt);
+rounded_1ary_impl!(RoundedCbrt, cbrt, mpmf_cbrt, mpfr_cbrt);
+rounded_1ary_impl!(RoundedExp, exp, mpmf_exp, mpfr_exp);
+rounded_1ary_impl!(RoundedExp2, exp2, mpmf_exp2, mpfr_exp2);
+rounded_1ary_impl!(RoundedLog, log, mpmf_log, mpfr_log);
+rounded_1ary_impl!(RoundedLog2, log2, mpmf_log2, mpfr_log2);
+rounded_1ary_impl!(RoundedLog10, log10, mpmf_log10, mpfr_log10);
+rounded_1ary_impl!(RoundedExpm1, expm1, mpmf_expm1, mpfr_expm1);
+rounded_1ary_impl!(RoundedLog1p, log1p, mpmf_log1p, mpfr_log1p);
+rounded_1ary_impl!(RoundedSin, sin, mpmf_sin, mpfr_sin);
+rounded_1ary_impl!(RoundedCos, cos, mpmf_cos, mpfr_cos);
+rounded_1ary_impl!(RoundedTan, tan, mpmf_tan, mpfr_tan);
+rounded_1ary_impl!(RoundedAsin, asin, mpmf_asin, mpfr_asin);
+rounded_1ary_impl!(RoundedAcos, acos, mpmf_acos, mpfr_acos);
+rounded_1ary_impl!(RoundedAtan, atan, mpmf_atan, mpfr_atan);
+rounded_1ary_impl!(RoundedSinh, sinh, mpmf_sinh, mpfr_sinh);
+rounded_1ary_impl!(RoundedCosh, cosh, mpmf_cosh, mpfr_cosh);
+rounded_1ary_impl!(RoundedTanh, tanh, mpmf_tanh, mpfr_tanh);
+rounded_1ary_impl!(RoundedAsinh, asinh, mpmf_asinh, mpfr_asinh);
+rounded_1ary_impl!(RoundedAcosh, acosh, mpmf_acosh, mpfr_acosh);
+rounded_1ary_impl!(RoundedAtanh, atanh, mpmf_atanh, mpfr_atanh);
+rounded_1ary_impl!(RoundedErf, erf, mpmf_erf, mpfr_erf);
+rounded_1ary_impl!(RoundedErfc, erfc, mpmf_erfc, mpfr_erfc);
+rounded_1ary_impl!(RoundedGamma, tgamma, mpmf_tgamma, mpfr_tgamma);
+rounded_1ary_impl!(RoundedLgamma, lgamma, mpmf_lgamma, mpfr_lgamma);
 
 macro_rules! rounded_2ary_impl {
     ($tname:ident, $name:ident, $mpmf:ident, $mpfr:ident) => {
@@ -118,30 +119,25 @@ macro_rules! rounded_2ary_impl {
                 let p = self.max_p() + 2;
                 let r1 = Float::from_number(src1);
                 let r2 = Float::from_number(src2);
-                let (result, flags) = r1.$mpfr(&r2, p);
-                let mut rounded = self.mpmf_round(&result);
-                rounded.flags.invalid = flags.invalid;
-                rounded.flags.divzero = flags.divzero;
+                let result = $mpfr(r1, r2, p);
+                let mut rounded = self.mpmf_round(result.num());
+                rounded.flags.invalid = result.flags().invalid;
+                rounded.flags.divzero = result.flags().divzero;
                 rounded
             }
         }
     };
 }
 
-rounded_2ary_impl!(RoundedAdd, add, mpmf_add, add_with_mpfr);
-rounded_2ary_impl!(RoundedSub, sub, mpmf_sub, sub_with_mpfr);
-rounded_2ary_impl!(RoundedMul, mul, mpmf_mul, mul_with_mpfr);
-rounded_2ary_impl!(RoundedDiv, div, mpmf_div, div_with_mpfr);
-rounded_2ary_impl!(RoundedPow, pow, mpmf_pow, pow_with_mpfr);
-rounded_2ary_impl!(RoundedHypot, hypot, mpmf_hypot, hypot_with_mpfr);
-rounded_2ary_impl!(RoundedFmod, fmod, mpmf_fmod, fmod_with_mpfr);
-rounded_2ary_impl!(
-    RoundedRemainder,
-    remainder,
-    mpmf_remainder,
-    remainder_with_mpfr
-);
-rounded_2ary_impl!(RoundedAtan2, atan2, mpmf_atan2, atan2_with_mpfr);
+rounded_2ary_impl!(RoundedAdd, add, mpmf_add, mpfr_add);
+rounded_2ary_impl!(RoundedSub, sub, mpmf_sub, mpfr_sub);
+rounded_2ary_impl!(RoundedMul, mul, mpmf_mul, mpfr_mul);
+rounded_2ary_impl!(RoundedDiv, div, mpmf_div, mpfr_div);
+rounded_2ary_impl!(RoundedPow, pow, mpmf_pow, mpfr_pow);
+rounded_2ary_impl!(RoundedHypot, hypot, mpmf_hypot, mpfr_hypot);
+rounded_2ary_impl!(RoundedFmod, fmod, mpmf_fmod, mpfr_fmod);
+rounded_2ary_impl!(RoundedRemainder, remainder, mpmf_remainder, mpfr_remainder);
+rounded_2ary_impl!(RoundedAtan2, atan2, mpmf_atan2, mpfr_atan2);
 
 macro_rules! rounded_3ary_impl {
     ($tname:ident, $name:ident, $mpmf:ident, $mpfr:ident) => {
@@ -220,14 +216,14 @@ macro_rules! rounded_3ary_impl {
                 let r1 = Float::from_number(src1);
                 let r2 = Float::from_number(src2);
                 let r3 = Float::from_number(src3);
-                let (result, flags) = r1.$mpfr(&r2, &r3, p);
-                let mut rounded = self.mpmf_round(&result);
-                rounded.flags.invalid = flags.invalid;
-                rounded.flags.divzero = flags.divzero;
+                let result = $mpfr(r1, r2, r3, p);
+                let mut rounded = self.mpmf_round(result.num());
+                rounded.flags.invalid = result.flags().invalid;
+                rounded.flags.divzero = result.flags().divzero;
                 rounded
             }
         }
     };
 }
 
-rounded_3ary_impl!(RoundedFMA, fma, mpmf_fma, fma_with_mpfr);
+rounded_3ary_impl!(RoundedFMA, fma, mpmf_fma, mpfr_fma);

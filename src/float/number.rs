@@ -11,13 +11,13 @@ use gmp_mpfr_sys::mpfr;
 use crate::Number;
 
 /// The floating-point number format.
-/// 
+///
 /// This is not an IEEE-754 style floating-point number.
 /// This type defines a base-2 scientific number `(-1)^s * c * 2^e`
 /// where `c` is a fixed-precision unsigned-integer and
 /// `e` is theoretically unbounded  any integer
 /// (In practice, this is an [`isize`] value).
-/// 
+///
 /// Any [`Float`] value may encode a non-real number (see [`NAN`]) which is
 /// interpreted as a NaN (neither finite nor infinite). All operations
 /// canonicalize -0 to +0 (no sign bit).
