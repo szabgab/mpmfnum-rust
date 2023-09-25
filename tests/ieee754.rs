@@ -6,7 +6,8 @@ use mpmfnum::rational::Rational;
 use mpmfnum::{Number, RoundingContext, RoundingMode};
 
 use gmp_mpfr_sys::mpfr;
-use rug::{Float, Integer};
+use rug::Float as MpfrFloat;
+use rug::Integer;
 
 fn assert_round_small(
     input: &Rational,
@@ -20,7 +21,7 @@ fn assert_round_small(
     tiny_post: bool,
     carry: bool,
 ) {
-    let ctx = ieee754::Context::new(2, 5).with_rounding_mode(rm);
+    let ctx = ieee754::IEEE754Context::new(2, 5).with_rounding_mode(rm);
     let rounded = ctx.mpmf_round(input);
 
     assert_eq!(
@@ -379,7 +380,7 @@ fn round_small() {
 
 #[test]
 fn from_bits_small() {
-    let ctx = ieee754::Context::new(2, 5);
+    let ctx = ieee754::IEEE754Context::new(2, 5);
 
     // 0
     let num = ctx.bits_to_number(Integer::from(0));
@@ -461,7 +462,7 @@ fn from_bits_small() {
 
 #[test]
 fn to_bits_small() {
-    let ctx = ieee754::Context::new(2, 5);
+    let ctx = ieee754::IEEE754Context::new(2, 5);
     for i in 0..32 {
         let b1 = Integer::from(i);
         let b2 = ctx.bits_to_number(b1.clone()).into_bits();
@@ -480,9 +481,14 @@ fn convert_round_mode(rm: RoundingMode) -> mpfr::rnd_t {
     }
 }
 
-type MpfrResult = (Float, (bool, bool, bool, bool, bool));
+type MpfrResult = (MpfrFloat, (bool, bool, bool, bool, bool));
 
-fn assert_mpfr_failed(key: String, inputs: Vec<Float>, expected: MpfrResult, actual: MpfrResult) {
+fn assert_mpfr_failed(
+    key: String,
+    inputs: Vec<MpfrFloat>,
+    expected: MpfrResult,
+    actual: MpfrResult,
+) {
     eprintln!(
         "{} at {:?} mismatch: expected {} {:?}, actual: {} {:?}",
         key, inputs, expected.0, expected.1, actual.0, actual.1,
@@ -491,7 +497,7 @@ fn assert_mpfr_failed(key: String, inputs: Vec<Float>, expected: MpfrResult, act
 
 fn assert_mpfr_expected(
     key: String,
-    inputs: Vec<Float>,
+    inputs: Vec<MpfrFloat>,
     expected: MpfrResult,
     actual: MpfrResult,
 ) -> bool {
@@ -523,7 +529,7 @@ fn assert_mpfr_expected(
 
 macro_rules! mpfr_test_2ary {
     ($name:ident, $impl:ident, $cname:expr) => {
-        fn $name(ctx: &ieee754::Context) -> bool {
+        fn $name(ctx: &ieee754::IEEE754Context) -> bool {
             let emax = ctx.emax() + 1;
             let emin = ctx.expmin() + 1;
             let mut passing = true;
@@ -531,18 +537,18 @@ macro_rules! mpfr_test_2ary {
             let p = (ctx.nbits() - ctx.es()) as u32;
             for i in 0..(1 << ctx.nbits()) {
                 let x = ctx.bits_to_number(Integer::from(i));
-                let xf = Float::from(Rational::from(x.clone()));
+                let xf = MpfrFloat::from(Rational::from(x.clone()));
                 for j in 0..(1 << ctx.nbits()) {
                     let y = ctx.bits_to_number(Integer::from(j));
-                    let yf = Float::from(Rational::from(y.clone()));
+                    let yf = MpfrFloat::from(Rational::from(y.clone()));
 
                     // Implementation
                     let z = ctx.$impl(&x, &y);
                     let flags = z.flags().clone();
-                    let rf = Float::from(z);
+                    let rf = MpfrFloat::from(z);
 
                     // MPFR
-                    let mut zf = Float::new(p);
+                    let mut zf = MpfrFloat::new(p);
                     let mpfr_invalid: bool;
                     let mpfr_divzero: bool;
                     let mpfr_overflow: bool;
@@ -632,7 +638,7 @@ macro_rules! test_exhaustive_2ary {
             for es in EMIN..(EMAX + 1) {
                 for nbits in max(NBITS_MIN, es + 3)..(NBITS_MAX + 1) {
                     for rm in &rms {
-                        let ctx = ieee754::Context::new(es, nbits).with_rounding_mode(*rm);
+                        let ctx = ieee754::IEEE754Context::new(es, nbits).with_rounding_mode(*rm);
                         if $runner(&ctx) {
                             total += 1;
                             passed += 1;
@@ -661,7 +667,7 @@ test_exhaustive_2ary!(div_exhaustive, div_exhaustive_config, 2, 6, 4, 8);
 
 #[test]
 fn sandbox() {
-    let ctx = ieee754::Context::new(2, 5);
+    let ctx = ieee754::IEEE754Context::new(2, 5);
     let x = ctx.bits_to_number(Integer::from(1));
     let y = ctx.bits_to_number(Integer::from(6));
     let z = ctx.mul(&x, &y);

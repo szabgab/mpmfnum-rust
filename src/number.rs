@@ -1,5 +1,5 @@
 /*!
-A common trait for all number systems.
+Common trait for all number systems.
 
 The [`Number`] trait describes a common interface for all number formats.
 Due to the broad variety of computer number systems, the interface is

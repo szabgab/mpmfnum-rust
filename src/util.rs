@@ -7,6 +7,7 @@ pub(crate) fn bitmask(n: usize) -> Integer {
     (Integer::from(1) << n) - 1
 }
 
+#[derive(Clone, Debug)]
 pub struct MPFRFlags {
     pub invalid: bool,
     pub divzero: bool,

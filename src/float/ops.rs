@@ -1,24 +1,24 @@
-use crate::fixed_point::Context;
-use crate::ops::*;
+use crate::float::FloatContext;
 use crate::math::*;
+use crate::ops::*;
 use crate::rational::Rational;
 use crate::{Number, RoundingContext};
 
 macro_rules! rounded_1ary_impl {
     ($tname:ident, $name:ident, $mpmf:ident, $mpfr:ident) => {
-        impl $tname for Context {
+        impl $tname for FloatContext {
             fn $name(&self, src: &Self::Rounded) -> Self::Rounded {
                 self.$mpmf(src)
             }
 
             fn $mpmf<N: Number>(&self, src: &N) -> Self::Rounded {
-                // compute approximately, rounding-to-odd,
-                // with 2 rounding bits
-                let p = self.nbits + 2;
+                // compute with 2 additional bits, rounding-to-odd
+                let p = self.max_p() + 2;
                 let r = Rational::from_number(src);
                 let result = $mpfr(r, p);
                 let mut rounded = self.mpmf_round(result.num());
                 rounded.flags.invalid = result.flags().invalid;
+                rounded.flags.divzero = result.flags().divzero;
                 rounded
             }
         }
@@ -54,7 +54,7 @@ rounded_1ary_impl!(RoundedLgamma, lgamma, mpmf_lgamma, mpfr_lgamma);
 
 macro_rules! rounded_2ary_impl {
     ($tname:ident, $name:ident, $mpmf:ident, $mpfr:ident) => {
-        impl $tname for Context {
+        impl $tname for FloatContext {
             fn $name(&self, src1: &Self::Rounded, src2: &Self::Rounded) -> Self::Rounded {
                 self.$mpmf(src1, src2)
             }
@@ -64,14 +64,14 @@ macro_rules! rounded_2ary_impl {
                 N1: Number,
                 N2: Number,
             {
-                // compute approximately, rounding-to-odd,
-                // with 2 rounding bits
-                let p = self.nbits + 2;
+                // compute with 2 additional bits, rounding-to-odd
+                let p = self.max_p() + 2;
                 let r1 = Rational::from_number(src1);
                 let r2 = Rational::from_number(src2);
                 let result = $mpfr(r1, r2, p);
                 let mut rounded = self.mpmf_round(result.num());
                 rounded.flags.invalid = result.flags().invalid;
+                rounded.flags.divzero = result.flags().divzero;
                 rounded
             }
         }
@@ -90,7 +90,7 @@ rounded_2ary_impl!(RoundedAtan2, atan2, mpmf_atan2, mpfr_atan2);
 
 macro_rules! rounded_3ary_impl {
     ($tname:ident, $name:ident, $mpmf:ident, $mpfr:ident) => {
-        impl $tname for Context {
+        impl $tname for FloatContext {
             fn $name(
                 &self,
                 src1: &Self::Rounded,
@@ -106,15 +106,15 @@ macro_rules! rounded_3ary_impl {
                 N2: Number,
                 N3: Number,
             {
-                // compute approximately, rounding-to-odd,
-                // with 2 rounding bits
-                let p = self.nbits + 2;
+                // compute with 2 additional bits, rounding-to-odd
+                let p = self.max_p() + 2;
                 let r1 = Rational::from_number(src1);
                 let r2 = Rational::from_number(src2);
                 let r3 = Rational::from_number(src3);
                 let result = $mpfr(r1, r2, r3, p);
                 let mut rounded = self.mpmf_round(result.num());
                 rounded.flags.invalid = result.flags().invalid;
+                rounded.flags.divzero = result.flags().divzero;
                 rounded
             }
         }

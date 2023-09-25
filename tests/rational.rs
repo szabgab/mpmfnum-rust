@@ -1,4 +1,4 @@
-use rug::{Float, Integer};
+use rug::Integer;
 use std::cmp::Ordering;
 
 use mpmfnum::rational::*;
@@ -196,7 +196,7 @@ fn traits() {
 #[test]
 fn round_trivial() {
     // rounding context
-    let ctx = Context::new().with_max_precision(1);
+    let ctx = RationalContext::new().with_max_precision(1);
 
     // round(zero) = round
     let zero = Rational::zero();
@@ -237,7 +237,7 @@ fn round_fixed() {
     let neg_one = Rational::Real(true, 0, Integer::from(1));
 
     // 1 (min_n == -1) => 1
-    let ctx = Context::new()
+    let ctx = RationalContext::new()
         .with_min_n(-1)
         .with_rounding_mode(RoundingMode::ToZero);
     let (rounded_one, err) = ctx.round_residual(&one);
@@ -250,7 +250,7 @@ fn round_fixed() {
     assert!(err.unwrap().is_zero(), "lost bits should be 0");
 
     // 1 (min_n == 0) => 0
-    let ctx = Context::new()
+    let ctx = RationalContext::new()
         .with_min_n(0)
         .with_rounding_mode(RoundingMode::ToZero);
     let (rounded_one, err) = ctx.round_residual(&one);
@@ -259,7 +259,7 @@ fn round_fixed() {
     assert_eq!(err.unwrap(), Rational::one(), "lost bits should be 1");
 
     // -1 (min_n == 0) => 0
-    let ctx = Context::new()
+    let ctx = RationalContext::new()
         .with_min_n(0)
         .with_rounding_mode(RoundingMode::ToZero);
     let (rounded_one, err) = ctx.round_residual(&neg_one);
@@ -268,7 +268,7 @@ fn round_fixed() {
     assert_eq!(err.unwrap(), neg_one, "lost bits should be -1");
 
     // 1.75 (min_n == -1) => 1
-    let ctx = Context::new()
+    let ctx = RationalContext::new()
         .with_min_n(-1)
         .with_rounding_mode(RoundingMode::ToZero);
     let (rounded, err) = ctx.round_residual(&one_3_4);
@@ -277,7 +277,7 @@ fn round_fixed() {
     assert_eq!(err.unwrap(), three_4, "lost bits should be 3/4");
 
     // 1.75 (min_n == -2) => 1.5
-    let ctx = Context::new()
+    let ctx = RationalContext::new()
         .with_min_n(-2)
         .with_rounding_mode(RoundingMode::ToZero);
     let (rounded, err) = ctx.round_residual(&one_3_4);
@@ -286,7 +286,7 @@ fn round_fixed() {
     assert_eq!(err.unwrap(), one_4, "lost bits should be 1/4");
 
     // 1 (min_n == 10) => 0
-    let ctx = Context::new()
+    let ctx = RationalContext::new()
         .with_min_n(10)
         .with_rounding_mode(RoundingMode::ToZero);
     let (rounded, err) = ctx.round_residual(&one);
@@ -309,7 +309,7 @@ fn round_float() {
     // 1.25, 3 bits
 
     // rounding 1.25 with 3 bits, exact
-    let ctx = Context::new().with_max_precision(3);
+    let ctx = RationalContext::new().with_max_precision(3);
     let (rounded, err) = ctx.round_residual(&one_1_4);
     assert_eq!(rounded, one_1_4, "rounding should be exact");
     assert_eq!(err.unwrap(), zero, "lost bits is zero");
@@ -390,7 +390,7 @@ fn round_float_subnorm() {
     let one_8 = Rational::Real(false, -3, Integer::from(1));
 
     // No subnormals, round-to-nearest
-    let ctx = Context::new().with_max_precision(2);
+    let ctx = RationalContext::new().with_max_precision(2);
     let (rounded, err) = ctx.round_residual(&half_way);
     assert_eq!(one, rounded, "rounding to 1");
     assert_eq!(err.unwrap(), one_8, "lost bits is 1/8");
@@ -407,31 +407,31 @@ fn round_float_subnorm() {
     assert_eq!(tiny_val, rounded, "rounding to 3/4");
     assert_eq!(err.unwrap(), one_8, "lost bits is 1/8");
 
-    // Float<2, 4>, round-to-nearest
-    let ctx = Context::new().with_max_precision(2).with_min_n(-2);
+    // Rational<2, 4>, round-to-nearest
+    let ctx = RationalContext::new().with_max_precision(2).with_min_n(-2);
     let (rounded, err) = ctx.round_residual(&tiny_val);
     assert_eq!(one, rounded, "rounding to 1");
     assert_eq!(err.unwrap(), one_4, "lost bits is 1/4");
 
-    // Float<2, 4>, round-away-zero
+    // Rational<2, 4>, round-away-zero
     let ctx = ctx.with_rounding_mode(RoundingMode::AwayZero);
     let (rounded, err) = ctx.round_residual(&tiny_val);
     assert_eq!(one, rounded, "rounding to 1");
     assert_eq!(err.unwrap(), one_4, "lost bits is 1/4");
 
-    // Float<2, 4>, round-to-zero
+    // Rational<2, 4>, round-to-zero
     let ctx = ctx.with_rounding_mode(RoundingMode::ToZero);
     let (rounded, err) = ctx.round_residual(&tiny_val);
     assert_eq!(one_2, rounded, "rounding to 1/2");
     assert_eq!(err.unwrap(), one_4, "lost bits is 1/4");
 
-    // Float<2, 4>, round-to-even
+    // Rational<2, 4>, round-to-even
     let ctx = ctx.with_rounding_mode(RoundingMode::ToEven);
     let (rounded, err) = ctx.round_residual(&tiny_val);
     assert_eq!(one, rounded, "rounding to 1");
     assert_eq!(err.unwrap(), one_4, "lost bits is 1/4");
 
-    // Float<2, 4>, round-to-odd
+    // Rational<2, 4>, round-to-odd
     let ctx = ctx.with_rounding_mode(RoundingMode::ToOdd);
     let (rounded, err) = ctx.round_residual(&tiny_val);
     assert_eq!(one_2, rounded, "rounding to 1/2");
@@ -721,7 +721,7 @@ fn mpfr_integration() {
     let vals = [zero, one, frac, pos_inf, neg_inf, nan];
 
     for val in &vals {
-        let f: Float = val.clone().into();
+        let f: Rational = val.clone().into();
         let val2 = Rational::from(f);
         assert!(
             is_equal(val, &val2),

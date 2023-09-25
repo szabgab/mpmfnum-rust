@@ -5,22 +5,22 @@ use crate::round::RoundingDirection;
 use crate::util::*;
 use crate::{Number, RoundingContext, RoundingMode};
 
-/// Result type of [`Context::round_prepare`].
+/// Result type of [`RationalContext::round_prepare`].
 pub(crate) struct RoundPrepareResult {
     pub num: Rational,
     pub halfway_bit: bool,
     pub sticky_bit: bool,
 }
 
-/// Rounding contexts for rational numbers.
+/// Rounding contexts for floating-point numbers.
 ///
-/// Rounding a digital number to a fixed-width rational number takes three
-/// parameters: a maximum precision (see [`Number::p`]) and the minimum least
-/// absolute digit (see [`Number::n`]), and a rounding mode [`RoundingMode`].
-/// Rounding will theoretically work for all real values. The requested
-/// precision may be one or zero bits, but there is no way to place an
-/// upper bound on the resulting exponent; infinity and NaN will not be
-/// rounded.
+/// Rounding a number to a (bounded) rational number takes three parameters:
+/// a maximum precision (see [`Number::p`]), the minimum absolute digit
+/// (see [`Number::n`]), and a rounding mode [`RoundingMode`].
+/// Rounding will theoretically work for all real values.
+/// The requested precision may be as small as one or zero bits,
+/// but there is no way to place an upper bound on the resulting exponent;
+/// infinity and NaN will not be rounded.
 ///
 /// There are three possible rounding behaviors: only `min_n` is specified,
 /// only `max_p` is specified, or both are specified. In the first case,
@@ -34,18 +34,18 @@ pub(crate) struct RoundPrepareResult {
 /// emulate IEEE 754 subnormalization. At least one parameter must be given
 /// or rounding will panic.
 ///
-/// The rounding mode affects how "lost" binary digits are handled. The
-/// possible rounding modes that can be specified are defined by
-/// [`RoundingMode`].
+/// The rounding mode affects how "lost" binary digits are handled.
+/// The possible rounding modes that can be specified are
+/// defined by [`RoundingMode`].
 ///
 #[derive(Clone, Debug)]
-pub struct Context {
+pub struct RationalContext {
     max_p: Option<usize>,
     min_n: Option<isize>,
     rm: RoundingMode,
 }
 
-impl Context {
+impl RationalContext {
     /// Constructs a rounding arguments with default arguments.
     /// Neither `max_p` nor `min_n` are specified so rounding
     /// will panic. The default rounding mode is
@@ -89,7 +89,7 @@ impl Context {
     }
 
     /// Rounding utility function: splits a [`Number`] at binary digit `n`,
-    /// returning two rational numbers: the first capturing digits above
+    /// returning two [`Rational`] values: the first capturing digits above
     /// the digit at position `n`, and the second capturing digits at or
     /// below the digit at position `n`.
     pub(crate) fn split_at<T: Number>(num: &T, n: isize) -> (Rational, Rational) {
@@ -332,13 +332,13 @@ impl Context {
     }
 }
 
-impl Default for Context {
+impl Default for RationalContext {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl RoundingContext for Context {
+impl RoundingContext for RationalContext {
     type Rounded = Rational;
 
     fn round(&self, val: &Self::Rounded) -> Self::Rounded {

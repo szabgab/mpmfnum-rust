@@ -4,9 +4,10 @@ use std::ops::{BitAnd, BitOr};
 use num_traits::Zero;
 use rug::Integer;
 
-use crate::ieee754::Context;
+use crate::ieee754::IEEE754Context;
+use crate::rational::Rational;
 use crate::util::bitmask;
-use crate::{rational::Rational, Number};
+use crate::Number;
 
 /// Exception flags to signal certain properties of the rounded result.
 ///
@@ -84,7 +85,7 @@ impl Exceptions {
 /// IEEE 754 floating-point bitwise encoding viewed as an enumeration.
 /// Unlike [`IEEE754`], [`IEEE754Val`] contains only the numerical data
 /// required to encode a binary floating-point number as described by
-/// the IEEE-754 standard.
+/// the IEEE 754 standard.
 #[derive(Clone, Debug)]
 pub enum IEEE754Val {
     /// Signed zero: `Zero(s)`: where `s` specifies `-0` or `+0`.
@@ -106,10 +107,11 @@ pub enum IEEE754Val {
     Nan(bool, bool, Integer),
 }
 
-/// The IEEE 754 floating-point type.
+/// The IEEE 754 floating-point format.
 ///
-/// Parameterized by `es`, the bitwidth of the exponent field, and `nbits`,
-/// the total bitwidth of the floating-point encoding. In addition to
+/// This is the floating-point format described in the IEEE 754 standard.
+///
+///  In addition to
 /// numerical data, each [`IEEE754`] value has an [`Exceptions`] instance
 /// as well as a rounding context that are set when the floating-point
 /// number is created.
@@ -117,7 +119,7 @@ pub enum IEEE754Val {
 pub struct IEEE754 {
     pub(crate) num: IEEE754Val,
     pub(crate) flags: Exceptions,
-    pub(crate) ctx: Context,
+    pub(crate) ctx: IEEE754Context,
 }
 
 impl IEEE754 {
@@ -127,7 +129,7 @@ impl IEEE754 {
     }
 
     /// Returns the rounding context under which this number was created.
-    pub fn ctx(&self) -> &Context {
+    pub fn ctx(&self) -> &IEEE754Context {
         &self.ctx
     }
 
@@ -164,8 +166,7 @@ impl IEEE754 {
         }
     }
 
-    /// Converts this [`IEEE754`] to an [`Integer`] representing
-    /// an IEEE 754 bitpattern.
+    /// Converts this [`IEEE754`] to an [`Integer`] representing an IEEE 754 bitpattern.
     pub fn into_bits(&self) -> Integer {
         let nbits = self.ctx.nbits();
         let (s, unsigned) = match &self.num {

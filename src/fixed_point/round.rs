@@ -2,7 +2,7 @@ use num_traits::{Signed, Zero};
 use rug::Integer;
 
 use crate::fixed_point::{Exceptions, Fixed};
-use crate::rational::{self, Rational};
+use crate::rational::{Rational, RationalContext};
 use crate::{Number, RoundingContext, RoundingMode};
 
 /// Fixed-point overflow behavior.
@@ -145,7 +145,7 @@ impl Context {
         // step 1: compute the rounding parameters
         // we only need the first digit we want to chop off
         let n = self.scale - 1;
-        let rctx = rational::Context::new()
+        let rctx = RationalContext::new()
             .with_rounding_mode(self.rm)
             .with_min_n(n);
 

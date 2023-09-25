@@ -229,9 +229,9 @@ impl Rational {
         }
     }
 
-    /// Constructs a rational number from a [`Number`].
-    /// This is the default conversion function from any implementation
-    /// of the trait.
+    /// Constructs a [`Rational`] value from a [`Number`].
+    /// This is the default conversion function from
+    /// any implementation of the [`Number`] trait.
     pub fn from_number<N: Number>(val: &N) -> Self {
         // case split by class
         if !val.is_numerical() {
@@ -343,16 +343,16 @@ impl PartialEq for Rational {
     }
 }
 
-impl From<Rational> for rug::Float {
+impl From<Rational> for Float {
     fn from(val: Rational) -> Self {
         use rug::float::*;
         match val {
             Rational::Nan => Float::with_val(prec_min(), Special::Nan),
             Rational::Infinite(s) => {
                 if s {
-                    rug::Float::with_val(prec_min(), Special::NegInfinity)
+                    Float::with_val(prec_min(), Special::NegInfinity)
                 } else {
-                    rug::Float::with_val(prec_min(), Special::Infinity)
+                    Float::with_val(prec_min(), Special::Infinity)
                 }
             }
             Rational::Real(s, exp, c) => {
@@ -379,8 +379,8 @@ impl From<Rational> for rug::Float {
     }
 }
 
-impl From<rug::Float> for Rational {
-    fn from(val: rug::Float) -> Self {
+impl From<Float> for Rational {
+    fn from(val: Float) -> Self {
         if val.is_nan() {
             Self::Nan
         } else if val.is_infinite() {
