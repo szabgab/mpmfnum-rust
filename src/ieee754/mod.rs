@@ -13,4 +13,4 @@ mod round;
 
 pub use number::{Exceptions, IEEE754Val, IEEE754};
 pub use ops::*;
-pub use round::Context;
+pub use round::IEEE754Context;

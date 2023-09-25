@@ -1,11 +1,11 @@
-use crate::ieee754::Context;
+use crate::ieee754::IEEE754Context;
 use crate::ops::*;
 use crate::float::Float;
 use crate::{Number, RoundingContext};
 
 macro_rules! rounded_1ary_impl {
     ($tname:ident, $name:ident, $mpmf:ident, $mpfr:ident) => {
-        impl $tname for Context {
+        impl $tname for IEEE754Context {
             fn $name(&self, src: &Self::Rounded) -> Self::Rounded {
                 if src.is_nan() {
                     let mut result = self.round(src);
@@ -74,7 +74,7 @@ rounded_1ary_impl!(RoundedLgamma, lgamma, mpmf_lgamma, lgamma_with_mpfr);
 
 macro_rules! rounded_2ary_impl {
     ($tname:ident, $name:ident, $mpmf:ident, $mpfr:ident) => {
-        impl $tname for Context {
+        impl $tname for IEEE754Context {
             fn $name(&self, src1: &Self::Rounded, src2: &Self::Rounded) -> Self::Rounded {
                 if src1.is_nan() {
                     let mut result = self.round(src1);
@@ -145,7 +145,7 @@ rounded_2ary_impl!(RoundedAtan2, atan2, mpmf_atan2, atan2_with_mpfr);
 
 macro_rules! rounded_3ary_impl {
     ($tname:ident, $name:ident, $mpmf:ident, $mpfr:ident) => {
-        impl $tname for Context {
+        impl $tname for IEEE754Context {
             fn $name(
                 &self,
                 src1: &Self::Rounded,

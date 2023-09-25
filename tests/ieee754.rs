@@ -21,7 +21,7 @@ fn assert_round_small(
     tiny_post: bool,
     carry: bool,
 ) {
-    let ctx = ieee754::Context::new(2, 5).with_rounding_mode(rm);
+    let ctx = ieee754::IEEE754Context::new(2, 5).with_rounding_mode(rm);
     let rounded = ctx.mpmf_round(input);
 
     assert_eq!(
@@ -380,7 +380,7 @@ fn round_small() {
 
 #[test]
 fn from_bits_small() {
-    let ctx = ieee754::Context::new(2, 5);
+    let ctx = ieee754::IEEE754Context::new(2, 5);
 
     // 0
     let num = ctx.bits_to_number(Integer::from(0));
@@ -462,7 +462,7 @@ fn from_bits_small() {
 
 #[test]
 fn to_bits_small() {
-    let ctx = ieee754::Context::new(2, 5);
+    let ctx = ieee754::IEEE754Context::new(2, 5);
     for i in 0..32 {
         let b1 = Integer::from(i);
         let b2 = ctx.bits_to_number(b1.clone()).into_bits();
@@ -524,7 +524,7 @@ fn assert_mpfr_expected(
 
 macro_rules! mpfr_test_2ary {
     ($name:ident, $impl:ident, $cname:expr) => {
-        fn $name(ctx: &ieee754::Context) -> bool {
+        fn $name(ctx: &ieee754::IEEE754Context) -> bool {
             let emax = ctx.emax() + 1;
             let emin = ctx.expmin() + 1;
             let mut passing = true;
@@ -633,7 +633,7 @@ macro_rules! test_exhaustive_2ary {
             for es in EMIN..(EMAX + 1) {
                 for nbits in max(NBITS_MIN, es + 3)..(NBITS_MAX + 1) {
                     for rm in &rms {
-                        let ctx = ieee754::Context::new(es, nbits).with_rounding_mode(*rm);
+                        let ctx = ieee754::IEEE754Context::new(es, nbits).with_rounding_mode(*rm);
                         if $runner(&ctx) {
                             total += 1;
                             passed += 1;
@@ -662,7 +662,7 @@ test_exhaustive_2ary!(div_exhaustive, div_exhaustive_config, 2, 6, 4, 8);
 
 #[test]
 fn sandbox() {
-    let ctx = ieee754::Context::new(2, 5);
+    let ctx = ieee754::IEEE754Context::new(2, 5);
     let x = ctx.bits_to_number(Integer::from(1));
     let y = ctx.bits_to_number(Integer::from(6));
     let z = ctx.mul(&x, &y);

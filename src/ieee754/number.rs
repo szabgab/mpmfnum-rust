@@ -4,7 +4,7 @@ use std::ops::{BitAnd, BitOr};
 use num_traits::Zero;
 use rug::Integer;
 
-use crate::ieee754::Context;
+use crate::ieee754::IEEE754Context;
 use crate::util::bitmask;
 use crate::{float::Float, Number};
 
@@ -117,7 +117,7 @@ pub enum IEEE754Val {
 pub struct IEEE754 {
     pub(crate) num: IEEE754Val,
     pub(crate) flags: Exceptions,
-    pub(crate) ctx: Context,
+    pub(crate) ctx: IEEE754Context,
 }
 
 impl IEEE754 {
@@ -127,7 +127,7 @@ impl IEEE754 {
     }
 
     /// Returns the rounding context under which this number was created.
-    pub fn ctx(&self) -> &Context {
+    pub fn ctx(&self) -> &IEEE754Context {
         &self.ctx
     }
 

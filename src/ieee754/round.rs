@@ -16,7 +16,7 @@ use crate::{Number, RoundingContext, RoundingMode};
 /// specify subnormal handling specifically before an operation
 /// `daz` and after rounding `ftz`.
 #[derive(Clone, Debug)]
-pub struct Context {
+pub struct IEEE754Context {
     es: usize,
     nbits: usize,
     rm: RoundingMode,
@@ -24,7 +24,7 @@ pub struct Context {
     ftz: bool,
 }
 
-impl Context {
+impl IEEE754Context {
     /// Implementation limit: maximum exponent size
     pub const ES_MAX: usize = 32;
     /// Implementation limit: minimum exponent size
@@ -265,7 +265,7 @@ impl Context {
 }
 
 // Rounding utility functions.
-impl Context {
+impl IEEE754Context {
     /// Given a sign and rounding mode, returns true if a overflow
     /// exception means the result is rounded to infinity rather
     /// than MAX_FLOAT.
@@ -281,7 +281,7 @@ impl Context {
     }
 
     /// Rounding utility function: returns true if the result will be tiny
-    /// after rounding. The result of [`round_prepare`][crate::float::FloatContext::round_prepare]
+    /// after rounding. The result of [`round_prepare`][crate::float::FloatIEEE754Context::round_prepare]
     /// is sufficient for computing this condition. This condition is
     /// satisfied when the rounded result would have been smaller than
     /// MIN_NORM if the exponent were unbounded (but non-zero).
@@ -348,7 +348,7 @@ impl Context {
         let e = unbounded.e().unwrap();
         if e > self.emax() {
             let sign = unbounded.sign();
-            if Context::overflow_to_infinity(sign, self.rm) {
+            if IEEE754Context::overflow_to_infinity(sign, self.rm) {
                 return IEEE754 {
                     num: IEEE754Val::Infinity(sign),
                     flags: Exceptions {
@@ -426,7 +426,7 @@ impl Context {
         // step 1: rounding as an unbounded, fixed-precision floating-point,
         // so we need to compute the context parameters; IEEE 754 numbers
         // support subnormalization so we need to set both `max_p` and
-        // `min_n` when rounding with a FloatContext.
+        // `min_n` when rounding with a FloatIEEE754Context.
         let (p, n) = FloatContext::new()
             .with_rounding_mode(self.rm)
             .with_max_precision(self.max_p())
@@ -459,11 +459,11 @@ impl Context {
     }
 }
 
-impl RoundingContext for Context {
+impl RoundingContext for IEEE754Context {
     type Rounded = IEEE754;
 
     /// Rounds an [`IEEE754`] value into the format specified by
-    /// this rounding context. See [`RoundingContext::round`] for the more
+    /// this rounding context. See [`RoundingIEEE754Context::round`] for the more
     /// general implementation of rounding from formats other than the
     /// output format.
     fn round(&self, val: &Self::Rounded) -> Self::Rounded {
