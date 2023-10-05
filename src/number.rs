@@ -1,31 +1,22 @@
-/*!
-Common trait for all number systems.
-
-The [`Number`] trait describes a common interface for all number formats.
-Due to the broad variety of computer number systems, the interface is
-narrow, supporting getters to extract basic information of the number
-including the normalized exponent, significand, sign, etc.
-*/
-
 use rug::Integer;
 
-/// The "digital" number representing a real number format.
+/// Universal trait for extended real numbers.
 ///
-/// All computer number systems share some characteristics.
-/// They all can be represented by a finite-precision number in
+/// Computer number systems share certain characterstics.
+/// Many can be represented by a finite-precision number in
 /// scientific notation: `(-1)^s * c * b^exp` where `s` is the sign,
 /// `c` is the integer significand, `b` is the radix, and `exp` is
 /// the exponent. Specifically, `s` is either `0` or `1`, `c` is
 /// non-negative, and `b` is positive. Number systems can usually be
-/// split into two broad groups: floating-point or fixed-point, where
-/// the "point" refers to the position of the "ones" place within `c`, if
-/// `c` were extended to an infinite sequence of digits in either direction.
-/// Number systems may encode non-real numbers, notably infinity or NaN.
+/// split into two broad groups: floating-point or fixed-point,
+/// where the "point" refers to the position of the least-significant digit
+/// in `c` when viewing the significand as an infinite sequence of digits
+/// in either direction. Number systems may encode non-real numbers,
+/// notably infinity or NaN.
 ///
-/// See [`RoundingContext`][crate::RoundingContext]
-/// for details on rounding.
+/// See [`RoundingContext`][crate::RoundingContext] for details on rounding.
 ///
-pub trait Number {
+pub trait Real {
     /// Radix of a number.
     /// It must be strictly positive.
     fn radix() -> usize;

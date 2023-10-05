@@ -7,7 +7,7 @@ use rug::Integer;
 use crate::ieee754::IEEE754Context;
 use crate::rational::Rational;
 use crate::util::bitmask;
-use crate::Number;
+use crate::Real;
 
 /// Exception flags to signal certain properties of the rounded result.
 ///
@@ -204,7 +204,7 @@ impl IEEE754 {
     }
 }
 
-impl Number for IEEE754 {
+impl Real for IEEE754 {
     fn radix() -> usize {
         2
     }

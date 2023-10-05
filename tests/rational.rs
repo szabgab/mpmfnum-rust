@@ -2,7 +2,7 @@ use rug::Integer;
 use std::cmp::Ordering;
 
 use mpmfnum::rational::*;
-use mpmfnum::{Number, RoundingMode};
+use mpmfnum::{Real, RoundingMode};
 
 /// Testing all the required methods from [`mpmfnum::Number`].
 #[test]

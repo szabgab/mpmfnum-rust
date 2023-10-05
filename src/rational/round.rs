@@ -3,7 +3,7 @@ use rug::Integer;
 use crate::rational::Rational;
 use crate::round::RoundingDirection;
 use crate::util::*;
-use crate::{Number, RoundingContext, RoundingMode};
+use crate::{Real, RoundingContext, RoundingMode};
 
 /// Result type of [`RationalContext::round_prepare`].
 pub(crate) struct RoundPrepareResult {
@@ -15,8 +15,8 @@ pub(crate) struct RoundPrepareResult {
 /// Rounding contexts for floating-point numbers.
 ///
 /// Rounding a number to a (bounded) rational number takes three parameters:
-/// a maximum precision (see [`Number::p`]), the minimum absolute digit
-/// (see [`Number::n`]), and a rounding mode [`RoundingMode`].
+/// a maximum precision (see [`Real::p`]), the minimum absolute digit
+/// (see [`Real::n`]), and a rounding mode [`RoundingMode`].
 /// Rounding will theoretically work for all real values.
 /// The requested precision may be as small as one or zero bits,
 /// but there is no way to place an upper bound on the resulting exponent;
@@ -88,11 +88,11 @@ impl RationalContext {
         self
     }
 
-    /// Rounding utility function: splits a [`Number`] at binary digit `n`,
+    /// Rounding utility function: splits a [`Real`] at binary digit `n`,
     /// returning two [`Rational`] values: the first capturing digits above
     /// the digit at position `n`, and the second capturing digits at or
     /// below the digit at position `n`.
-    pub(crate) fn split_at<T: Number>(num: &T, n: isize) -> (Rational, Rational) {
+    pub(crate) fn split_at<T: Real>(num: &T, n: isize) -> (Rational, Rational) {
         // easy case: splitting zero
         if num.is_zero() {
             let s = num.sign();
@@ -133,8 +133,8 @@ impl RationalContext {
 
     /// Rounding utility function: returns the rounding parameters
     /// necessary to perform rounding under this context for a
-    /// given [`Number`].
-    pub(crate) fn round_params<T: Number>(&self, num: &T) -> (Option<usize>, isize) {
+    /// given [`Real`].
+    pub(crate) fn round_params<T: Real>(&self, num: &T) -> (Option<usize>, isize) {
         match (self.max_p, self.min_n) {
             (None, None) => {
                 // unreachable
@@ -163,12 +163,12 @@ impl RationalContext {
         }
     }
 
-    /// Rounding utility function: splits a [`Number`] at binary digit `n`,
+    /// Rounding utility function: splits a [`Real`] at binary digit `n`,
     /// returning the digits above that position as a [`Rational`] number,
     /// the next digit at the `n`th position (also called the guard bit),
     /// and an inexact bit if there are any lower order digits (also called
     /// the sticky bit).
-    pub(crate) fn round_prepare<T: Number>(num: &T, n: isize) -> RoundPrepareResult {
+    pub(crate) fn round_prepare<T: Real>(num: &T, n: isize) -> RoundPrepareResult {
         // split number at the `n`th digit
         let (high, low) = Self::split_at(num, n);
 
@@ -276,10 +276,10 @@ impl RationalContext {
         Rational::Real(sign, exp, c)
     }
 
-    /// Rounds a finite [`Number`].
+    /// Rounds a finite [`Real`].
     ///
-    /// Called by the public [`Number::round`] function.
-    fn round_finite<T: Number>(&self, num: &T) -> Rational {
+    /// Called by the public [`Real::round`] function.
+    fn round_finite<T: Real>(&self, num: &T) -> Rational {
         // step 1: compute the first digit we will split off
         let (p, n) = self.round_params(num);
 
@@ -293,9 +293,9 @@ impl RationalContext {
         rounded.canonicalize()
     }
 
-    /// Rounds a finite [`Number`] also returning the digits
+    /// Rounds a finite [`Real`] also returning the digits
     /// rounded off as a [`Rational`] value.
-    pub fn round_residual<T: Number>(&self, num: &T) -> (Rational, Option<Rational>) {
+    pub fn round_residual<T: Real>(&self, num: &T) -> (Rational, Option<Rational>) {
         assert!(
             self.max_p.is_some() || self.min_n.is_some(),
             "must specify either maximum precision or least absolute digit"
@@ -345,7 +345,7 @@ impl RoundingContext for RationalContext {
         self.mpmf_round(val)
     }
 
-    fn mpmf_round<T: Number>(&self, num: &T) -> Self::Rounded {
+    fn mpmf_round<T: Real>(&self, num: &T) -> Self::Rounded {
         assert!(
             self.max_p.is_some() || self.min_n.is_some(),
             "must specify either maximum precision or least absolute digit"

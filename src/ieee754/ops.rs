@@ -2,7 +2,7 @@ use crate::ieee754::IEEE754Context;
 use crate::math::*;
 use crate::ops::*;
 use crate::rational::Rational;
-use crate::{Number, RoundingContext};
+use crate::{Real, RoundingContext};
 
 macro_rules! rounded_1ary_impl {
     ($tname:ident, $name:ident, $mpmf:ident, $mpfr:ident) => {
@@ -32,7 +32,7 @@ macro_rules! rounded_1ary_impl {
                 }
             }
 
-            fn $mpmf<N: Number>(&self, src: &N) -> Self::Rounded {
+            fn $mpmf<N: Real>(&self, src: &N) -> Self::Rounded {
                 // compute with 2 additional bits, rounding-to-odd
                 let p = self.max_p() + 2;
                 let r = Rational::from_number(src);
@@ -112,8 +112,8 @@ macro_rules! rounded_2ary_impl {
 
             fn $mpmf<N1, N2>(&self, src1: &N1, src2: &N2) -> Self::Rounded
             where
-                N1: Number,
-                N2: Number,
+                N1: Real,
+                N2: Real,
             {
                 // compute with 2 additional bits, rounding-to-odd
                 let p = self.max_p() + 2;
@@ -207,9 +207,9 @@ macro_rules! rounded_3ary_impl {
 
             fn $mpmf<N1, N2, N3>(&self, src1: &N1, src2: &N2, src3: &N3) -> Self::Rounded
             where
-                N1: Number,
-                N2: Number,
-                N3: Number,
+                N1: Real,
+                N2: Real,
+                N3: Real,
             {
                 // compute with 2 additional bits, rounding-to-odd
                 let p = self.max_p() + 2;

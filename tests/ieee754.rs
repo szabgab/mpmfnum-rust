@@ -3,7 +3,7 @@ use std::cmp::max;
 use mpmfnum::ieee754;
 use mpmfnum::ops::*;
 use mpmfnum::rational::Rational;
-use mpmfnum::{Number, RoundingContext, RoundingMode};
+use mpmfnum::{Real, RoundingContext, RoundingMode};
 
 use gmp_mpfr_sys::mpfr;
 use rug::Float as MpfrFloat;

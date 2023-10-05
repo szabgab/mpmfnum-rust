@@ -6,7 +6,7 @@ use rug::{Float, Integer};
 
 use gmp_mpfr_sys::mpfr;
 
-use crate::Number;
+use crate::Real;
 
 /// The rational number format.
 ///
@@ -38,9 +38,9 @@ pub const POS_INF: Rational = Rational::Infinite(false);
 /// An instantiation of [`Rational::Infinite`] with negative sign.
 pub const NEG_INF: Rational = Rational::Infinite(true);
 
-// Implements the `Number` trait for `Rational`.
+// Implements the `Real` trait for `Rational`.
 // See `Rational` for a description of the trait and its members.
-impl Number for Rational {
+impl Real for Rational {
     fn radix() -> usize {
         2
     }
@@ -228,10 +228,10 @@ impl Rational {
         }
     }
 
-    /// Constructs a [`Rational`] value from a [`Number`].
+    /// Constructs a [`Rational`] value from a [`Real`].
     /// This is the default conversion function from
-    /// any implementation of the [`Number`] trait.
-    pub fn from_number<N: Number>(val: &N) -> Self {
+    /// any implementation of the [`Real`] trait.
+    pub fn from_number<N: Real>(val: &N) -> Self {
         // case split by class
         if !val.is_numerical() {
             // Any non-numerical type is NaN

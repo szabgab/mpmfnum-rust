@@ -1,11 +1,11 @@
 /*!
 Traits for rounded mathematical operations.
 
-Implementations of these traits operate on [`Number`] types,
+Implementations of these traits operate on [`Real`] types,
 rounding the result according to a given [`RoundingContext`].
 */
 
-use crate::{Number, RoundingContext};
+use crate::{Real, RoundingContext};
 
 macro_rules! rounded_1ary {
     ($trait:ident, $imp:ident, $mpmf:ident, $descr:expr) => {
@@ -22,7 +22,7 @@ macro_rules! rounded_1ary {
             #[doc = "Performs rounded `"]
             #[doc = $descr]
             #[doc = "`."]
-            fn $mpmf<N: Number>(&self, src: &N) -> Self::Rounded;
+            fn $mpmf<N: Real>(&self, src: &N) -> Self::Rounded;
         }
     };
 }
@@ -72,8 +72,8 @@ macro_rules! rounded_2ary {
             #[doc = "`."]
             fn $mpmf<N1, N2>(&self, src1: &N1, src2: &N2) -> Self::Rounded
             where
-                N1: Number,
-                N2: Number;
+                N1: Real,
+                N2: Real;
         }
     };
 }
@@ -116,9 +116,9 @@ macro_rules! rounded_3ary {
             #[doc = "`."]
             fn $mpmf<N1, N2, N3>(&self, src1: &N1, src2: &N2, src3: &N3) -> Self::Rounded
             where
-                N1: Number,
-                N2: Number,
-                N3: Number;
+                N1: Real,
+                N2: Real,
+                N3: Real;
         }
     };
 }

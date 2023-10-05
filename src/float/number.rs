@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::{rational::Rational, Number};
+use crate::{rational::Rational, Real};
 
 use super::FloatContext;
 
@@ -65,7 +65,7 @@ impl Float {
     }
 }
 
-impl Number for Float {
+impl Real for Float {
     fn radix() -> usize {
         2
     }

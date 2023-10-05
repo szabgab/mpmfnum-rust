@@ -5,7 +5,7 @@ This module supports rounding contexts, implementations of rounding
 from arbitrary-precision numbers to a particular number format.
 */
 
-use crate::Number;
+use crate::Real;
 
 /// Rounding context.
 ///
@@ -20,11 +20,11 @@ use crate::Number;
 /// "rounding context". All mathematical evaluation is done under
 /// a particular rounding context.
 ///
-/// See [`Number`] for details on the number trait.
+/// See [`Real`] for details on the number trait.
 ///
 pub trait RoundingContext {
     /// Result type of operations under this context.
-    type Rounded: Number;
+    type Rounded: Real;
 
     /// Rounds a [`RoundingContext::Rounded`] value to another
     /// [`RoundingContext::Rounded`] value according to this context.
@@ -33,17 +33,17 @@ pub trait RoundingContext {
     /// of rounding from formats other than the output format.
     fn round(&self, val: &Self::Rounded) -> Self::Rounded;
 
-    /// Converts any [`Number`] to a [`RoundingContext::Rounded`] value,
+    /// Converts any [`Real`] to a [`RoundingContext::Rounded`] value,
     /// rounding the argument according to this context.
     ///
     /// Implementation note:
     /// This is the canonical rounding function, taking any value
-    /// satisfying `Number` and rounding it to type `Rounded`.
+    /// satisfying `Real` and rounding it to type `Rounded`.
     /// Implemenations of this trait may want to implement more complicated
     /// "round" function that also return information such as an error term,
     /// lost digits, etc. In this case, the implementation of `round` may
     /// just be a wrapper, discarding the extra information.
-    fn mpmf_round<T: Number>(&self, val: &T) -> Self::Rounded;
+    fn mpmf_round<T: Real>(&self, val: &T) -> Self::Rounded;
 }
 
 /// Rounding modes for rounding contexts.

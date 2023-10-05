@@ -7,7 +7,7 @@ use crate::ieee754::{Exceptions, IEEE754Val, IEEE754};
 use crate::rational::{Rational, RationalContext};
 use crate::round::RoundingDirection;
 use crate::util::bitmask;
-use crate::{Number, RoundingContext, RoundingMode};
+use crate::{Real, RoundingContext, RoundingMode};
 
 /// Rounding contexts for IEEE 754 floating-point numbers.
 ///
@@ -287,7 +287,7 @@ impl IEEE754Context {
     /// is sufficient for computing this condition. This condition is
     /// satisfied when the rounded result would have been smaller than
     /// MIN_NORM if the exponent were unbounded (but non-zero).
-    fn round_tiny<T: Number>(&self, num: &T) -> bool {
+    fn round_tiny<T: Real>(&self, num: &T) -> bool {
         // easy case: exact zero
         if num.is_zero() {
             // tininess requires result be non-zero
@@ -424,7 +424,7 @@ impl IEEE754Context {
     }
 
     /// Rounds a finite (non-zero) number.
-    fn round_finite<T: Number>(&self, num: &T) -> IEEE754 {
+    fn round_finite<T: Real>(&self, num: &T) -> IEEE754 {
         // step 1: rounding as an unbounded, fixed-precision floating-point,
         // so we need to compute the context parameters; IEEE 754 numbers
         // support subnormalization so we need to set both `max_p` and
@@ -517,7 +517,7 @@ impl RoundingContext for IEEE754Context {
         }
     }
 
-    fn mpmf_round<T: Number>(&self, num: &T) -> Self::Rounded {
+    fn mpmf_round<T: Real>(&self, num: &T) -> Self::Rounded {
         // case split by class
         if num.is_zero() {
             IEEE754 {

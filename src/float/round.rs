@@ -1,6 +1,6 @@
 use crate::{
     rational::{Rational, RationalContext},
-    Number, RoundingContext, RoundingMode,
+    Real, RoundingContext, RoundingMode,
 };
 
 use super::{Exceptions, Float};
@@ -49,7 +49,7 @@ impl FloatContext {
 }
 
 impl FloatContext {
-    fn round_finite<T: Number>(&self, num: &T) -> Float {
+    fn round_finite<T: Real>(&self, num: &T) -> Float {
         // step 1: rounding as an unbounded, fixed-precision floating-point,
         // so we need to compute the context parameters; we only set
         // `max_p` when rounding with a RationalContext.
@@ -84,7 +84,7 @@ impl RoundingContext for FloatContext {
         self.mpmf_round(val)
     }
 
-    fn mpmf_round<T: crate::Number>(&self, val: &T) -> Self::Rounded {
+    fn mpmf_round<T: Real>(&self, val: &T) -> Self::Rounded {
         // case split by class
         if val.is_zero() {
             Float {

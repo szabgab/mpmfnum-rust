@@ -3,7 +3,7 @@ use rug::Integer;
 
 use crate::fixed::{Exceptions, Fixed};
 use crate::rational::{Rational, RationalContext};
-use crate::{Number, RoundingContext, RoundingMode};
+use crate::{Real, RoundingContext, RoundingMode};
 
 /// Fixed-point overflow behavior.
 ///
@@ -123,7 +123,7 @@ impl FixedContext {
         }
     }
 
-    fn round_finite<T: Number>(&self, num: &T) -> Fixed {
+    fn round_finite<T: Real>(&self, num: &T) -> Fixed {
         // step 1: rounding as a unbounded fixed-point number
         // so we need to compute the context parameters; we only set
         // `min_n` when rounding with a RationalContext, the first
@@ -199,7 +199,7 @@ impl RoundingContext for FixedContext {
         self.mpmf_round(val)
     }
 
-    fn mpmf_round<T: Number>(&self, val: &T) -> Self::Rounded {
+    fn mpmf_round<T: Real>(&self, val: &T) -> Self::Rounded {
         // case split by class
         if val.is_zero() {
             // zero is always representable
