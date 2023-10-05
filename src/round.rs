@@ -1,13 +1,6 @@
-/*!
-Common rounding utilities.
-
-This module supports rounding contexts, implementations of rounding
-from arbitrary-precision numbers to a particular number format.
-*/
-
 use crate::Real;
 
-/// Rounding context.
+/// Universal trait for rounding contexts.
 ///
 /// Most mathematical operators on digital numbers can be decomposed
 /// into two steps: first, a mathematically-correct operation over
@@ -26,24 +19,22 @@ pub trait RoundingContext {
     /// Result type of operations under this context.
     type Rounded: Real;
 
-    /// Rounds a [`RoundingContext::Rounded`] value to another
-    /// [`RoundingContext::Rounded`] value according to this context.
-    ///
-    /// See [`RoundingContext::mpmf_round`] for a more general implementation
-    /// of rounding from formats other than the output format.
-    fn round(&self, val: &Self::Rounded) -> Self::Rounded;
+    /// Rounds any [`Real`] value to a [`RoundingContext::Rounded`] value,
+    /// rounding according to this [`RoundingContext`].
+    fn round<T: Real>(&self, val: &T) -> Self::Rounded;
 
-    /// Converts any [`Real`] to a [`RoundingContext::Rounded`] value,
-    /// rounding the argument according to this context.
+    /// Rounds a [`RoundingContext::Rounded`] value to another
+    /// [`RoundingContext::Rounded] value, rounding according to this
+    /// [`RoundingContext`].
     ///
-    /// Implementation note:
-    /// This is the canonical rounding function, taking any value
-    /// satisfying `Real` and rounding it to type `Rounded`.
-    /// Implemenations of this trait may want to implement more complicated
-    /// "round" function that also return information such as an error term,
-    /// lost digits, etc. In this case, the implementation of `round` may
-    /// just be a wrapper, discarding the extra information.
-    fn mpmf_round<T: Real>(&self, val: &T) -> Self::Rounded;
+    /// Since this is a restriction on [`RoundingContext::round`],
+    /// its behavior may be slightly different since format-specific
+    /// behaviors may be implemented.
+    ///
+    /// By default, its behavior is the same as [`RoundingContext::round`].
+    fn format_round(&self, val: &Self::Rounded) -> Self::Rounded {
+        self.round(val)
+    }
 }
 
 /// Rounding modes for rounding contexts.
@@ -100,7 +91,7 @@ pub enum RoundingMode {
 /// and a boolean indicating if the direction should onlybe used
 /// for tie-breaking.
 #[derive(Clone, Debug)]
-pub(crate) enum RoundingDirection {
+pub enum RoundingDirection {
     ToZero,
     AwayZero,
     ToEven,
@@ -110,7 +101,7 @@ pub(crate) enum RoundingDirection {
 impl RoundingMode {
     /// Converts a rounding mode and sign into a rounding direction
     /// and a boolean indication if the direction is for tie-breaking only.
-    pub(crate) fn to_direction(self, sign: bool) -> (bool, RoundingDirection) {
+    pub fn to_direction(self, sign: bool) -> (bool, RoundingDirection) {
         match (self, sign) {
             (RoundingMode::NearestTiesToEven, _) => (true, RoundingDirection::ToEven),
             (RoundingMode::NearestTiesAwayZero, _) => (true, RoundingDirection::AwayZero),

@@ -80,11 +80,7 @@ impl FloatContext {
 impl RoundingContext for FloatContext {
     type Rounded = Float;
 
-    fn round(&self, val: &Self::Rounded) -> Self::Rounded {
-        self.mpmf_round(val)
-    }
-
-    fn mpmf_round<T: Real>(&self, val: &T) -> Self::Rounded {
+    fn round<T: Real>(&self, val: &T) -> Self::Rounded {
         // case split by class
         if val.is_zero() {
             Float {

@@ -341,11 +341,7 @@ impl Default for RationalContext {
 impl RoundingContext for RationalContext {
     type Rounded = Rational;
 
-    fn round(&self, val: &Self::Rounded) -> Self::Rounded {
-        self.mpmf_round(val)
-    }
-
-    fn mpmf_round<T: Real>(&self, num: &T) -> Self::Rounded {
+    fn round<T: Real>(&self, num: &T) -> Self::Rounded {
         assert!(
             self.max_p.is_some() || self.min_n.is_some(),
             "must specify either maximum precision or least absolute digit"

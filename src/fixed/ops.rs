@@ -17,7 +17,7 @@ macro_rules! rounded_1ary_impl {
                 let p = self.nbits + 2;
                 let r = Rational::from_number(src);
                 let result = $mpfr(r, p);
-                let mut rounded = self.mpmf_round(result.num());
+                let mut rounded = self.round(result.num());
                 rounded.flags.invalid = result.flags().invalid;
                 rounded
             }
@@ -70,7 +70,7 @@ macro_rules! rounded_2ary_impl {
                 let r1 = Rational::from_number(src1);
                 let r2 = Rational::from_number(src2);
                 let result = $mpfr(r1, r2, p);
-                let mut rounded = self.mpmf_round(result.num());
+                let mut rounded = self.round(result.num());
                 rounded.flags.invalid = result.flags().invalid;
                 rounded
             }
@@ -113,7 +113,7 @@ macro_rules! rounded_3ary_impl {
                 let r2 = Rational::from_number(src2);
                 let r3 = Rational::from_number(src3);
                 let result = $mpfr(r1, r2, r3, p);
-                let mut rounded = self.mpmf_round(result.num());
+                let mut rounded = self.round(result.num());
                 rounded.flags.invalid = result.flags().invalid;
                 rounded
             }

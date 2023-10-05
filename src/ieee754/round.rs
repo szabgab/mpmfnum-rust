@@ -310,7 +310,7 @@ impl IEEE754Context {
                 let unbounded_ctx = RationalContext::new()
                     .with_rounding_mode(self.rm)
                     .with_max_precision(self.max_p());
-                let unbounded = unbounded_ctx.mpmf_round(num);
+                let unbounded = unbounded_ctx.round(num);
 
                 // tiny if below MIN_NORM
                 unbounded.e().unwrap() < self.emin()
@@ -462,11 +462,32 @@ impl IEEE754Context {
 impl RoundingContext for IEEE754Context {
     type Rounded = IEEE754;
 
-    /// Rounds an [`IEEE754`] value into the format specified by
-    /// this rounding context. See [`RoundingContext::round`] for the more
-    /// general implementation of rounding from formats other than the
-    /// output format.
-    fn round(&self, val: &Self::Rounded) -> Self::Rounded {
+    fn round<T: Real>(&self, num: &T) -> Self::Rounded {
+        // case split by class
+        if num.is_zero() {
+            IEEE754 {
+                num: IEEE754Val::Zero(num.sign()),
+                flags: Exceptions::default(),
+                ctx: self.clone(),
+            }
+        } else if num.is_infinite() {
+            IEEE754 {
+                num: IEEE754Val::Infinity(num.sign()),
+                flags: Exceptions::default(),
+                ctx: self.clone(),
+            }
+        } else if num.is_nar() {
+            IEEE754 {
+                num: IEEE754Val::Nan(num.sign(), true, Integer::from(0)),
+                flags: Exceptions::default(),
+                ctx: self.clone(),
+            }
+        } else {
+            self.round_finite(num)
+        }
+    }
+
+    fn format_round(&self, val: &Self::Rounded) -> Self::Rounded {
         match &val.num {
             IEEE754Val::Zero(s) => {
                 // +/-0 is preserved
@@ -514,31 +535,6 @@ impl RoundingContext for IEEE754Context {
                 // finite, non-zero
                 self.round_finite(val)
             }
-        }
-    }
-
-    fn mpmf_round<T: Real>(&self, num: &T) -> Self::Rounded {
-        // case split by class
-        if num.is_zero() {
-            IEEE754 {
-                num: IEEE754Val::Zero(num.sign()),
-                flags: Exceptions::default(),
-                ctx: self.clone(),
-            }
-        } else if num.is_infinite() {
-            IEEE754 {
-                num: IEEE754Val::Infinity(num.sign()),
-                flags: Exceptions::default(),
-                ctx: self.clone(),
-            }
-        } else if num.is_nar() {
-            IEEE754 {
-                num: IEEE754Val::Nan(num.sign(), true, Integer::from(0)),
-                flags: Exceptions::default(),
-                ctx: self.clone(),
-            }
-        } else {
-            self.round_finite(num)
         }
     }
 }

@@ -30,10 +30,10 @@ pub mod math;
 pub mod ops;
 pub mod rational;
 
-mod number;
+mod real;
 mod round;
 mod util;
 
-pub use crate::number::Real;
+pub use crate::real::Real;
 pub use crate::round::RoundingContext;
 pub use crate::round::RoundingMode;
