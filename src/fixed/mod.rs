@@ -2,7 +2,7 @@
 Multi-precision fixed-point numbers.
 
 This module implements fixed-point numbers with the
-[`Fixed`][crate::ieee754] type.
+[`Fixed`][crate::fixed] type.
 */
 
 mod number;

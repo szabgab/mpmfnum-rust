@@ -1,5 +1,5 @@
 use mpmfnum::rational::Rational;
-use mpmfnum::{fixed_point, RoundingContext};
+use mpmfnum::{fixed, RoundingContext};
 use rug::Integer;
 
 fn assert_round_small(
@@ -9,7 +9,7 @@ fn assert_round_small(
     input: &Rational,
     output: &Rational,
 ) {
-    let ctx = fixed_point::FixedContext::new(signed, scale, nbits);
+    let ctx = fixed::FixedContext::new(signed, scale, nbits);
     let rounded = ctx.mpmf_round(input);
 
     assert_eq!(

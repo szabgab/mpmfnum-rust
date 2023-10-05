@@ -1,7 +1,7 @@
-use num_traits::{Signed, Zero};
+use num_traits::Signed;
 use rug::Integer;
 
-use crate::fixed_point::{Exceptions, Fixed};
+use crate::fixed::{Exceptions, Fixed};
 use crate::rational::{Rational, RationalContext};
 use crate::{Number, RoundingContext, RoundingMode};
 
@@ -115,10 +115,10 @@ impl FixedContext {
         let c = val.c().unwrap() << offset;
         if self.signed {
             let m = if val.sign() { -c } else { c };
-            let (mult, wrapped) = m.div_rem(div);
+            let (_, wrapped) = m.div_rem(div);
             Rational::Real(wrapped.is_negative(), self.scale, wrapped.abs())
         } else {
-            let (mult, wrapped) = c.div_rem(div);
+            let (_, wrapped) = c.div_rem(div);
             Rational::Real(false, self.scale, wrapped)
         }
     }

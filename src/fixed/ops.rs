@@ -1,4 +1,4 @@
-use crate::fixed_point::FixedContext;
+use crate::fixed::FixedContext;
 use crate::math::*;
 use crate::ops::*;
 use crate::rational::Rational;

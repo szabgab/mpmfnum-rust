@@ -14,13 +14,14 @@ and a universal trait for "rounding contexts" [`RoundingContext`].
 Supported number systems include
   unnormalized scientific numbers [`Rational`][crate::rational::Rational],
   floating-point numbers with unbounded exponent [`Float`][crate::float::Float],
-  and IEEE 754 style floating-point numbers [`IEEE754`][crate::ieee754::IEEE754].
+  IEEE 754 style floating-point numbers [`IEEE754`][crate::ieee754::IEEE754],
+  and fixed-point numbers [`Fixed`][crate::fixed::Fixed],
 
 Planned number systems include fixed-point numbers, integers,
 posits, logarithmic numbers, and more.
 */
 
-pub mod fixed_point;
+pub mod fixed;
 pub mod float;
 pub mod ieee754;
 pub mod math;

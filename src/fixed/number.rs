@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use rug::Integer;
 
-use crate::fixed_point::FixedContext;
+use crate::fixed::FixedContext;
 use crate::{rational::Rational, Number};
 
 /// Exception flags to signal certain properties of the rounded result.
