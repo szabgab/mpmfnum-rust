@@ -4,7 +4,6 @@ use std::cmp::{max, min};
 use num_traits::{Signed, Zero};
 use rug::{Float, Integer};
 
-use gmp_mpfr_sys::gmp::mpz_t;
 use gmp_mpfr_sys::mpfr;
 
 use crate::Number;
@@ -366,9 +365,7 @@ impl From<Rational> for Float {
 
                     unsafe {
                         // set `f` to `c * 2^exp`
-                        let src_ptr = m.as_raw() as *const mpz_t;
-                        let dest_ptr = f.as_raw_mut();
-                        let t = mpfr::set_z_2exp(dest_ptr, src_ptr, exp, rnd);
+                        let t = mpfr::set_z_2exp(f.as_raw_mut(), m.as_raw(), exp, rnd);
                         assert_eq!(t, 0, "should have been exact");
                     }
 
@@ -392,8 +389,7 @@ impl From<Float> for Rational {
             let exp: isize;
 
             unsafe {
-                let ptr = m.as_raw_mut() as *mut mpz_t;
-                exp = mpfr::get_z_2exp(ptr, val.as_raw()) as isize;
+                exp = mpfr::get_z_2exp(m.as_raw_mut(), val.as_raw()) as isize;
             }
 
             Self::Real(m.is_negative(), exp, m.abs()).canonicalize()

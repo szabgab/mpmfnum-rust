@@ -86,6 +86,15 @@ impl Rational {
             }
         }
     }
+
+    /// Scales this rational number by `2^exp` exactly.
+    /// If this number is non-real, the value is preserved.
+    pub fn scale(&self, shift: isize) -> Self {
+        match &self {
+            Rational::Real(s, exp, c) => Rational::Real(*s, exp + shift, c.clone()),
+            _ => self.clone(),
+        }
+    }
 }
 
 impl Neg for Rational {

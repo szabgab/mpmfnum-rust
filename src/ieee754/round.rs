@@ -35,7 +35,7 @@ impl IEEE754Context {
     pub const PREC_MIN: usize = 3;
 
     /// Constructs a new rounding context with the given format parameters.
-    /// The default rounding mode is [`RoundingMode::NearestTiesToEven`].
+    /// The default rounding mode is [`NearestTiesToEven`][RoundingMode].
     /// Both fields specifying subnormal behavior are false by default.
     pub fn new(es: usize, nbits: usize) -> Self {
         assert!(
