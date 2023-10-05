@@ -88,53 +88,57 @@ impl RationalContext {
         self
     }
 
-    /// Rounding utility function: splits a [`Real`] at binary digit `n`,
-    /// returning two [`Rational`] values: the first capturing digits above
-    /// the digit at position `n`, and the second capturing digits at or
-    /// below the digit at position `n`.
-    pub(crate) fn split_at<T: Real>(num: &T, n: isize) -> (Rational, Rational) {
-        // easy case: splitting zero
-        if num.is_zero() {
+    /// Splits a [`Real`] at binary digit `n`, returning two [`Rational`] values:
+    ///
+    ///  - all significant digits above position `n`
+    ///  - all significant digits at or below position `n`
+    ///
+    /// The sum of the resulting values will be exactly the input
+    /// number, that is, it "splits" a number.
+    pub fn split_at<T: Real>(num: &T, n: isize) -> (Rational, Rational) {
+        if num.is_nar() {
+            panic!("must be real {:?}", num);
+        } else if num.is_zero() {
             let s = num.sign();
             let high = Rational::Real(s, n + 1, Integer::from(0));
             let low = Rational::Real(s, n, Integer::from(0));
-            return (high, low);
-        }
-
-        // number components
-        let s = num.sign();
-        let e = num.e().unwrap();
-        let exp = num.exp().unwrap();
-        let c = num.c().unwrap();
-
-        // case split by split point offset
-        if n >= e {
-            // split point is above the significant digits
-            let high = Rational::Real(s, n + 1, Integer::from(0));
-            let low = Rational::Real(s, exp, c);
-            (high, low)
-        } else if n < exp {
-            // split point is below the significant digits
-            let high = Rational::Real(s, exp, c);
-            let low = Rational::Real(s, n, Integer::from(0));
             (high, low)
         } else {
-            // split point is within the significant digits
-            let offset = n - (exp - 1);
-            let mask = bitmask(offset as usize);
-            let c_high = c.clone() >> offset;
-            let c_low = c & mask;
+            // number components
+            let s = num.sign();
+            let e = num.e().unwrap();
+            let exp = num.exp().unwrap();
+            let c = num.c().unwrap();
 
-            let high = Rational::Real(s, n + 1, c_high);
-            let low = Rational::Real(s, exp, c_low);
-            (high, low)
+            // case split by split point offset
+            if n >= e {
+                // split point is above the significant digits
+                let high = Rational::Real(s, n + 1, Integer::from(0));
+                let low = Rational::Real(s, exp, c);
+                (high, low)
+            } else if n < exp {
+                // split point is below the significant digits
+                let high = Rational::Real(s, exp, c);
+                let low = Rational::Real(s, n, Integer::from(0));
+                (high, low)
+            } else {
+                // split point is within the significant digits
+                let offset = n - (exp - 1);
+                let mask = bitmask(offset as usize);
+                let c_high = c.clone() >> offset;
+                let c_low = c & mask;
+
+                let high = Rational::Real(s, n + 1, c_high);
+                let low = Rational::Real(s, exp, c_low);
+                (high, low)
+            }
         }
     }
 
-    /// Rounding utility function: returns the rounding parameters
-    /// necessary to perform rounding under this context for a
-    /// given [`Real`].
-    pub(crate) fn round_params<T: Real>(&self, num: &T) -> (Option<usize>, isize) {
+    /// Rounding parameters necessary to complete rounding under
+    /// this context for a given [`Real`]: the maximum precision `p` allowed
+    /// and the minimum absolute digit `n`.
+    pub fn round_params<T: Real>(&self, num: &T) -> (Option<usize>, isize) {
         match (self.max_p, self.min_n) {
             (None, None) => {
                 // unreachable
@@ -151,14 +155,27 @@ impl RationalContext {
             (Some(max_p), None) => {
                 // floating-point rounding:
                 // limited by precision, exponent is unbounded
-                (Some(max_p), num.e().unwrap() - (max_p as isize))
+                match num.e() {
+                    // finite, non-zero => find the first lost digit
+                    Some(e) => (Some(max_p), e - (max_p as isize)),
+                    // zero or non-real => produce something reasonable
+                    None => (Some(max_p), 0),
+                }
+                
             }
             (Some(max_p), Some(min_n)) => {
                 // floating-point rounding with subnormalization:
                 // limited by precision or exponent
-                let unbounded_n = num.e().unwrap() - (max_p as isize);
-                let n = std::cmp::max(min_n, unbounded_n);
-                (Some(max_p), n)
+                match num.e() {
+                    // finite, non-zero => find the first lost digit
+                    Some(e) => {
+                        let unbounded_n = e - (max_p as isize);
+                        let n = std::cmp::max(min_n, unbounded_n);
+                        (Some(max_p), n)
+                    },
+                    // zero or non-real => produce something reasonable
+                    None => (Some(max_p), 0),
+                }
             }
         }
     }
@@ -291,44 +308,6 @@ impl RationalContext {
 
         // return the rounded number
         rounded.canonicalize()
-    }
-
-    /// Rounds a finite [`Real`] also returning the digits
-    /// rounded off as a [`Rational`] value.
-    pub fn round_residual<T: Real>(&self, num: &T) -> (Rational, Option<Rational>) {
-        assert!(
-            self.max_p.is_some() || self.min_n.is_some(),
-            "must specify either maximum precision or least absolute digit"
-        );
-
-        // case split by class
-        if num.is_zero() {
-            // zero
-            (Rational::zero(), Some(Rational::zero()))
-        } else if num.is_infinite() {
-            // infinite number
-            let s = num.is_negative().unwrap();
-            (Rational::Infinite(s), None)
-        } else if num.is_nar() {
-            // other non-real
-            (Rational::Nan, None)
-        } else {
-            // finite, non-zero value
-
-            // step 1: compute the first digit we will split off
-            let (p, n) = self.round_params(num);
-
-            // step 2: split the significand at binary digit `n`
-            // inefficient: we'll just split twice
-            let (_, low) = Self::split_at(num, n);
-            let split = Self::round_prepare(num, n);
-
-            // step 3: finalize the rounding
-            let rounded = Self::round_finalize(split, p, self.rm);
-
-            // return the rounded number
-            (rounded.canonicalize(), Some(low))
-        }
     }
 }
 

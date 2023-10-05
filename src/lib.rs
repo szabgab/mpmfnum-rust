@@ -12,13 +12,19 @@
 //!
 //! This is the API documentation.
 //!
-//! The library defines a universal trait for all number types [`Number`],
-//! and a universal trait for "rounding contexts" [`RoundingContext`].
+//! The library centers around two traits:
+//!  - [`Real`] - extended real numbers
+//!  - [`RoundingContext`] - descriptions of rounding behaviors
+//!
 //! Supported number systems include:
-//!  - floating-point numbers with unbounded significands/exponents [`Rational`][crate::rational::Rational],
-//!  - floating-point numbers with unbounded exponent [`Float`][crate::float::Float],
-//!  - IEEE 754 style floating-point numbers [`IEEE754`][crate::ieee754::IEEE754],
-//!  - fixed-point numbers [`Fixed`][crate::fixed::Fixed].
+//!  - [`Rational`][crate::rational::Rational] -
+//!     floating-point numbers with unbounded significand and exponent
+//!  - [`Float`][crate::float::Float] -
+//!     floating-point numbers with unbounded exponent
+//!  - [`IEEE754`][crate::ieee754::IEEE754] -
+//!     IEEE 754 style floating-point numbers
+//!  - [`Fixed`][crate::fixed::Fixed] -
+//!     fixed-point numbers
 //!
 //! Planned number systems include posits, logarithmic numbers, and more.
 //!

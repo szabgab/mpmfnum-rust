@@ -1,11 +1,11 @@
-/*!
-The "universal" digital number format:
-a rational number represented in (unnormalized) scientific notation.
-
-This module implements unbounded digital numbers with the
-[`Rational`][crate::rational] type. The [`Rational`] type
-serves as an interchange format between various number systems.
-*/
+//! Floating-point numbers with unbounded significand and exponent.
+//! 
+//! This module implements floating-point numbers with the
+//! [`Rational`][crate::rational] type. The [`Rational`] type serves
+//! as an interchange format between various number systems.
+//! As the name suggests, [`Rational`] is really just rational numbers
+//! encoded in scientific notation.
+//! 
 
 mod number;
 mod ops;

@@ -1,8 +1,9 @@
-/// Traits for rounded mathematical operations.
-///
-/// Implementations of these traits operate on [`Real`] types,
-/// rounding the result according to a given [`RoundingContext`].
-///
+//! Rounded mathematical operations.
+//!
+//! Implementations of these traits operate on [`Real`] types,
+//! rounding the result according to a given [`RoundingContext`].
+//!
+
 use crate::{Real, RoundingContext};
 
 macro_rules! rounded_1ary {

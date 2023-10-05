@@ -47,6 +47,7 @@ impl Exceptions {
 /// (In practice, this is an [`isize`] value).
 ///
 /// Any [`Float`] value may encode a non-real number.
+#[derive(Debug, Clone)]
 pub struct Float {
     pub(crate) num: Rational,
     pub(crate) flags: Exceptions,

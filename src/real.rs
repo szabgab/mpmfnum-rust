@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use rug::Integer;
 
 /// Universal trait for extended real numbers.
@@ -16,7 +18,7 @@ use rug::Integer;
 ///
 /// See [`RoundingContext`][crate::RoundingContext] for details on rounding.
 ///
-pub trait Real {
+pub trait Real: Debug {
     /// Radix of a number.
     /// It must be strictly positive.
     fn radix() -> usize;
