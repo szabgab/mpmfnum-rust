@@ -1,7 +1,7 @@
 //! Number formats, precisions, and rounding modes.
 //!
 //! `mpmfnum` is a numbers library for emulation various number formats,
-//! at multiple precisions with many rounding modes. Hence, its name,
+//! at multiple precisions with many rounding modes. Hence its name,
 //! "Multi-Precision, Multi-Format" (MPMF).
 //!
 //! Unlike other number libraries like
@@ -35,11 +35,12 @@ pub mod ieee754;
 pub mod math;
 pub mod ops;
 pub mod rational;
+pub mod real;
 
-mod real;
+mod number;
 mod round;
 mod util;
 
-pub use crate::real::Real;
+pub use crate::number::Real;
 pub use crate::round::RoundingContext;
 pub use crate::round::RoundingMode;

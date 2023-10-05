@@ -12,12 +12,12 @@ use crate::Real;
 ///
 /// This is not a traditional rational number `p/q` where `p` and `q`
 /// are integers (canonically, `p` is signed). Instead, this type defines
-/// a _fixed-width_ rational number `(-1)^s * c * 2^e` where `c` is a
-/// binary-encoded integer with a maximum bitwidth. Like rational numbers,
-/// `e` is theoretically unbounded and may be as large or small as needed.
-/// Rational numbers may encode a non-real number (see [`NAN`]) which is
-/// interpreted as a NaN (neither finite nor infinite). All operations
-/// canonicalize -0 to +0 (no sign bit).
+/// a base-2 number in scientific notation `(-1)^s * c * 2^exp` where `c` is
+/// a _finite-width_ binary integer. The exponent `exp` is theoretically
+/// unbounded and may be as large or small as needed. Rational numbers may
+/// encode a non-real number (see [`NAN`]) which is interpreted as a NaN
+/// (neither finite nor infinite). All operations canonicalize -0 to +0
+/// (no sign bit).
 #[derive(Debug, Clone)]
 pub enum Rational {
     /// A finite (real) number specified by the canonical triple

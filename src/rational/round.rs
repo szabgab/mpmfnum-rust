@@ -161,7 +161,6 @@ impl RationalContext {
                     // zero or non-real => produce something reasonable
                     None => (Some(max_p), 0),
                 }
-                
             }
             (Some(max_p), Some(min_n)) => {
                 // floating-point rounding with subnormalization:
@@ -172,7 +171,7 @@ impl RationalContext {
                         let unbounded_n = e - (max_p as isize);
                         let n = std::cmp::max(min_n, unbounded_n);
                         (Some(max_p), n)
-                    },
+                    }
                     // zero or non-real => produce something reasonable
                     None => (Some(max_p), 0),
                 }

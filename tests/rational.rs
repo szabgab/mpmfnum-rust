@@ -204,10 +204,7 @@ fn round_trivial() {
     let (_, err) = RationalContext::split_at(&zero, n);
     let rounded_zero = ctx.round(&zero);
     assert!(rounded_zero.is_zero(), "round(0) = 0");
-    assert!(
-        err.is_zero(),
-        "rounding 0 should have a zero lost bits"
-    );
+    assert!(err.is_zero(), "rounding 0 should have a zero lost bits");
 
     // round(+Inf) = +Inf
     let rounded_pos_inf = ctx.round(&POS_INF);

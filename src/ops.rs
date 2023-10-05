@@ -16,7 +16,9 @@ macro_rules! rounded_1ary {
             #[doc = $descr]
             #[doc = "`. Argument is the same format as the output.
             Use the method prefixed by `mpmf_` if the input type differs."]
-            fn $imp(&self, src: &Self::Rounded) -> Self::Rounded;
+            fn $imp(&self, src: &Self::Rounded) -> Self::Rounded {
+                self.$mpmf(src)
+            }
 
             #[doc = "Performs rounded `"]
             #[doc = $descr]
@@ -64,7 +66,9 @@ macro_rules! rounded_2ary {
             #[doc = $descr]
             #[doc = "`. Argument is the same format as the output.
             Use the method prefixed by `mpmf_` if the input type differs."]
-            fn $imp(&self, src1: &Self::Rounded, src2: &Self::Rounded) -> Self::Rounded;
+            fn $imp(&self, src1: &Self::Rounded, src2: &Self::Rounded) -> Self::Rounded {
+                self.$mpmf(src1, src2)
+            }
 
             #[doc = "Performs rounded `"]
             #[doc = $descr]
@@ -108,7 +112,9 @@ macro_rules! rounded_3ary {
                 src1: &Self::Rounded,
                 src2: &Self::Rounded,
                 src3: &Self::Rounded,
-            ) -> Self::Rounded;
+            ) -> Self::Rounded {
+                self.$mpmf(src1, src2, src3)
+            }
 
             #[doc = "Performs rounded `"]
             #[doc = $descr]
