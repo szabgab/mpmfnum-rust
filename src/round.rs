@@ -24,7 +24,7 @@ pub trait RoundingContext {
     fn round<T: Real>(&self, val: &T) -> Self::Rounded;
 
     /// Rounds a [`RoundingContext::Rounded`] value to another
-    /// [`RoundingContext::Rounded] value, rounding according to this
+    /// [`RoundingContext::Rounded`] value, rounding according to this
     /// [`RoundingContext`].
     ///
     /// Since this is a restriction on [`RoundingContext::round`],
@@ -47,54 +47,81 @@ pub trait RoundingContext {
 /// The IEEE 754 standard specifies five rounding modes:
 ///
 /// - two "nearest" modes:
-///   - `roundTiesToEven`: rounds to the nearest representable value.
-///      In this case there is a tie, round to the representable value whose
-///      mantissa has a least significant bit of 0
+///   - `roundTiesToEven` rounds to the nearest representable value.
+///      In this case there is a tie, rounds to the closest representable value
+///      whose mantissa has a least significant bit of 0
 ///      ([`NearestTiesToEven`][RoundingMode]).
-///   - `roundTiesToAway`: rounds to the nearest representable value.
-///      In this case there is a tie, round to the representable value with
-///      greater magnitude ([`NearestTiesAwayZero`][RoundingMode]).
+///   - `roundTiesToAway` rounds to the nearest representable value.
+///      In this case there is a tie, rounds to the closest representable value
+///      with greater magnitude ([`NearestTiesAwayZero`][RoundingMode]).
 /// - three directed modes:
-///   - `roundTowardPositive`: rounds to the closest representable value
+///   - `roundTowardPositive` rounds to the closest representable value
 ///     in the direction of positive infinity ([`ToPositive`][RoundingMode]).
-///   - `roundTowardNegative`: rounds to the closest representable value
+///   - `roundTowardNegative` rounds to the closest representable value
 ///     in the direction of negative infinity ([`ToNegative`][RoundingMode]).
-///   - `roundTowardZero`: rounds to the closest representable value
+///   - `roundTowardZero` rounds to the closest representable value
 ///     in the direction of zero ([`ToZero`][RoundingMode]).
 ///
 /// Three additional rounding modes are provided including:
-/// - [`AwayZero`][RoundingMode]: rounds to the closest representable value
+/// - [`AwayZero`][RoundingMode] rounds to the closest representable value
 ///    away from zero, towards the nearest infinity.
-/// - [`ToEven`][RoundingMode]: rounds to the closest representable value
+/// - [`ToEven`][RoundingMode] rounds to the closest representable value
 ///    whose mantissa has a least significant bit of 0.
-/// - [`ToOdd`][RoundingMode]: rounds to the closest representable value
+/// - [`ToOdd`][RoundingMode] rounds to the closest representable value
 ///    whose mantissa has a least significant bit of 1.
 ///
-/// The rounding behavior of zero, infinite, and non-numerical values will be
-/// unaffected by rounding mode.
+/// The rounding behavior of zero, infinite values, and non-numerical values
+/// will be unaffected by rounding mode.
 ///
 #[derive(Clone, Copy, Debug)]
 pub enum RoundingMode {
+    /// Rounds to the nearest representable value.
+    /// In this case there is a tie, rounds to the closest representable value
+    /// whose mantissa has a least significant bit of 0.
     NearestTiesToEven,
+    /// Rounds to the nearest representable value.
+    /// In this case there is a tie, rounds to the closest representable value
+    /// with greater (or same) magnitude.
     NearestTiesAwayZero,
+    /// Rounds to the closest representable value in the direction
+    /// of positive infinity.
     ToPositive,
+    /// Rounds to the closest representable value in the direction
+    /// of negative infinity.
     ToNegative,
+    /// Rounds to the closest representable value with smaller
+    /// (or same) magnitude.
     ToZero,
+    /// Rounds to the closest representable value with greater
+    /// (or same) magnitude.
     AwayZero,
+    /// Rounds to the closest representable value whose mantissa has
+    /// a least significant bit of 0.
     ToEven,
+    /// Rounds to the closest representable value whose mantissa has
+    /// a least significant bit of 1.
     ToOdd,
 }
 
-/// Rounding direction rather than rounding _mode_.
-/// Given the sign of an unrounded number and a rounding mode,
-/// we can transform the rounding mode into a rounding direction
-/// and a boolean indicating if the direction should onlybe used
-/// for tie-breaking.
+/// Directed rounding.
+///
+/// We can translate _sign_ of an unrounded number and a [`RoundingMode`],
+/// into a [`RoundingDirection`] and a boolean indicating if the direction
+/// should only be used for tie-breaking (see [`RoundingMode::to_direction`]).
+/// It is usually easier to implement rounding using the latter pair of values.
 #[derive(Clone, Debug)]
 pub enum RoundingDirection {
+    /// Rounds to the closest representable value with smaller
+    /// (or same) magnitude.
     ToZero,
+    /// Rounds to the closest representable value with greater
+    /// (or same) magnitude.
     AwayZero,
+    /// Rounds to the closest representable value whose mantissa has
+    /// a least significant bit of 0.
     ToEven,
+    /// Rounds to the closest representable value whose mantissa has
+    /// a least significant bit of 1.
     ToOdd,
 }
 

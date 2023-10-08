@@ -14,8 +14,9 @@ macro_rules! rounded_1ary {
         pub trait $trait: RoundingContext {
             #[doc = "Performs rounded `"]
             #[doc = $descr]
-            #[doc = "`. Argument is the same format as the output.
-            Use the method prefixed by `mpmf_` if the input type differs."]
+            #[doc = "`. Argument is the same format as the output."]
+            #[doc = $mpmf]
+            #[doc = "."]
             fn $imp(&self, src: &Self::Rounded) -> Self::Rounded {
                 self.$mpmf(src)
             }
@@ -64,8 +65,7 @@ macro_rules! rounded_2ary {
         pub trait $trait: RoundingContext {
             #[doc = "Performs rounded `"]
             #[doc = $descr]
-            #[doc = "`. Argument is the same format as the output.
-            Use the method prefixed by `mpmf_` if the input type differs."]
+            #[doc = "`. Argument is the same format as the output."]
             fn $imp(&self, src1: &Self::Rounded, src2: &Self::Rounded) -> Self::Rounded {
                 self.$mpmf(src1, src2)
             }
@@ -105,8 +105,7 @@ macro_rules! rounded_3ary {
         pub trait $trait: RoundingContext {
             #[doc = "Performs rounded `"]
             #[doc = $descr]
-            #[doc = "`. Argument is the same format as the output.
-            Use the method prefixed by `mpmf_` if the input type differs."]
+            #[doc = "`. Argument is the same format as the output."]
             fn $imp(
                 &self,
                 src1: &Self::Rounded,

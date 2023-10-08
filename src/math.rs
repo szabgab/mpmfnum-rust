@@ -4,8 +4,9 @@ Round-to-odd arithmetic.
 The mathematical core of this crate.
 Round-to-odd is a special rounding mode that allows safe
 re-rounding at slightly lower precision using the standard
-rounding modes. MPFR does not support round-to-odd natively,
-but we can emulate it.
+rounding modes.
+MPFR does not support round-to-odd natively, but we can emulate it.
+These functions are exported for convenience.
 
 All computation is done using [`Rational`] values.
 */
@@ -69,8 +70,7 @@ macro_rules! mpfr_1ary {
     ($name:ident, $mpfr:ident, $cname:expr) => {
         #[doc = "Computes `"]
         #[doc = $cname]
-        #[doc = "` to produce the round-to-odd result with
-            `p` binary digits of precision."]
+        #[doc = "` to `p` binary digits of precision, rounding to odd."]
         pub fn $name(src: Rational, p: usize) -> RTOResult {
             assert!(
                 p as i64 > mpfr::PREC_MIN && p as i64 <= mpfr::PREC_MAX,
@@ -103,8 +103,7 @@ macro_rules! mpfr_2ary {
     ($name:ident, $mpfr:ident, $cname:expr) => {
         #[doc = "Computes `"]
         #[doc = $cname]
-        #[doc = "` to produce the round-to-odd result with
-            `p` binary digits of precision."]
+        #[doc = "` to `p` binary digits of precision, rounding to odd."]
         pub fn $name(src1: Rational, src2: Rational, p: usize) -> RTOResult {
             assert!(
                 p as i64 > mpfr::PREC_MIN && p as i64 <= mpfr::PREC_MAX,
@@ -143,8 +142,7 @@ macro_rules! mpfr_3ary {
     ($name:ident, $mpfr:ident, $cname:expr) => {
         #[doc = "Computes `"]
         #[doc = $cname]
-        #[doc = "` to produce the round-to-odd result with
-            `p` binary digits of precision."]
+        #[doc = "` to `p` binary digits of precision, rounding to odd."]
         pub fn $name(src1: Rational, src2: Rational, src3: Rational, p: usize) -> RTOResult {
             assert!(
                 p as i64 > mpfr::PREC_MIN && p as i64 <= mpfr::PREC_MAX,
