@@ -1,8 +1,9 @@
-use crate::{rational::Rational, Real, RoundingContext};
+use crate::rfloat::RFloat;
+use crate::{Real, RoundingContext};
 
 /// Rounding contexts for exact arithmetic.
 ///
-/// Just the identity function.
+/// The rounding operation is just the identity function.
 #[derive(Clone, Debug, Default)]
 pub struct RealContext {}
 
@@ -13,17 +14,17 @@ impl RealContext {
 }
 
 impl RoundingContext for RealContext {
-    type Rounded = Rational;
+    type Rounded = RFloat;
 
     fn round<T: Real>(&self, val: &T) -> Self::Rounded {
         if val.is_zero() {
-            Rational::zero()
+            RFloat::zero()
         } else if val.is_finite() {
-            Rational::Real(val.sign(), val.exp().unwrap(), val.c().unwrap())
+            RFloat::Real(val.sign(), val.exp().unwrap(), val.c().unwrap())
         } else if val.is_infinite() {
-            Rational::Infinite(val.sign())
+            RFloat::Infinite(val.sign())
         } else {
-            Rational::Nan
+            RFloat::Nan
         }
     }
 }

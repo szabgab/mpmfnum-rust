@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use rug::Integer;
 
 use crate::fixed::FixedContext;
-use crate::{rational::Rational, Real};
+use crate::{rfloat::RFloat, Real};
 
 /// Exception flags to signal certain properties of the rounded result.
 ///
@@ -39,7 +39,7 @@ pub struct Exceptions {
 /// set when the fixed-point number is created.
 #[derive(Clone, Debug)]
 pub struct Fixed {
-    pub(crate) num: Rational,
+    pub(crate) num: RFloat,
     pub(crate) flags: Exceptions,
     pub(crate) ctx: FixedContext,
 }
@@ -114,7 +114,7 @@ impl Real for Fixed {
     }
 }
 
-impl From<Fixed> for Rational {
+impl From<Fixed> for RFloat {
     fn from(val: Fixed) -> Self {
         val.num
     }

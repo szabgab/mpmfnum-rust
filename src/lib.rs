@@ -32,7 +32,7 @@
 //!
 //! `mpmfnum` supports various number systems through implementations of [`RoundingContext`]:
 //!
-//!  - [`RationalContext`][crate::rational::RationalContext]
+//!  - [`RFloatContext`][crate::rfloat::RFloatContext]
 //!     rounds a [`Real`] value to an arbitrary-precision, floating-point numbers
 //!     with unbounded exponent
 //!  - [`FloatContext`][crate::float::FloatContext]
@@ -52,8 +52,8 @@ pub mod float;
 pub mod ieee754;
 pub mod math;
 pub mod ops;
-pub mod rational;
 pub mod real;
+pub mod rfloat;
 
 mod number;
 mod round;

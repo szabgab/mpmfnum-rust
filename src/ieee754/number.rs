@@ -5,7 +5,7 @@ use num_traits::Zero;
 use rug::Integer;
 
 use crate::ieee754::IEEE754Context;
-use crate::rational::Rational;
+use crate::rfloat::RFloat;
 use crate::util::bitmask;
 use crate::Real;
 
@@ -312,14 +312,14 @@ impl Real for IEEE754 {
     }
 }
 
-impl From<IEEE754> for Rational {
+impl From<IEEE754> for RFloat {
     fn from(val: IEEE754) -> Self {
         match val.num {
-            IEEE754Val::Zero(_) => Rational::zero(),
-            IEEE754Val::Subnormal(s, c) => Rational::Real(s, val.ctx.expmin(), c),
-            IEEE754Val::Normal(s, exp, c) => Rational::Real(s, exp, c),
-            IEEE754Val::Infinity(s) => Rational::Infinite(s),
-            IEEE754Val::Nan(_, _, _) => Rational::Nan,
+            IEEE754Val::Zero(_) => RFloat::zero(),
+            IEEE754Val::Subnormal(s, c) => RFloat::Real(s, val.ctx.expmin(), c),
+            IEEE754Val::Normal(s, exp, c) => RFloat::Real(s, exp, c),
+            IEEE754Val::Infinity(s) => RFloat::Infinite(s),
+            IEEE754Val::Nan(_, _, _) => RFloat::Nan,
         }
     }
 }
@@ -327,7 +327,7 @@ impl From<IEEE754> for Rational {
 impl From<IEEE754> for rug::Float {
     fn from(val: IEEE754) -> Self {
         let s = val.sign();
-        let f = rug::Float::from(Rational::from(val));
+        let f = rug::Float::from(RFloat::from(val));
         if f.is_zero() && s {
             -f
         } else {
@@ -338,7 +338,7 @@ impl From<IEEE754> for rug::Float {
 
 impl PartialOrd for IEEE754 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Rational::from(self.clone()).partial_cmp(&Rational::from(other.clone()))
+        RFloat::from(self.clone()).partial_cmp(&RFloat::from(other.clone()))
     }
 }
 

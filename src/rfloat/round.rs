@@ -1,13 +1,13 @@
 use rug::Integer;
 
-use crate::rational::Rational;
+use crate::rfloat::RFloat;
 use crate::round::RoundingDirection;
 use crate::util::*;
 use crate::{Real, RoundingContext, RoundingMode};
 
-/// Result type of [`RationalContext::round_prepare`].
+/// Result type of [`RFloatContext::round_prepare`].
 pub(crate) struct RoundPrepareResult {
-    pub num: Rational,
+    pub num: RFloat,
     pub halfway_bit: bool,
     pub sticky_bit: bool,
 }
@@ -39,13 +39,13 @@ pub(crate) struct RoundPrepareResult {
 /// defined by [`RoundingMode`].
 ///
 #[derive(Clone, Debug)]
-pub struct RationalContext {
+pub struct RFloatContext {
     max_p: Option<usize>,
     min_n: Option<isize>,
     rm: RoundingMode,
 }
 
-impl RationalContext {
+impl RFloatContext {
     /// Constructs a rounding arguments with default arguments.
     /// Neither `max_p` nor `min_n` are specified so rounding
     /// will panic. The default rounding mode is
@@ -88,20 +88,20 @@ impl RationalContext {
         self
     }
 
-    /// Splits a [`Real`] at binary digit `n`, returning two [`Rational`] values:
+    /// Splits a [`Real`] at binary digit `n`, returning two [`RFloat`] values:
     ///
     ///  - all significant digits above position `n`
     ///  - all significant digits at or below position `n`
     ///
     /// The sum of the resulting values will be exactly the input
     /// number, that is, it "splits" a number.
-    pub fn split_at<T: Real>(num: &T, n: isize) -> (Rational, Rational) {
+    pub fn split_at<T: Real>(num: &T, n: isize) -> (RFloat, RFloat) {
         if num.is_nar() {
             panic!("must be real {:?}", num);
         } else if num.is_zero() {
             let s = num.sign();
-            let high = Rational::Real(s, n + 1, Integer::from(0));
-            let low = Rational::Real(s, n, Integer::from(0));
+            let high = RFloat::Real(s, n + 1, Integer::from(0));
+            let low = RFloat::Real(s, n, Integer::from(0));
             (high, low)
         } else {
             // number components
@@ -113,13 +113,13 @@ impl RationalContext {
             // case split by split point offset
             if n >= e {
                 // split point is above the significant digits
-                let high = Rational::Real(s, n + 1, Integer::from(0));
-                let low = Rational::Real(s, exp, c);
+                let high = RFloat::Real(s, n + 1, Integer::from(0));
+                let low = RFloat::Real(s, exp, c);
                 (high, low)
             } else if n < exp {
                 // split point is below the significant digits
-                let high = Rational::Real(s, exp, c);
-                let low = Rational::Real(s, n, Integer::from(0));
+                let high = RFloat::Real(s, exp, c);
+                let low = RFloat::Real(s, n, Integer::from(0));
                 (high, low)
             } else {
                 // split point is within the significant digits
@@ -128,8 +128,8 @@ impl RationalContext {
                 let c_high = c.clone() >> offset;
                 let c_low = c & mask;
 
-                let high = Rational::Real(s, n + 1, c_high);
-                let low = Rational::Real(s, exp, c_low);
+                let high = RFloat::Real(s, n + 1, c_high);
+                let low = RFloat::Real(s, exp, c_low);
                 (high, low)
             }
         }
@@ -180,7 +180,7 @@ impl RationalContext {
     }
 
     /// Rounding utility function: splits a [`Real`] at binary digit `n`,
-    /// returning the digits above that position as a [`Rational`] number,
+    /// returning the digits above that position as a [`RFloat`] number,
     /// the next digit at the `n`th position (also called the guard bit),
     /// and an inexact bit if there are any lower order digits (also called
     /// the sticky bit).
@@ -269,10 +269,10 @@ impl RationalContext {
         split: RoundPrepareResult,
         p: Option<usize>,
         rm: RoundingMode,
-    ) -> Rational {
+    ) -> RFloat {
         // truncated result
         let (sign, mut exp, mut c) = match split.num {
-            Rational::Real(s, exp, c) => (s, exp, c),
+            RFloat::Real(s, exp, c) => (s, exp, c),
             _ => panic!("unreachable"),
         };
 
@@ -289,13 +289,13 @@ impl RationalContext {
             }
         }
 
-        Rational::Real(sign, exp, c)
+        RFloat::Real(sign, exp, c)
     }
 
     /// Rounds a finite [`Real`].
     ///
     /// Called by the public [`Real::round`] function.
-    fn round_finite<T: Real>(&self, num: &T) -> Rational {
+    fn round_finite<T: Real>(&self, num: &T) -> RFloat {
         // step 1: compute the first digit we will split off
         let (p, n) = self.round_params(num);
 
@@ -310,14 +310,14 @@ impl RationalContext {
     }
 }
 
-impl Default for RationalContext {
+impl Default for RFloatContext {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl RoundingContext for RationalContext {
-    type Rounded = Rational;
+impl RoundingContext for RFloatContext {
+    type Rounded = RFloat;
 
     fn round<T: Real>(&self, num: &T) -> Self::Rounded {
         assert!(
@@ -328,14 +328,14 @@ impl RoundingContext for RationalContext {
         // case split by class
         if num.is_zero() {
             // zero
-            Rational::zero()
+            RFloat::zero()
         } else if num.is_infinite() {
             // infinite number
             let s = num.is_negative().unwrap();
-            Rational::Infinite(s)
+            RFloat::Infinite(s)
         } else if num.is_nar() {
             // other non-real
-            Rational::Nan
+            RFloat::Nan
         } else {
             // finite, non-zero value
             self.round_finite(num)

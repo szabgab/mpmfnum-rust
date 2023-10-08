@@ -8,27 +8,27 @@ rounding modes.
 MPFR does not support round-to-odd natively, but we can emulate it.
 These functions are exported for convenience.
 
-All computation is done using [`Rational`] values.
+All computation is done using [`RFloat`] values.
 */
 
 use gmp_mpfr_sys::mpfr;
 use num_traits::Zero;
 use rug::Float;
 
-use crate::rational::Rational;
+use crate::rfloat::RFloat;
 use crate::util::{mpfr_flags, MPFRFlags};
 
 /// Result type of round-to-odd arithmetic.
 #[derive(Clone, Debug)]
 pub struct RTOResult {
-    num: Rational,
+    num: RFloat,
     prec: usize,
     flags: MPFRFlags,
 }
 
 impl RTOResult {
     /// The numerical result of an operation.
-    pub fn num(&self) -> &Rational {
+    pub fn num(&self) -> &RFloat {
         &self.num
     }
 
@@ -43,14 +43,14 @@ impl RTOResult {
     }
 }
 
-impl Rational {
-    /// Applies a correction to a [`Rational`] type from an MPFR ternary
+impl RFloat {
+    /// Applies a correction to a [`RFloat`] type from an MPFR ternary
     /// value to translate a rounded result of precision `p - 1` obtained
     /// with round-to-zero to a rounded result of precision `p` obtained
     /// with round-to-odd.
     pub(crate) fn with_ternary(mut self, t: i32) -> Self {
         // correction only required for non-zero real values
-        if let Rational::Real(_, exp, c) = &mut self {
+        if let RFloat::Real(_, exp, c) = &mut self {
             if !c.is_zero() {
                 // LSB is 1 iff ternary value is non-zero; else 0
                 *c <<= 1;
@@ -71,7 +71,7 @@ macro_rules! mpfr_1ary {
         #[doc = "Computes `"]
         #[doc = $cname]
         #[doc = "` to `p` binary digits of precision, rounding to odd."]
-        pub fn $name(src: Rational, p: usize) -> RTOResult {
+        pub fn $name(src: RFloat, p: usize) -> RTOResult {
             assert!(
                 p as i64 > mpfr::PREC_MIN && p as i64 <= mpfr::PREC_MAX,
                 "precision must be between {} and {}",
@@ -90,7 +90,7 @@ macro_rules! mpfr_1ary {
 
             // apply correction to get the last bit and compose
             RTOResult {
-                num: Rational::from(dst).with_ternary(t),
+                num: RFloat::from(dst).with_ternary(t),
                 prec: p,
                 flags,
             }
@@ -104,7 +104,7 @@ macro_rules! mpfr_2ary {
         #[doc = "Computes `"]
         #[doc = $cname]
         #[doc = "` to `p` binary digits of precision, rounding to odd."]
-        pub fn $name(src1: Rational, src2: Rational, p: usize) -> RTOResult {
+        pub fn $name(src1: RFloat, src2: RFloat, p: usize) -> RTOResult {
             assert!(
                 p as i64 > mpfr::PREC_MIN && p as i64 <= mpfr::PREC_MAX,
                 "precision must be between {} and {}",
@@ -129,7 +129,7 @@ macro_rules! mpfr_2ary {
 
             // apply correction to get the last bit and compose
             RTOResult {
-                num: Rational::from(dst).with_ternary(t),
+                num: RFloat::from(dst).with_ternary(t),
                 prec: p,
                 flags,
             }
@@ -143,7 +143,7 @@ macro_rules! mpfr_3ary {
         #[doc = "Computes `"]
         #[doc = $cname]
         #[doc = "` to `p` binary digits of precision, rounding to odd."]
-        pub fn $name(src1: Rational, src2: Rational, src3: Rational, p: usize) -> RTOResult {
+        pub fn $name(src1: RFloat, src2: RFloat, src3: RFloat, p: usize) -> RTOResult {
             assert!(
                 p as i64 > mpfr::PREC_MIN && p as i64 <= mpfr::PREC_MAX,
                 "precision must be between {} and {}",
@@ -170,7 +170,7 @@ macro_rules! mpfr_3ary {
 
             // apply correction to get the last bit and compose
             RTOResult {
-                num: Rational::from(dst).with_ternary(t),
+                num: RFloat::from(dst).with_ternary(t),
                 prec: p,
                 flags,
             }

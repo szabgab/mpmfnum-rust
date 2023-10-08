@@ -10,6 +10,6 @@
 mod number;
 mod round;
 
-pub use number::Rational;
+pub use number::RFloat;
 pub use number::{NAN, NEG_INF, POS_INF};
-pub use round::RationalContext;
+pub use round::RFloatContext;

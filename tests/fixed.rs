@@ -1,31 +1,21 @@
-use mpmfnum::rational::Rational;
+use mpmfnum::rfloat::RFloat;
 use mpmfnum::{fixed, RoundingContext};
 use rug::Integer;
 
-fn assert_round_small(
-    signed: bool,
-    scale: isize,
-    nbits: usize,
-    input: &Rational,
-    output: &Rational,
-) {
+fn assert_round_small(signed: bool, scale: isize, nbits: usize, input: &RFloat, output: &RFloat) {
     let ctx = fixed::FixedContext::new(signed, scale, nbits);
     let rounded = ctx.round(input);
 
-    assert_eq!(
-        Rational::from(rounded.clone()),
-        *output,
-        "mismatched result",
-    );
+    assert_eq!(RFloat::from(rounded.clone()), *output, "mismatched result",);
 }
 
 #[test]
 fn round_small() {
-    let pos_1 = Rational::Real(false, 0, Integer::from(1));
-    let pos_7_8 = Rational::Real(false, -3, Integer::from(7));
-    let pos_3_4 = Rational::Real(false, -2, Integer::from(3));
-    let pos_1_2 = Rational::Real(false, -1, Integer::from(1));
-    let zero = Rational::zero();
+    let pos_1 = RFloat::Real(false, 0, Integer::from(1));
+    let pos_7_8 = RFloat::Real(false, -3, Integer::from(7));
+    let pos_3_4 = RFloat::Real(false, -2, Integer::from(3));
+    let pos_1_2 = RFloat::Real(false, -1, Integer::from(1));
+    let zero = RFloat::zero();
 
     assert_round_small(false, 1, 4, &pos_1, &zero);
     assert_round_small(false, 0, 4, &pos_1, &pos_1);

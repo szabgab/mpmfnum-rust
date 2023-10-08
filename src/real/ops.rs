@@ -7,7 +7,7 @@ use num_traits::{Signed, Zero};
 
 use crate::{
     ops::{RoundedAdd, RoundedMul, RoundedNeg, RoundedSub},
-    rational::Rational,
+    rfloat::RFloat,
     Real, RoundingContext,
 };
 
@@ -15,11 +15,11 @@ use super::RealContext;
 
 impl RoundedNeg for RealContext {
     fn neg<N: Real>(&self, src: &N) -> Self::Rounded {
-        let src = self.round(src); // convert (exactly) to Rational
+        let src = self.round(src); // convert (exactly) to RFloat
         match src {
-            Rational::Real(s, exp, c) => Rational::Real(!s, exp, c),
-            Rational::Infinite(s) => Rational::Infinite(!s),
-            Rational::Nan => Rational::Nan,
+            RFloat::Real(s, exp, c) => RFloat::Real(!s, exp, c),
+            RFloat::Infinite(s) => RFloat::Infinite(!s),
+            RFloat::Nan => RFloat::Nan,
         }
     }
 }
@@ -30,28 +30,28 @@ impl RoundedAdd for RealContext {
         N1: Real,
         N2: Real,
     {
-        let src1 = self.round(src1); // convert (exactly) to Rational
-        let src2 = self.round(src2); // convert (exactly) to Rational
+        let src1 = self.round(src1); // convert (exactly) to RFloat
+        let src2 = self.round(src2); // convert (exactly) to RFloat
         match (src1, src2) {
             // invalid arguments means invalid result
-            (Rational::Nan, _) | (_, Rational::Nan) => Rational::Nan,
+            (RFloat::Nan, _) | (_, RFloat::Nan) => RFloat::Nan,
             // infinities
-            (Rational::Infinite(s1), Rational::Infinite(s2)) => {
+            (RFloat::Infinite(s1), RFloat::Infinite(s2)) => {
                 if s1 == s2 {
-                    Rational::Infinite(s1)
+                    RFloat::Infinite(s1)
                 } else {
-                    Rational::Nan
+                    RFloat::Nan
                 }
             }
-            (Rational::Infinite(s), _) | (_, Rational::Infinite(s)) => Rational::Infinite(s),
+            (RFloat::Infinite(s), _) | (_, RFloat::Infinite(s)) => RFloat::Infinite(s),
             // finite
-            (Rational::Real(s1, exp1, c1), Rational::Real(s2, exp2, c2)) => {
+            (RFloat::Real(s1, exp1, c1), RFloat::Real(s2, exp2, c2)) => {
                 if c2.is_zero() {
                     // x + 0 = x
-                    Rational::Real(s1, exp1, c1)
+                    RFloat::Real(s1, exp1, c1)
                 } else if c1.is_zero() {
                     // 0 + y = y
-                    Rational::Real(s2, exp2, c2)
+                    RFloat::Real(s2, exp2, c2)
                 } else {
                     // need to normalize mantissas:
                     // resulting exponent is the minimum of the
@@ -69,7 +69,7 @@ impl RoundedAdd for RealContext {
                     };
 
                     // compose result
-                    Rational::Real(m.is_negative(), exp, m.abs())
+                    RFloat::Real(m.is_negative(), exp, m.abs())
                 }
             }
         }
@@ -92,31 +92,31 @@ impl RoundedMul for RealContext {
         N1: Real,
         N2: Real,
     {
-        let src1 = self.round(src1); // convert (exactly) to Rational
-        let src2 = self.round(src2); // convert (exactly) to Rational
+        let src1 = self.round(src1); // convert (exactly) to RFloat
+        let src2 = self.round(src2); // convert (exactly) to RFloat
         match (src1, src2) {
             // invalid arguments means invalid result
-            (Rational::Nan, _) | (_, Rational::Nan) => Rational::Nan,
+            (RFloat::Nan, _) | (_, RFloat::Nan) => RFloat::Nan,
             // infinities
-            (Rational::Infinite(s1), Rational::Infinite(s2)) => Rational::Infinite(s1 != s2),
-            (Rational::Infinite(sinf), Rational::Real(s, _, c))
-            | (Rational::Real(s, _, c), Rational::Infinite(sinf)) => {
+            (RFloat::Infinite(s1), RFloat::Infinite(s2)) => RFloat::Infinite(s1 != s2),
+            (RFloat::Infinite(sinf), RFloat::Real(s, _, c))
+            | (RFloat::Real(s, _, c), RFloat::Infinite(sinf)) => {
                 if c.is_zero() {
                     // Inf * 0 is undefined
-                    Rational::Nan
+                    RFloat::Nan
                 } else {
                     // Inf * non-zero is just Inf
-                    Rational::Infinite(sinf != s)
+                    RFloat::Infinite(sinf != s)
                 }
             }
             // finite values
-            (Rational::Real(s1, exp1, c1), Rational::Real(s2, exp2, c2)) => {
+            (RFloat::Real(s1, exp1, c1), RFloat::Real(s2, exp2, c2)) => {
                 if c1.is_zero() || c2.is_zero() {
                     // finite * zero is zero
-                    Rational::zero()
+                    RFloat::zero()
                 } else {
                     // non-zero * non-zero is non-zero
-                    Rational::Real(s1 != s2, exp1 + exp2, c1 * c2)
+                    RFloat::Real(s1 != s2, exp1 + exp2, c1 * c2)
                 }
             }
         }
@@ -127,36 +127,36 @@ impl RoundedMul for RealContext {
 //  Convenient trait impls
 //
 
-impl Neg for Rational {
-    type Output = Rational;
+impl Neg for RFloat {
+    type Output = RFloat;
 
     fn neg(self) -> Self::Output {
         if self.is_zero() {
-            Rational::zero()
+            RFloat::zero()
         } else {
             RealContext::new().neg(&self)
         }
     }
 }
 
-impl Add for Rational {
-    type Output = Rational;
+impl Add for RFloat {
+    type Output = RFloat;
 
     fn add(self, rhs: Self) -> Self::Output {
         RealContext::new().add(&self, &rhs)
     }
 }
 
-impl Sub for Rational {
-    type Output = Rational;
+impl Sub for RFloat {
+    type Output = RFloat;
 
     fn sub(self, rhs: Self) -> Self::Output {
         RealContext::new().sub(&self, &rhs)
     }
 }
 
-impl Mul for Rational {
-    type Output = Rational;
+impl Mul for RFloat {
+    type Output = RFloat;
 
     fn mul(self, rhs: Self) -> Self::Output {
         RealContext::new().mul(&self, &rhs)

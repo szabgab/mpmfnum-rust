@@ -1,5 +1,5 @@
 use crate::{
-    rational::{Rational, RationalContext},
+    rfloat::{RFloat, RFloatContext},
     Real, RoundingContext, RoundingMode,
 };
 
@@ -52,17 +52,17 @@ impl FloatContext {
     fn round_finite<T: Real>(&self, num: &T) -> Float {
         // step 1: rounding as an unbounded, fixed-precision floating-point,
         // so we need to compute the context parameters; we only set
-        // `max_p` when rounding with a RationalContext.
-        let (p, n) = RationalContext::new()
+        // `max_p` when rounding with a RFloatContext.
+        let (p, n) = RFloatContext::new()
             .with_max_precision(self.max_p())
             .round_params(num);
 
         // step 2: split the significand at binary digit `n`
-        let split = RationalContext::round_prepare(num, n);
+        let split = RFloatContext::round_prepare(num, n);
         let inexact = split.halfway_bit || split.sticky_bit;
 
         // step 3: finalize (unbounded exponent)
-        let rounded = RationalContext::round_finalize(split, p, self.rm);
+        let rounded = RFloatContext::round_finalize(split, p, self.rm);
         let carry = matches!((num.e(), rounded.e()), (Some(e1), Some(e2)) if e2 > e1);
 
         Float {
@@ -84,19 +84,19 @@ impl RoundingContext for FloatContext {
         // case split by class
         if val.is_zero() {
             Float {
-                num: Rational::zero(),
+                num: RFloat::zero(),
                 flags: Exceptions::default(),
                 ctx: self.clone(),
             }
         } else if val.is_infinite() {
             Float {
-                num: Rational::Infinite(val.sign()),
+                num: RFloat::Infinite(val.sign()),
                 flags: Exceptions::default(),
                 ctx: self.clone(),
             }
         } else if val.is_nar() {
             Float {
-                num: Rational::Nan,
+                num: RFloat::Nan,
                 flags: Exceptions::default(),
                 ctx: self.clone(),
             }

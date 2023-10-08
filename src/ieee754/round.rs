@@ -4,7 +4,7 @@ use num_traits::Zero;
 use rug::Integer;
 
 use crate::ieee754::{Exceptions, IEEE754Val, IEEE754};
-use crate::rational::{Rational, RationalContext};
+use crate::rfloat::{RFloat, RFloatContext};
 use crate::round::RoundingDirection;
 use crate::util::bitmask;
 use crate::{Real, RoundingContext, RoundingMode};
@@ -307,7 +307,7 @@ impl IEEE754Context {
             std::cmp::Ordering::Equal => {
                 // near the subnormal boundary
                 // follow the IEEE specification and round with unbounded exponent
-                let unbounded_ctx = RationalContext::new()
+                let unbounded_ctx = RFloatContext::new()
                     .with_rounding_mode(self.rm)
                     .with_max_precision(self.max_p());
                 let unbounded = unbounded_ctx.round(num);
@@ -324,7 +324,7 @@ impl IEEE754Context {
     /// set in this function.
     fn round_finalize(
         &self,
-        unbounded: Rational,
+        unbounded: RFloat,
         tiny_pre: bool,
         tiny_post: bool,
         inexact: bool,
@@ -428,14 +428,14 @@ impl IEEE754Context {
         // step 1: rounding as an unbounded, fixed-precision floating-point,
         // so we need to compute the context parameters; IEEE 754 numbers
         // support subnormalization so we need to set both `max_p` and
-        // `min_n` when rounding with a RationalContext.
-        let (p, n) = RationalContext::new()
+        // `min_n` when rounding with a RFloatContext.
+        let (p, n) = RFloatContext::new()
             .with_max_precision(self.max_p())
             .with_min_n(self.expmin() - 1)
             .round_params(num);
 
         // step 2: split the significand at binary digit `n`
-        let split = RationalContext::round_prepare(num, n);
+        let split = RFloatContext::round_prepare(num, n);
 
         // step 3: compute certain exception flags
         let inexact = split.halfway_bit || split.sticky_bit;
@@ -451,7 +451,7 @@ impl IEEE754Context {
         };
 
         // step 4: finalize the rounding (unbounded exponent)
-        let unbounded = RationalContext::round_finalize(split, p, self.rm);
+        let unbounded = RFloatContext::round_finalize(split, p, self.rm);
         let carry = matches!((num.e(), unbounded.e()), (Some(e1), Some(e2)) if e2 > e1);
 
         // step 5: finalize the rounding (bounded exponent)

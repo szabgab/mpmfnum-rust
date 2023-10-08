@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::{rational::Rational, Real};
+use crate::{rfloat::RFloat, Real};
 
 use super::FloatContext;
 
@@ -49,7 +49,7 @@ impl Exceptions {
 /// Any [`Float`] value may encode a non-real number.
 #[derive(Debug, Clone)]
 pub struct Float {
-    pub(crate) num: Rational,
+    pub(crate) num: RFloat,
     pub(crate) flags: Exceptions,
     pub(crate) ctx: FloatContext,
 }
@@ -124,7 +124,7 @@ impl Real for Float {
     }
 }
 
-impl From<Float> for Rational {
+impl From<Float> for RFloat {
     fn from(value: Float) -> Self {
         value.num
     }
