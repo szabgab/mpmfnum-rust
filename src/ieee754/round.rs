@@ -1,22 +1,32 @@
 use std::ops::{BitAnd, BitOr};
 
-use num_traits::Zero;
 use rug::Integer;
 
 use crate::ieee754::{Exceptions, IEEE754Val, IEEE754};
-use crate::rational::{Rational, RationalContext};
-use crate::round::RoundingDirection;
+use crate::rfloat::{RFloat, RFloatContext};
 use crate::util::bitmask;
-use crate::{Number, RoundingContext, RoundingMode};
+use crate::{Real, RoundingContext, RoundingDirection, RoundingMode};
 
 /// Rounding contexts for IEEE 754 floating-point numbers.
 ///
-/// Parameterized by `es`, the bitwidth of the exponent field;
-/// and `nbits`, the total bitwidth of the floating-point encoding.
-/// A rounding mode may be optionally specified (by default,
-/// [`RoundingMode::NearestTiesToEven`]). Subnormal handling
-/// may also be optionally specified (by default, subnormal
-/// numbers are not treated as zeros).
+/// The associated storage type is [`IEEE754`].
+///
+/// Values rounded under this context are floating-point numbers
+/// as described in the IEEE 754 standard: base 2 scientific numbers
+/// `(-1)^s * c * 2^exp` where `c` is a fixed-precision unsigned integer
+/// and `exp` is a signed integer with format-specific bounds.
+///
+/// An [`IEEE754Context`] is parameterized by
+///
+///  - bitwidth of the exponent field,
+///  - total bitwidth of the encoding,
+///  - rounding mode,
+///  - optional subnormal flushing
+///
+/// By default, the rounding mode is [`RoundingMode::NearestTiesToEven`],
+/// and subnormals are not flushed during rounding nor interpreted
+/// as zero during an operation.
+///
 #[derive(Clone, Debug)]
 pub struct IEEE754Context {
     es: usize,
@@ -287,7 +297,7 @@ impl IEEE754Context {
     /// is sufficient for computing this condition. This condition is
     /// satisfied when the rounded result would have been smaller than
     /// MIN_NORM if the exponent were unbounded (but non-zero).
-    fn round_tiny<T: Number>(&self, num: &T) -> bool {
+    fn round_tiny<T: Real>(&self, num: &T) -> bool {
         // easy case: exact zero
         if num.is_zero() {
             // tininess requires result be non-zero
@@ -307,10 +317,10 @@ impl IEEE754Context {
             std::cmp::Ordering::Equal => {
                 // near the subnormal boundary
                 // follow the IEEE specification and round with unbounded exponent
-                let unbounded_ctx = RationalContext::new()
+                let unbounded_ctx = RFloatContext::new()
                     .with_rounding_mode(self.rm)
-                    .with_max_precision(self.max_p());
-                let unbounded = unbounded_ctx.mpmf_round(num);
+                    .with_max_p(self.max_p());
+                let unbounded = unbounded_ctx.round(num);
 
                 // tiny if below MIN_NORM
                 unbounded.e().unwrap() < self.emin()
@@ -324,7 +334,7 @@ impl IEEE754Context {
     /// set in this function.
     fn round_finalize(
         &self,
-        unbounded: Rational,
+        unbounded: RFloat,
         tiny_pre: bool,
         tiny_post: bool,
         inexact: bool,
@@ -424,18 +434,18 @@ impl IEEE754Context {
     }
 
     /// Rounds a finite (non-zero) number.
-    fn round_finite<T: Number>(&self, num: &T) -> IEEE754 {
+    fn round_finite<T: Real>(&self, num: &T) -> IEEE754 {
         // step 1: rounding as an unbounded, fixed-precision floating-point,
         // so we need to compute the context parameters; IEEE 754 numbers
         // support subnormalization so we need to set both `max_p` and
-        // `min_n` when rounding with a RationalContext.
-        let (p, n) = RationalContext::new()
-            .with_max_precision(self.max_p())
+        // `min_n` when rounding with a RFloatContext.
+        let (p, n) = RFloatContext::new()
+            .with_max_p(self.max_p())
             .with_min_n(self.expmin() - 1)
             .round_params(num);
 
         // step 2: split the significand at binary digit `n`
-        let split = RationalContext::round_prepare(num, n);
+        let split = RFloatContext::round_prepare(num, n);
 
         // step 3: compute certain exception flags
         let inexact = split.halfway_bit || split.sticky_bit;
@@ -451,7 +461,7 @@ impl IEEE754Context {
         };
 
         // step 4: finalize the rounding (unbounded exponent)
-        let unbounded = RationalContext::round_finalize(split, p, self.rm);
+        let unbounded = RFloatContext::round_finalize(split, p, self.rm);
         let carry = matches!((num.e(), unbounded.e()), (Some(e1), Some(e2)) if e2 > e1);
 
         // step 5: finalize the rounding (bounded exponent)
@@ -462,11 +472,32 @@ impl IEEE754Context {
 impl RoundingContext for IEEE754Context {
     type Rounded = IEEE754;
 
-    /// Rounds an [`IEEE754`] value into the format specified by
-    /// this rounding context. See [`RoundingContext::round`] for the more
-    /// general implementation of rounding from formats other than the
-    /// output format.
-    fn round(&self, val: &Self::Rounded) -> Self::Rounded {
+    fn round<T: Real>(&self, num: &T) -> Self::Rounded {
+        // case split by class
+        if num.is_zero() {
+            IEEE754 {
+                num: IEEE754Val::Zero(num.sign()),
+                flags: Exceptions::default(),
+                ctx: self.clone(),
+            }
+        } else if num.is_infinite() {
+            IEEE754 {
+                num: IEEE754Val::Infinity(num.sign()),
+                flags: Exceptions::default(),
+                ctx: self.clone(),
+            }
+        } else if num.is_nar() {
+            IEEE754 {
+                num: IEEE754Val::Nan(num.sign(), true, Integer::from(0)),
+                flags: Exceptions::default(),
+                ctx: self.clone(),
+            }
+        } else {
+            self.round_finite(num)
+        }
+    }
+
+    fn format_round(&self, val: &Self::Rounded) -> Self::Rounded {
         match &val.num {
             IEEE754Val::Zero(s) => {
                 // +/-0 is preserved
@@ -514,31 +545,6 @@ impl RoundingContext for IEEE754Context {
                 // finite, non-zero
                 self.round_finite(val)
             }
-        }
-    }
-
-    fn mpmf_round<T: Number>(&self, num: &T) -> Self::Rounded {
-        // case split by class
-        if num.is_zero() {
-            IEEE754 {
-                num: IEEE754Val::Zero(num.sign()),
-                flags: Exceptions::default(),
-                ctx: self.clone(),
-            }
-        } else if num.is_infinite() {
-            IEEE754 {
-                num: IEEE754Val::Infinity(num.sign()),
-                flags: Exceptions::default(),
-                ctx: self.clone(),
-            }
-        } else if num.is_nar() {
-            IEEE754 {
-                num: IEEE754Val::Nan(num.sign(), true, Integer::from(0)),
-                flags: Exceptions::default(),
-                ctx: self.clone(),
-            }
-        } else {
-            self.round_finite(num)
         }
     }
 }

@@ -1,19 +1,17 @@
-/*!
-Floating-point numbers with unbounded exponent.
-
-A fixed-precision (sign-magnitude) integer scaled by a power of two.
-This format more closely adheres to numbers in libraries like MPFR.
-
-This module implements floating-point numbers with
-the [`Float`][crate::float] storage type and the
-[`FloatContext`][crate::float] rounding context type.
-
-Unlike IEEE 754 floating-point numbers, the exponent is
-theoretically unbounded (In practice, the exponent is stored
-as a [`isize`] value, and MPFR limits constrain this exponent
-further during computation. For IEEE 754 style floating-point numbers,
-see the [`IEEE754`][crate::ieee754] crate
-*/
+//! Fixed-precision, floating-pont numbers with unbounded exponent.
+//!
+//! This module implements floating-point numbers with [`FloatContext`].
+//! The associated storage type is [`Float`] which represents a
+//! floating-point numbers with fixed-precision significand and
+//! unounded exponent.
+//!
+//! Unlike IEEE 754 floating-point numbers,
+//! the exponent is theoretically unbounded (in practice, the exponent
+//! is an [`isize`] value and MPFR limits constrain this exponent further
+//! during computation).
+//!
+//! For IEEE 754 style floating-point numbers,
+//! see the [`IEEE754`][crate::ieee754] crate.
 
 mod number;
 mod ops;

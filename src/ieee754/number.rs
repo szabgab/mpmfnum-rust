@@ -5,9 +5,9 @@ use num_traits::Zero;
 use rug::Integer;
 
 use crate::ieee754::IEEE754Context;
-use crate::rational::Rational;
+use crate::rfloat::RFloat;
 use crate::util::bitmask;
-use crate::Number;
+use crate::Real;
 
 /// Exception flags to signal certain properties of the rounded result.
 ///
@@ -109,12 +109,13 @@ pub enum IEEE754Val {
 
 /// The IEEE 754 floating-point format.
 ///
-/// This is the floating-point format described in the IEEE 754 standard.
+/// The associated [`RoundingContext`][crate::RoundingContext]
+/// implementation is [`IEEE754Context`].
+/// See [`IEEE754Context`] for more details on numerical properties
+/// of the [`IEEE754`] type.
 ///
-///  In addition to
-/// numerical data, each [`IEEE754`] value has an [`Exceptions`] instance
-/// as well as a rounding context that are set when the floating-point
-/// number is created.
+/// A [`IEEE754`] value also has an [`Exceptions`] instance to indicate
+/// exceptional events that occured during its construction.
 #[derive(Clone, Debug)]
 pub struct IEEE754 {
     pub(crate) num: IEEE754Val,
@@ -204,7 +205,7 @@ impl IEEE754 {
     }
 }
 
-impl Number for IEEE754 {
+impl Real for IEEE754 {
     fn radix() -> usize {
         2
     }
@@ -312,14 +313,14 @@ impl Number for IEEE754 {
     }
 }
 
-impl From<IEEE754> for Rational {
+impl From<IEEE754> for RFloat {
     fn from(val: IEEE754) -> Self {
         match val.num {
-            IEEE754Val::Zero(_) => Rational::zero(),
-            IEEE754Val::Subnormal(s, c) => Rational::Real(s, val.ctx.expmin(), c),
-            IEEE754Val::Normal(s, exp, c) => Rational::Real(s, exp, c),
-            IEEE754Val::Infinity(s) => Rational::Infinite(s),
-            IEEE754Val::Nan(_, _, _) => Rational::Nan,
+            IEEE754Val::Zero(_) => RFloat::zero(),
+            IEEE754Val::Subnormal(s, c) => RFloat::Real(s, val.ctx.expmin(), c),
+            IEEE754Val::Normal(s, exp, c) => RFloat::Real(s, exp, c),
+            IEEE754Val::Infinity(s) => RFloat::Infinite(s),
+            IEEE754Val::Nan(_, _, _) => RFloat::Nan,
         }
     }
 }
@@ -327,7 +328,7 @@ impl From<IEEE754> for Rational {
 impl From<IEEE754> for rug::Float {
     fn from(val: IEEE754) -> Self {
         let s = val.sign();
-        let f = rug::Float::from(Rational::from(val));
+        let f = rug::Float::from(RFloat::from(val));
         if f.is_zero() && s {
             -f
         } else {
@@ -338,7 +339,7 @@ impl From<IEEE754> for rug::Float {
 
 impl PartialOrd for IEEE754 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Rational::from(self.clone()).partial_cmp(&Rational::from(other.clone()))
+        RFloat::from(self.clone()).partial_cmp(&RFloat::from(other.clone()))
     }
 }
 

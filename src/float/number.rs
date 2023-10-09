@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::{rational::Rational, Number};
+use crate::{rfloat::RFloat, Real};
 
 use super::FloatContext;
 
@@ -38,17 +38,18 @@ impl Exceptions {
     }
 }
 
-/// The floating-point number format.
+/// A fixed-precision, floating-point number with unbounded exponent.
 ///
-/// This is not an IEEE 754 style floating-point number.
-/// This type defines a base-2 scientific number `(-1)^s * c * 2^e`
-/// where `c` is a fixed-precision unsigned-integer and
-/// `e` is theoretically unbounded  any integer
-/// (In practice, this is an [`isize`] value).
+/// The associated [`RoundingContext`][crate::RoundingContext]
+/// implementation is [`FloatContext`][crate::float::FloatContext].
+/// See [`FloatContext`] for more details on numerical properties
+/// of the [`Float`] type.
 ///
-/// Any [`Float`] value may encode a non-real number.
+/// A [`Float`] also has an [`Exceptions`] instance to indicate
+/// exceptional events that occured during its construction.
+#[derive(Debug, Clone)]
 pub struct Float {
-    pub(crate) num: Rational,
+    pub(crate) num: RFloat,
     pub(crate) flags: Exceptions,
     pub(crate) ctx: FloatContext,
 }
@@ -65,7 +66,7 @@ impl Float {
     }
 }
 
-impl Number for Float {
+impl Real for Float {
     fn radix() -> usize {
         2
     }
@@ -123,7 +124,7 @@ impl Number for Float {
     }
 }
 
-impl From<Float> for Rational {
+impl From<Float> for RFloat {
     fn from(value: Float) -> Self {
         value.num
     }

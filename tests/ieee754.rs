@@ -2,17 +2,17 @@ use std::cmp::max;
 
 use mpmfnum::ieee754;
 use mpmfnum::ops::*;
-use mpmfnum::rational::Rational;
-use mpmfnum::{Number, RoundingContext, RoundingMode};
+use mpmfnum::rfloat::RFloat;
+use mpmfnum::{Real, RoundingContext, RoundingMode};
 
 use gmp_mpfr_sys::mpfr;
 use rug::Float as MpfrFloat;
 use rug::Integer;
 
 fn assert_round_small(
-    input: &Rational,
+    input: &RFloat,
     rm: RoundingMode,
-    output: &Rational,
+    output: &RFloat,
     overflow: bool,
     underflow_pre: bool,
     underflow_post: bool,
@@ -22,13 +22,9 @@ fn assert_round_small(
     carry: bool,
 ) {
     let ctx = ieee754::IEEE754Context::new(2, 5).with_rounding_mode(rm);
-    let rounded = ctx.mpmf_round(input);
+    let rounded = ctx.round(input);
 
-    assert_eq!(
-        Rational::from(rounded.clone()),
-        *output,
-        "mismatched result",
-    );
+    assert_eq!(RFloat::from(rounded.clone()), *output, "mismatched result",);
     assert_eq!(
         rounded.flags().overflow,
         overflow,
@@ -63,10 +59,10 @@ fn round_small() {
     use RoundingMode::*;
 
     // test values
-    let pos_1 = Rational::Real(false, 0, Integer::from(1));
-    let pos_15_16 = Rational::Real(false, -4, Integer::from(15));
-    let pos_7_8 = Rational::Real(false, -3, Integer::from(7));
-    let pos_3_4 = Rational::Real(false, -2, Integer::from(3));
+    let pos_1 = RFloat::Real(false, 0, Integer::from(1));
+    let pos_15_16 = RFloat::Real(false, -4, Integer::from(15));
+    let pos_7_8 = RFloat::Real(false, -3, Integer::from(7));
+    let pos_3_4 = RFloat::Real(false, -2, Integer::from(3));
 
     let neg_1 = -pos_1.clone();
     let neg_15_16 = -pos_15_16.clone();
@@ -537,10 +533,10 @@ macro_rules! mpfr_test_2ary {
             let p = (ctx.nbits() - ctx.es()) as u32;
             for i in 0..(1 << ctx.nbits()) {
                 let x = ctx.bits_to_number(Integer::from(i));
-                let xf = MpfrFloat::from(Rational::from(x.clone()));
+                let xf = MpfrFloat::from(RFloat::from(x.clone()));
                 for j in 0..(1 << ctx.nbits()) {
                     let y = ctx.bits_to_number(Integer::from(j));
-                    let yf = MpfrFloat::from(Rational::from(y.clone()));
+                    let yf = MpfrFloat::from(RFloat::from(y.clone()));
 
                     // Implementation
                     let z = ctx.$impl(&x, &y);

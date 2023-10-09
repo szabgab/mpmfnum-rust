@@ -1,9 +1,8 @@
-use num_traits::Signed;
 use rug::Integer;
 
 use crate::fixed::{Exceptions, Fixed};
-use crate::rational::{Rational, RationalContext};
-use crate::{Number, RoundingContext, RoundingMode};
+use crate::rfloat::{RFloat, RFloatContext};
+use crate::{Real, RoundingContext, RoundingMode};
 
 /// Fixed-point overflow behavior.
 ///
@@ -25,10 +24,24 @@ pub enum Overflow {
 
 /// Rounding contexts for fixed-point numbers.
 ///
-/// Fixed-point numbers are parameterized by `nbits` the total bitwidth
-/// of the number and `scale` the position of the least-significant digit
-/// in the format. Formats may either be signed or unsigned. The rounding
-/// mode affects the rounding direction.
+/// The associated storage type is [`Fixed`].
+///
+/// Values rounded this context are fixed-point numbers:
+/// `(-1)^s * c * 2^scale` where `c` is a fixed-precision
+/// unsigned or signed integer and `scale` is a fixed integer.
+///
+/// A [`FixedContext`] is parameterized by
+///
+///  - signedness (unsigned vs. signed),
+///  - scale factor (position of least-significant digit),
+///  - total bitwidth of the encoding,
+///  - rounding mode,
+///  - overflow behavior.
+///
+/// By default, the rounding mode is [`RoundingMode::ToZero`], and
+/// the overflow handling is [`Overflow::Saturate`].
+/// See [`Overflow`] for supported overflow behavior.
+///
 #[derive(Clone, Debug)]
 pub struct FixedContext {
     pub(crate) signed: bool,
@@ -72,14 +85,14 @@ impl FixedContext {
         if self.signed {
             let c = (Integer::from(1) << (self.nbits - 1)) - 1;
             Fixed {
-                num: Rational::Real(false, self.scale, c),
+                num: RFloat::Real(false, self.scale, c),
                 flags: Default::default(),
                 ctx: self.clone(),
             }
         } else {
             let c = (Integer::from(1) << self.nbits) - 1;
             Fixed {
-                num: Rational::Real(false, self.scale, c),
+                num: RFloat::Real(false, self.scale, c),
                 flags: Default::default(),
                 ctx: self.clone(),
             }
@@ -92,14 +105,14 @@ impl FixedContext {
     pub fn minval(&self) -> Fixed {
         if self.signed {
             Fixed {
-                num: Rational::zero(),
+                num: RFloat::zero(),
                 flags: Default::default(),
                 ctx: self.clone(),
             }
         } else {
             let c = Integer::from(1) << (self.nbits - 1);
             Fixed {
-                num: Rational::Real(true, self.scale, c),
+                num: RFloat::Real(true, self.scale, c),
                 flags: Default::default(),
                 ctx: self.clone(),
             }
@@ -108,7 +121,7 @@ impl FixedContext {
 }
 
 impl FixedContext {
-    fn round_wrap(&self, val: Rational) -> Rational {
+    fn round_wrap(&self, val: RFloat) -> RFloat {
         let offset = val.exp().unwrap() - self.scale;
         let div = Integer::from(1) << self.nbits;
 
@@ -116,28 +129,28 @@ impl FixedContext {
         if self.signed {
             let m = if val.sign() { -c } else { c };
             let (_, wrapped) = m.div_rem(div);
-            Rational::Real(wrapped.is_negative(), self.scale, wrapped.abs())
+            RFloat::Real(wrapped.is_negative(), self.scale, wrapped.abs())
         } else {
             let (_, wrapped) = c.div_rem(div);
-            Rational::Real(false, self.scale, wrapped)
+            RFloat::Real(false, self.scale, wrapped)
         }
     }
 
-    fn round_finite<T: Number>(&self, num: &T) -> Fixed {
+    fn round_finite<T: Real>(&self, num: &T) -> Fixed {
         // step 1: rounding as a unbounded fixed-point number
         // so we need to compute the context parameters; we only set
-        // `min_n` when rounding with a RationalContext, the first
+        // `min_n` when rounding with a RFloatContext, the first
         // digit we want to chop off.
-        let (p, n) = RationalContext::new()
+        let (p, n) = RFloatContext::new()
             .with_min_n(self.scale - 1)
             .round_params(num);
 
         // step 2: split the significand at binary digit `n`
-        let split = RationalContext::round_prepare(num, n);
+        let split = RFloatContext::round_prepare(num, n);
         let inexact = split.halfway_bit || split.sticky_bit;
 
         // step 3: finalize (fixed point)
-        let rounded = RationalContext::round_finalize(split, p, self.rm);
+        let rounded = RFloatContext::round_finalize(split, p, self.rm);
         if !rounded.is_zero() {
             let exp = rounded.exp().unwrap();
             assert!(
@@ -195,16 +208,12 @@ impl FixedContext {
 impl RoundingContext for FixedContext {
     type Rounded = Fixed;
 
-    fn round(&self, val: &Self::Rounded) -> Self::Rounded {
-        self.mpmf_round(val)
-    }
-
-    fn mpmf_round<T: Number>(&self, val: &T) -> Self::Rounded {
+    fn round<T: Real>(&self, val: &T) -> Self::Rounded {
         // case split by class
         if val.is_zero() {
             // zero is always representable
             Fixed {
-                num: Rational::zero(),
+                num: RFloat::zero(),
                 flags: Default::default(),
                 ctx: self.clone(),
             }
@@ -219,7 +228,7 @@ impl RoundingContext for FixedContext {
         } else if val.is_nar() {
             // +/- NaN goes to 0
             Fixed {
-                num: Rational::zero(),
+                num: RFloat::zero(),
                 flags: Exceptions {
                     invalid: true,
                     ..Default::default()

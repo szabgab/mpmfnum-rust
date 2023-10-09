@@ -1,24 +1,24 @@
 use rug::Integer;
 use std::cmp::Ordering;
 
-use mpmfnum::rational::*;
-use mpmfnum::{Number, RoundingMode};
+use mpmfnum::rfloat::*;
+use mpmfnum::{Real, RoundingContext, RoundingMode};
 
 /// Testing all the required methods from [`mpmfnum::Number`].
 #[test]
 fn traits() {
-    assert_eq!(Rational::radix(), 2, "Rational is a binary format");
+    assert_eq!(RFloat::radix(), 2, "RFloat is a binary format");
 
     let vals = [
-        Rational::zero(),                           // 0
-        Rational::one(),                            // 1
-        Rational::Real(true, -4, Integer::from(7)), // -7 * 2^-4
-        Rational::Infinite(false),                  // +Inf
-        Rational::Infinite(true),                   // -Inf,
-        Rational::Nan,                              // NaN
+        RFloat::zero(),                           // 0
+        RFloat::one(),                            // 1
+        RFloat::Real(true, -4, Integer::from(7)), // -7 * 2^-4
+        RFloat::Infinite(false),                  // +Inf
+        RFloat::Infinite(true),                   // -Inf,
+        RFloat::Nan,                              // NaN
     ];
 
-    // Rational::sign
+    // RFloat::sign
     let expected = [false, false, true, false, true, false];
     for (val, &expected) in vals.iter().zip(expected.iter()) {
         let actual = val.sign();
@@ -29,7 +29,7 @@ fn traits() {
         );
     }
 
-    // Rational::exp
+    // RFloat::exp
     let expected = [None, Some(0), Some(-4), None, None, None];
     for (val, &expected) in vals.iter().zip(expected.iter()) {
         let actual = val.exp();
@@ -40,7 +40,7 @@ fn traits() {
         );
     }
 
-    // Rational::e
+    // RFloat::e
     let expected = [None, Some(0), Some(-2), None, None, None];
     for (val, &expected) in vals.iter().zip(expected.iter()) {
         let actual = val.e();
@@ -51,7 +51,7 @@ fn traits() {
         );
     }
 
-    // Rational::n
+    // RFloat::n
     let expected = [None, Some(-1), Some(-5), None, None, None];
     for (val, expected) in vals.iter().zip(expected.iter()) {
         let actual = val.n();
@@ -65,7 +65,7 @@ fn traits() {
         );
     }
 
-    // Rational::c
+    // RFloat::c
     let expected = [
         Some(Integer::from(0)),
         Some(Integer::from(1)),
@@ -86,7 +86,7 @@ fn traits() {
         );
     }
 
-    // Rational::m
+    // RFloat::m
     let expected = [
         Some(Integer::from(0)),
         Some(Integer::from(1)),
@@ -107,7 +107,7 @@ fn traits() {
         );
     }
 
-    // Rational::p
+    // RFloat::p
     let expected = [0, 1, 3, 0, 0, 0];
     for (val, expected) in vals.iter().zip(expected.iter()) {
         let actual = val.p();
@@ -121,7 +121,7 @@ fn traits() {
         );
     }
 
-    // Rational::is_nar
+    // RFloat::is_nar
     let expected = [false, false, false, true, true, true];
     for (val, expected) in vals.iter().zip(expected.iter()) {
         let actual = val.is_nar();
@@ -135,7 +135,7 @@ fn traits() {
         );
     }
 
-    // Rational::is_finite
+    // RFloat::is_finite
     let expected = [true, true, true, false, false, false];
     for (val, expected) in vals.iter().zip(expected.iter()) {
         let actual = val.is_finite();
@@ -149,7 +149,7 @@ fn traits() {
         );
     }
 
-    // Rational::is_infinite
+    // RFloat::is_infinite
     let expected = [false, false, false, true, true, false];
     for (val, expected) in vals.iter().zip(expected.iter()) {
         let actual = val.is_infinite();
@@ -163,7 +163,7 @@ fn traits() {
         );
     }
 
-    // Rational::is_zero
+    // RFloat::is_zero
     let expected = [true, false, false, false, false, false];
     for (val, expected) in vals.iter().zip(expected.iter()) {
         let actual = val.is_zero();
@@ -177,7 +177,7 @@ fn traits() {
         );
     }
 
-    // Rational::is_negative
+    // RFloat::is_negative
     let expected = [None, Some(false), Some(true), Some(false), Some(true), None];
     for (val, expected) in vals.iter().zip(expected.iter()) {
         let actual = val.is_negative();
@@ -196,249 +196,288 @@ fn traits() {
 #[test]
 fn round_trivial() {
     // rounding context
-    let ctx = RationalContext::new().with_max_precision(1);
+    let ctx = RFloatContext::new().with_max_p(1);
 
     // round(zero) = round
-    let zero = Rational::zero();
-    let (rounded_zero, err) = ctx.round_residual(&zero);
+    let zero = RFloat::zero();
+    let (_, n) = ctx.round_params(&zero);
+    let (_, err) = RFloatContext::split_at(&zero, n);
+    let rounded_zero = ctx.round(&zero);
     assert!(rounded_zero.is_zero(), "round(0) = 0");
-    assert!(err.is_some(), "rounding 0 should have a zero lost bits");
-    assert!(
-        err.unwrap().is_zero(),
-        "rounding 0 should have a zero lost bits"
-    );
+    assert!(err.is_zero(), "rounding 0 should have a zero lost bits");
 
     // round(+Inf) = +Inf
-    let (rounded_pos_inf, err) = ctx.round_residual(&POS_INF);
+    let rounded_pos_inf = ctx.round(&POS_INF);
     assert!(rounded_pos_inf.is_infinite(), "round(+Inf) = +Inf");
-    assert!(err.is_none(), "rounding +Inf should have no error");
 
     // round(-Inf) = -Inf
-    let (rounded_neg_inf, err) = ctx.round_residual(&NEG_INF);
+    let rounded_neg_inf = ctx.round(&NEG_INF);
     assert!(rounded_neg_inf.is_infinite(), "round(-Inf) = -Inf");
-    assert!(err.is_none(), "rounding -Inf should have no error");
 
     // round(Nan) = Nan
-    let (rounded_nan, err) = ctx.round_residual(&NAN);
+    let rounded_nan = ctx.round(&NAN);
     assert!(rounded_nan.is_nar(), "round(-Nan) = Nan");
-    assert!(err.is_none(), "rounding Nan should have no error");
 }
 
 /// Testing rounding using fixed-point rounding
 #[test]
 fn round_fixed() {
-    let one_3_4 = Rational::Real(false, -2, Integer::from(7));
-    let one_1_2 = Rational::Real(false, -1, Integer::from(3));
-    let one = Rational::one();
-    let three_4 = Rational::Real(false, -2, Integer::from(3));
-    let one_4 = Rational::Real(false, -2, Integer::from(1));
-    let zero = Rational::zero();
+    let one_3_4 = RFloat::Real(false, -2, Integer::from(7));
+    let one_1_2 = RFloat::Real(false, -1, Integer::from(3));
+    let one = RFloat::one();
+    let three_4 = RFloat::Real(false, -2, Integer::from(3));
+    let one_4 = RFloat::Real(false, -2, Integer::from(1));
+    let zero = RFloat::zero();
 
-    let neg_one = Rational::Real(true, 0, Integer::from(1));
+    let neg_one = RFloat::Real(true, 0, Integer::from(1));
 
     // 1 (min_n == -1) => 1
-    let ctx = RationalContext::new()
+    let ctx = RFloatContext::new()
         .with_min_n(-1)
         .with_rounding_mode(RoundingMode::ToZero);
-    let (rounded_one, err) = ctx.round_residual(&one);
+    let (_, n) = ctx.round_params(&one);
+    let (_, err) = RFloatContext::split_at(&one, n);
+    let rounded_one = ctx.round(&one);
     assert_eq!(
         rounded_one,
-        Rational::one(),
+        RFloat::one(),
         "rounding should not have lost bits"
     );
-    assert!(err.is_some(), "lost bits should be some");
-    assert!(err.unwrap().is_zero(), "lost bits should be 0");
+    assert!(err.is_zero(), "lost bits should be 0");
 
     // 1 (min_n == 0) => 0
-    let ctx = RationalContext::new()
+    let ctx = RFloatContext::new()
         .with_min_n(0)
         .with_rounding_mode(RoundingMode::ToZero);
-    let (rounded_one, err) = ctx.round_residual(&one);
+    let (_, n) = ctx.round_params(&one);
+    let (_, err) = RFloatContext::split_at(&one, n);
+    let rounded_one = ctx.round(&one);
     assert_eq!(rounded_one, zero, "rounding should truncated to 0");
-    assert!(err.is_some(), "lost bits should be some");
-    assert_eq!(err.unwrap(), Rational::one(), "lost bits should be 1");
+    assert_eq!(err, RFloat::one(), "lost bits should be 1");
 
     // -1 (min_n == 0) => 0
-    let ctx = RationalContext::new()
+    let ctx = RFloatContext::new()
         .with_min_n(0)
         .with_rounding_mode(RoundingMode::ToZero);
-    let (rounded_one, err) = ctx.round_residual(&neg_one);
+    let (_, n) = ctx.round_params(&neg_one);
+    let (_, err) = RFloatContext::split_at(&neg_one, n);
+    let rounded_one = ctx.round(&neg_one);
     assert_eq!(rounded_one, zero, "rounding should truncated to 0");
-    assert!(err.is_some(), "lost bits should be some");
-    assert_eq!(err.unwrap(), neg_one, "lost bits should be -1");
+    assert_eq!(err, neg_one, "lost bits should be -1");
 
     // 1.75 (min_n == -1) => 1
-    let ctx = RationalContext::new()
+    let ctx = RFloatContext::new()
         .with_min_n(-1)
         .with_rounding_mode(RoundingMode::ToZero);
-    let (rounded, err) = ctx.round_residual(&one_3_4);
+    let (_, n) = ctx.round_params(&one_3_4);
+    let (_, err) = RFloatContext::split_at(&one_3_4, n);
+    let rounded = ctx.round(&one_3_4);
     assert_eq!(rounded, one, "rounding should truncated to 0");
-    assert!(err.is_some(), "lost bits should be some");
-    assert_eq!(err.unwrap(), three_4, "lost bits should be 3/4");
+    assert_eq!(err, three_4, "lost bits should be 3/4");
 
     // 1.75 (min_n == -2) => 1.5
-    let ctx = RationalContext::new()
+    let ctx = RFloatContext::new()
         .with_min_n(-2)
         .with_rounding_mode(RoundingMode::ToZero);
-    let (rounded, err) = ctx.round_residual(&one_3_4);
+    let (_, n) = ctx.round_params(&one_3_4);
+    let (_, err) = RFloatContext::split_at(&one_3_4, n);
+    let rounded = ctx.round(&one_3_4);
     assert_eq!(rounded, one_1_2, "rounding should truncated to 0");
-    assert!(err.is_some(), "lost bits should be some");
-    assert_eq!(err.unwrap(), one_4, "lost bits should be 1/4");
+    assert_eq!(err, one_4, "lost bits should be 1/4");
 
     // 1 (min_n == 10) => 0
-    let ctx = RationalContext::new()
+    let ctx = RFloatContext::new()
         .with_min_n(10)
         .with_rounding_mode(RoundingMode::ToZero);
-    let (rounded, err) = ctx.round_residual(&one);
+    let (_, n) = ctx.round_params(&one);
+    let (_, err) = RFloatContext::split_at(&one, n);
+    let rounded = ctx.round(&one);
     assert_eq!(rounded, zero, "rounding should truncated to 0");
-    assert!(err.is_some(), "lost bits should be some");
-    assert_eq!(err.unwrap(), one, "lost bits should be 1");
+    assert_eq!(err, one, "lost bits should be 1");
 }
 
 /// Testing rounding using floating-point rounding
 #[test]
 fn round_float() {
-    let one_1_2 = Rational::Real(false, -1, Integer::from(3));
-    let one_1_4 = Rational::Real(false, -2, Integer::from(5));
-    let one_1_8 = Rational::Real(false, -3, Integer::from(9));
-    let one = Rational::one();
-    let one_4 = Rational::Real(false, -2, Integer::from(1));
-    let one_8 = Rational::Real(false, -3, Integer::from(1));
-    let zero = Rational::zero();
+    let one_1_2 = RFloat::Real(false, -1, Integer::from(3));
+    let one_1_4 = RFloat::Real(false, -2, Integer::from(5));
+    let one_1_8 = RFloat::Real(false, -3, Integer::from(9));
+    let one = RFloat::one();
+    let one_4 = RFloat::Real(false, -2, Integer::from(1));
+    let one_8 = RFloat::Real(false, -3, Integer::from(1));
+    let zero = RFloat::zero();
 
     // 1.25, 3 bits
 
     // rounding 1.25 with 3 bits, exact
-    let ctx = RationalContext::new().with_max_precision(3);
-    let (rounded, err) = ctx.round_residual(&one_1_4);
+    let ctx = RFloatContext::new().with_max_p(3);
+    let (_, n) = ctx.round_params(&one_1_4);
+    let (_, err) = RFloatContext::split_at(&one_1_4, n);
+    let rounded = ctx.round(&one_1_4);
     assert_eq!(rounded, one_1_4, "rounding should be exact");
-    assert_eq!(err.unwrap(), zero, "lost bits is zero");
+    assert_eq!(err, zero, "lost bits is zero");
 
     // 1.25, 2 bits
 
     // rounding 1.25 with 2 bits, round-to-nearest
-    let ctx = ctx.with_max_precision(2);
-    let (rounded, err) = ctx.round_residual(&one_1_4);
+    let ctx = ctx.with_max_p(2);
+    let (_, n) = ctx.round_params(&one_1_4);
+    let (_, err) = RFloatContext::split_at(&one_1_4, n);
+    let rounded = ctx.round(&one_1_4);
     assert_eq!(rounded, one, "rounding goes to 1");
-    assert_eq!(err.unwrap(), one_4, "lost bits is 1/4");
+    assert_eq!(err, one_4, "lost bits is 1/4");
 
     // rounding 1.25 with 2 bits, round-to-positive
     let ctx = ctx.with_rounding_mode(RoundingMode::ToPositive);
-    let (rounded, err) = ctx.round_residual(&one_1_4);
+    let (_, n) = ctx.round_params(&one_1_4);
+    let (_, err) = RFloatContext::split_at(&one_1_4, n);
+    let rounded = ctx.round(&one_1_4);
     assert_eq!(rounded, one_1_2, "rounding goes to 3/2");
-    assert_eq!(err.unwrap(), one_4, "lost bits is -1/4");
+    assert_eq!(err, one_4, "lost bits is -1/4");
 
     // rounding 1.25 with 2 bits, round-to-negative
     let ctx = ctx.with_rounding_mode(RoundingMode::ToNegative);
-    let (rounded, err) = ctx.round_residual(&one_1_4);
+    let (_, n) = ctx.round_params(&one_1_4);
+    let (_, err) = RFloatContext::split_at(&one_1_4, n);
+    let rounded = ctx.round(&one_1_4);
     assert_eq!(rounded, one, "rounding goes to 1");
-    assert_eq!(err.unwrap(), one_4, "lost bits is 1/4");
+    assert_eq!(err, one_4, "lost bits is 1/4");
 
     // rounding 1.25 with 2 bits, round-to-even
     let ctx = ctx.with_rounding_mode(RoundingMode::ToEven);
-    let (rounded, err) = ctx.round_residual(&one_1_4);
+    let (_, n) = ctx.round_params(&one_1_4);
+    let (_, err) = RFloatContext::split_at(&one_1_4, n);
+    let rounded = ctx.round(&one_1_4);
     assert_eq!(rounded, one, "rounding goes to 1");
-    assert_eq!(err.unwrap(), one_4, "lost bits is 1/4");
+    assert_eq!(err, one_4, "lost bits is 1/4");
 
     // rounding 1.25 with 2 bits, round-to-odd
     let ctx = ctx.with_rounding_mode(RoundingMode::ToOdd);
-    let (rounded, err) = ctx.round_residual(&one_1_4);
+    let (_, n) = ctx.round_params(&one_1_4);
+    let (_, err) = RFloatContext::split_at(&one_1_4, n);
+    let rounded = ctx.round(&one_1_4);
     assert_eq!(rounded, one_1_2, "rounding goes to 3/2");
-    assert_eq!(err.unwrap(), one_4, "lost bits is -1/4");
+    assert_eq!(err, one_4, "lost bits is -1/4");
 
     // 1.125, 2 bit
 
     // rounding 1.125 with 2 bits, round-to-nearest
     let ctx = ctx.with_rounding_mode(RoundingMode::NearestTiesToEven);
-    let (rounded, err) = ctx.round_residual(&one_1_8);
+    let (_, n) = ctx.round_params(&one_1_8);
+    let (_, err) = RFloatContext::split_at(&one_1_8, n);
+    let rounded = ctx.round(&one_1_8);
     assert_eq!(rounded, one, "rounding goes to 1");
-    assert_eq!(err.unwrap(), one_8, "lost bits is 1/8");
+    assert_eq!(err, one_8, "lost bits is 1/8");
 
     // rounding 1.125 with 2 bits, round-to-positive
     let ctx = ctx.with_rounding_mode(RoundingMode::ToPositive);
-    let (rounded, err) = ctx.round_residual(&one_1_8);
+    let (_, n) = ctx.round_params(&one_1_8);
+    let (_, err) = RFloatContext::split_at(&one_1_8, n);
+    let rounded = ctx.round(&one_1_8);
     assert_eq!(rounded, one_1_2, "rounding goes to 3/2");
-    assert_eq!(err.unwrap(), one_8, "lost bits is 1/8");
+    assert_eq!(err, one_8, "lost bits is 1/8");
 
     // rounding 1.125 with 2 bits, round-to-negative
     let ctx = ctx.with_rounding_mode(RoundingMode::ToNegative);
-    let (rounded, err) = ctx.round_residual(&one_1_8);
+    let (_, n) = ctx.round_params(&one_1_8);
+    let (_, err) = RFloatContext::split_at(&one_1_8, n);
+    let rounded = ctx.round(&one_1_8);
     assert_eq!(rounded, one, "rounding goes to 1");
-    assert_eq!(err.unwrap(), one_8, "lost bits is 1/8");
+    assert_eq!(err, one_8, "lost bits is 1/8");
 
     // rounding 1.125 with 2 bits, round-to-even
     let ctx = ctx.with_rounding_mode(RoundingMode::ToEven);
-    let (rounded, err) = ctx.round_residual(&one_1_8);
+    let (_, n) = ctx.round_params(&one_1_8);
+    let (_, err) = RFloatContext::split_at(&one_1_8, n);
+    let rounded = ctx.round(&one_1_8);
     assert_eq!(rounded, one, "rounding goes to 1");
-    assert_eq!(err.unwrap(), one_8, "lost bits is 1/8");
+    assert_eq!(err, one_8, "lost bits is 1/8");
 
     // rounding 1.125 with 2 bits, round-to-odd
     let ctx = ctx.with_rounding_mode(RoundingMode::ToOdd);
-    let (rounded, err) = ctx.round_residual(&one_1_8);
+    let (_, n) = ctx.round_params(&one_1_8);
+    let (_, err) = RFloatContext::split_at(&one_1_8, n);
+    let rounded = ctx.round(&one_1_8);
     assert_eq!(rounded, one_1_2, "rounding goes to 3/2");
-    assert_eq!(err.unwrap(), one_8, "lost bits is -3/8");
+    assert_eq!(err, one_8, "lost bits is -3/8");
 }
 
 /// Testing rounding using floating-point rounding using subnormals
 #[test]
 fn round_float_subnorm() {
-    let one = Rational::one();
-    let half_way = Rational::Real(false, -3, Integer::from(7));
-    let tiny_val = Rational::Real(false, -2, Integer::from(3));
-    let one_2 = Rational::Real(false, -1, Integer::from(1));
-    let one_4 = Rational::Real(false, -2, Integer::from(1));
-    let one_8 = Rational::Real(false, -3, Integer::from(1));
+    let one = RFloat::one();
+    let half_way = RFloat::Real(false, -3, Integer::from(7));
+    let tiny_val = RFloat::Real(false, -2, Integer::from(3));
+    let one_2 = RFloat::Real(false, -1, Integer::from(1));
+    let one_4 = RFloat::Real(false, -2, Integer::from(1));
+    let one_8 = RFloat::Real(false, -3, Integer::from(1));
 
     // No subnormals, round-to-nearest
-    let ctx = RationalContext::new().with_max_precision(2);
-    let (rounded, err) = ctx.round_residual(&half_way);
+    let ctx = RFloatContext::new().with_max_p(2);
+    let (_, n) = ctx.round_params(&half_way);
+    let (_, err) = RFloatContext::split_at(&half_way, n);
+    let rounded = ctx.round(&half_way);
     assert_eq!(one, rounded, "rounding to 1");
-    assert_eq!(err.unwrap(), one_8, "lost bits is 1/8");
+    assert_eq!(err, one_8, "lost bits is 1/8");
 
     // No subnormals, round-away-zero
     let ctx = ctx.with_rounding_mode(RoundingMode::AwayZero);
-    let (rounded, err) = ctx.round_residual(&half_way);
+    let (_, n) = ctx.round_params(&half_way);
+    let (_, err) = RFloatContext::split_at(&half_way, n);
+    let rounded = ctx.round(&half_way);
     assert_eq!(one, rounded, "rounding to 1");
-    assert_eq!(err.unwrap(), one_8, "lost bits is 1/8");
+    assert_eq!(err, one_8, "lost bits is 1/8");
 
     // No subnormals, round-to-zero
     let ctx = ctx.with_rounding_mode(RoundingMode::ToZero);
-    let (rounded, err) = ctx.round_residual(&half_way);
+    let (_, n) = ctx.round_params(&half_way);
+    let (_, err) = RFloatContext::split_at(&half_way, n);
+    let rounded = ctx.round(&half_way);
     assert_eq!(tiny_val, rounded, "rounding to 3/4");
-    assert_eq!(err.unwrap(), one_8, "lost bits is 1/8");
+    assert_eq!(err, one_8, "lost bits is 1/8");
 
-    // Rational<2, 4>, round-to-nearest
-    let ctx = RationalContext::new().with_max_precision(2).with_min_n(-2);
-    let (rounded, err) = ctx.round_residual(&tiny_val);
+    // RFloat<2, 4>, round-to-nearest
+    let ctx = RFloatContext::new().with_max_p(2).with_min_n(-2);
+    let (_, n) = ctx.round_params(&tiny_val);
+    let (_, err) = RFloatContext::split_at(&tiny_val, n);
+    let rounded = ctx.round(&tiny_val);
     assert_eq!(one, rounded, "rounding to 1");
-    assert_eq!(err.unwrap(), one_4, "lost bits is 1/4");
+    assert_eq!(err, one_4, "lost bits is 1/4");
 
-    // Rational<2, 4>, round-away-zero
+    // RFloat<2, 4>, round-away-zero
     let ctx = ctx.with_rounding_mode(RoundingMode::AwayZero);
-    let (rounded, err) = ctx.round_residual(&tiny_val);
+    let (_, n) = ctx.round_params(&tiny_val);
+    let (_, err) = RFloatContext::split_at(&tiny_val, n);
+    let rounded = ctx.round(&tiny_val);
     assert_eq!(one, rounded, "rounding to 1");
-    assert_eq!(err.unwrap(), one_4, "lost bits is 1/4");
+    assert_eq!(err, one_4, "lost bits is 1/4");
 
-    // Rational<2, 4>, round-to-zero
+    // RFloat<2, 4>, round-to-zero
     let ctx = ctx.with_rounding_mode(RoundingMode::ToZero);
-    let (rounded, err) = ctx.round_residual(&tiny_val);
+    let (_, n) = ctx.round_params(&tiny_val);
+    let (_, err) = RFloatContext::split_at(&tiny_val, n);
+    let rounded = ctx.round(&tiny_val);
     assert_eq!(one_2, rounded, "rounding to 1/2");
-    assert_eq!(err.unwrap(), one_4, "lost bits is 1/4");
+    assert_eq!(err, one_4, "lost bits is 1/4");
 
-    // Rational<2, 4>, round-to-even
+    // RFloat<2, 4>, round-to-even
     let ctx = ctx.with_rounding_mode(RoundingMode::ToEven);
-    let (rounded, err) = ctx.round_residual(&tiny_val);
+    let (_, n) = ctx.round_params(&tiny_val);
+    let (_, err) = RFloatContext::split_at(&tiny_val, n);
+    let rounded = ctx.round(&tiny_val);
     assert_eq!(one, rounded, "rounding to 1");
-    assert_eq!(err.unwrap(), one_4, "lost bits is 1/4");
+    assert_eq!(err, one_4, "lost bits is 1/4");
 
-    // Rational<2, 4>, round-to-odd
+    // RFloat<2, 4>, round-to-odd
     let ctx = ctx.with_rounding_mode(RoundingMode::ToOdd);
-    let (rounded, err) = ctx.round_residual(&tiny_val);
+    let (_, n) = ctx.round_params(&tiny_val);
+    let (_, err) = RFloatContext::split_at(&tiny_val, n);
+    let rounded = ctx.round(&tiny_val);
     assert_eq!(one_2, rounded, "rounding to 1/2");
-    assert_eq!(err.unwrap(), one_4, "lost bits is 1/4");
+    assert_eq!(err, one_4, "lost bits is 1/4");
 }
 
-fn assert_expected_cmp(x: &Rational, y: &Rational, expected: &Option<Ordering>) {
+fn assert_expected_cmp(x: &RFloat, y: &RFloat, expected: &Option<Ordering>) {
     let actual = x.partial_cmp(y);
     assert_eq!(
         actual,
@@ -455,15 +494,15 @@ fn assert_expected_cmp(x: &Rational, y: &Rational, expected: &Option<Ordering>) 
 fn ordering() {
     // values to compare against
     let vals = [
-        Rational::zero(),
-        Rational::one(),
+        RFloat::zero(),
+        RFloat::one(),
         POS_INF.clone(),
         NEG_INF.clone(),
         NAN.clone(),
     ];
 
     // compare with 0
-    let zero = Rational::zero();
+    let zero = RFloat::zero();
     let expected = [
         Some(Ordering::Equal),
         Some(Ordering::Less),
@@ -476,7 +515,7 @@ fn ordering() {
     }
 
     // compare with 1
-    let one = Rational::one();
+    let one = RFloat::one();
     let expected = [
         Some(Ordering::Greater),
         Some(Ordering::Equal),
@@ -519,15 +558,15 @@ fn ordering() {
     }
 
     // test normalization
-    let one = Rational::one();
-    let also_one = Rational::Real(false, -1, Integer::from(2));
+    let one = RFloat::one();
+    let also_one = RFloat::Real(false, -1, Integer::from(2));
     assert_eq!(
         one.partial_cmp(&also_one),
         Some(Ordering::Equal),
         "should be the same"
     );
 
-    let still_one = Rational::Real(false, -2, Integer::from(4));
+    let still_one = RFloat::Real(false, -2, Integer::from(4));
     assert_eq!(
         one.partial_cmp(&still_one),
         Some(Ordering::Equal),
@@ -535,14 +574,14 @@ fn ordering() {
     );
 }
 
-fn is_equal(x: &Rational, y: &Rational) -> bool {
+fn is_equal(x: &RFloat, y: &RFloat) -> bool {
     match (x, y) {
-        (Rational::Nan, Rational::Nan) => true,
+        (RFloat::Nan, RFloat::Nan) => true,
         (_, _) => *x == *y,
     }
 }
 
-fn assert_expected_mul(x: &Rational, y: &Rational, expected: &Rational) {
+fn assert_expected_mul(x: &RFloat, y: &RFloat, expected: &RFloat) {
     let left = x.clone() * y.clone();
     let right = y.clone() * x.clone();
     assert!(
@@ -564,9 +603,9 @@ fn assert_expected_mul(x: &Rational, y: &Rational, expected: &Rational) {
 #[test]
 fn multiplication() {
     // test values
-    let zero = Rational::zero(); // 0
-    let one = Rational::one(); // 1
-    let frac = Rational::Real(true, -4, Integer::from(7)); // -7 * 2^-4
+    let zero = RFloat::zero(); // 0
+    let one = RFloat::one(); // 1
+    let frac = RFloat::Real(true, -4, Integer::from(7)); // -7 * 2^-4
     let pos_inf = POS_INF; // +Inf
     let neg_inf = NEG_INF; // -Inf,
     let nan = NAN; // NaN
@@ -586,7 +625,7 @@ fn multiplication() {
     }
 
     // Multiply by -7 * 2^-4
-    let frac_sqr = Rational::Real(false, -8, Integer::from(49));
+    let frac_sqr = RFloat::Real(false, -8, Integer::from(49));
     let expected = [&zero, &frac, &frac_sqr, &neg_inf, &pos_inf, &nan];
     for (&val, &expected) in vals.iter().zip(expected.iter()) {
         assert_expected_mul(&frac, val, expected);
@@ -611,7 +650,7 @@ fn multiplication() {
     }
 }
 
-fn assert_expected_add(x: &Rational, y: &Rational, expected: &Rational) {
+fn assert_expected_add(x: &RFloat, y: &RFloat, expected: &RFloat) {
     let left = x.clone() + y.clone();
     let right = y.clone() + x.clone();
     assert!(
@@ -633,16 +672,16 @@ fn assert_expected_add(x: &Rational, y: &Rational, expected: &Rational) {
 #[test]
 fn addition() {
     // test values
-    let zero = Rational::zero(); // 0
-    let one = Rational::one(); // 1
-    let frac = Rational::Real(true, -4, Integer::from(7)); // -7 * 2^-4
+    let zero = RFloat::zero(); // 0
+    let one = RFloat::one(); // 1
+    let frac = RFloat::Real(true, -4, Integer::from(7)); // -7 * 2^-4
     let pos_inf = POS_INF; // +Inf
     let neg_inf = NEG_INF; // -Inf,
     let nan = NAN; // NaN
 
-    let two = Rational::Real(false, 0, Integer::from(2)); // 2
-    let two_frac = Rational::Real(true, -4, Integer::from(14)); // 14 * 2^-4
-    let one_m_frac = Rational::Real(false, -4, Integer::from(9)); // 9 * 2^-4
+    let two = RFloat::Real(false, 0, Integer::from(2)); // 2
+    let two_frac = RFloat::Real(true, -4, Integer::from(14)); // 14 * 2^-4
+    let one_m_frac = RFloat::Real(false, -4, Integer::from(9)); // 9 * 2^-4
 
     let vals = [&zero, &one, &frac, &pos_inf, &neg_inf, &nan];
 
@@ -686,9 +725,9 @@ fn addition() {
 #[test]
 fn neg() {
     // test values
-    let zero = Rational::zero(); // 0
-    let one = Rational::one(); // 1
-    let frac = Rational::Real(true, -4, Integer::from(7)); // -7 * 2^-4
+    let zero = RFloat::zero(); // 0
+    let one = RFloat::one(); // 1
+    let frac = RFloat::Real(true, -4, Integer::from(7)); // -7 * 2^-4
     let pos_inf = POS_INF; // +Inf
     let neg_inf = NEG_INF; // -Inf,
     let nan = NAN; // NaN
@@ -711,9 +750,9 @@ fn neg() {
 #[test]
 fn mpfr_integration() {
     // test values
-    let zero = Rational::zero(); // 0
-    let one = Rational::one(); // 1
-    let frac = Rational::Real(true, -4, Integer::from(7)); // -7 * 2^-4
+    let zero = RFloat::zero(); // 0
+    let one = RFloat::one(); // 1
+    let frac = RFloat::Real(true, -4, Integer::from(7)); // -7 * 2^-4
     let pos_inf = POS_INF; // +Inf
     let neg_inf = NEG_INF; // -Inf,
     let nan = NAN; // NaN
@@ -721,8 +760,8 @@ fn mpfr_integration() {
     let vals = [zero, one, frac, pos_inf, neg_inf, nan];
 
     for val in &vals {
-        let f: Rational = val.clone().into();
-        let val2 = Rational::from(f);
+        let f: RFloat = val.clone().into();
+        let val2 = RFloat::from(f);
         assert!(
             is_equal(val, &val2),
             "conversion should have been exact: {:?} != {:?}",

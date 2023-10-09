@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use rug::Integer;
 
 use crate::fixed::FixedContext;
-use crate::{rational::Rational, Number};
+use crate::{rfloat::RFloat, Real};
 
 /// Exception flags to signal certain properties of the rounded result.
 ///
@@ -30,16 +30,16 @@ pub struct Exceptions {
 
 /// The classic fixed-point format.
 ///
-/// Fixed-point numbers are parameterized by `nbits` the total bitwidth
-/// of the representation, `scale` the position of the least-significant
-/// digit in the representation, and if it is signed.
+/// The associated [`RoundingContext`][crate::RoundingContext]
+/// implementation is [`FixedContext`].
+/// See [`FixedContext`] for more details on numerical properties
+/// of the [`Fixed`] type.
 ///
-/// In addition to numerical data, each [`Fixed`] value has
-/// an [`Exceptions`] instance as well as a rounding context that are
-/// set when the fixed-point number is created.
+/// A [`Fixed`] value also has an [`Exceptions`] instance to indicate
+/// exceptional events that occured during its construction.
 #[derive(Clone, Debug)]
 pub struct Fixed {
-    pub(crate) num: Rational,
+    pub(crate) num: RFloat,
     pub(crate) flags: Exceptions,
     pub(crate) ctx: FixedContext,
 }
@@ -56,7 +56,7 @@ impl Fixed {
     }
 }
 
-impl Number for Fixed {
+impl Real for Fixed {
     fn radix() -> usize {
         2
     }
@@ -114,7 +114,7 @@ impl Number for Fixed {
     }
 }
 
-impl From<Fixed> for Rational {
+impl From<Fixed> for RFloat {
     fn from(val: Fixed) -> Self {
         val.num
     }

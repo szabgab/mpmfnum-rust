@@ -19,9 +19,8 @@ jobs:
       - name: Install Rust compiler
         uses: actions-rs/toolchain@v1
         with:
+            profile: minimal
             toolchain: stable
-            default: true
-            override: true
             components: rustfmt, clippy
       - name: Build
         run: cargo build --release
@@ -36,9 +35,8 @@ jobs:
       - name: Install Rust compiler
         uses: actions-rs/toolchain@v1
         with:
+            profile: minimal
             toolchain: stable
-            default: true
-            override: true
             components: rustfmt, clippy
       - name: Clippy
         run: cargo clippy -- -D warnings
