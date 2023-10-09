@@ -1,3 +1,5 @@
+use std::ops::Rem;
+
 use rug::Integer;
 
 use crate::fixed::{Exceptions, Fixed};
@@ -39,7 +41,7 @@ pub enum Overflow {
 ///  - overflow behavior.
 ///
 /// By default, the rounding mode is [`RoundingMode::ToZero`], and
-/// the overflow handling is [`Overflow::Saturate`].
+/// the overflow handling is [`Overflow::Wrap`].
 /// See [`Overflow`] for supported overflow behavior.
 ///
 #[derive(Clone, Debug)]
@@ -55,14 +57,19 @@ impl FixedContext {
     /// Constructs new rounding context.
     /// The default rounding mode is truncation
     /// (see [`ToZero`][crate::RoundingMode]). The default overflow
-    /// behavior is saturation (see [`Saturate`][Overflow]).
+    /// behavior is saturation (see [`Wrap`][Overflow]).
     pub fn new(signed: bool, scale: isize, nbits: usize) -> Self {
+        assert!(
+            (signed && nbits >= 2) || (!signed && nbits >= 1),
+            "insufficient number of representation bits"
+        );
+
         Self {
             signed,
             scale,
             nbits,
             rm: RoundingMode::ToZero,
-            overflow: Overflow::Saturate,
+            overflow: Overflow::Wrap,
         }
     }
 
@@ -104,18 +111,37 @@ impl FixedContext {
     /// If the format is signed, this is just `2^scale * -2^(nbits-1)`.
     pub fn minval(&self) -> Fixed {
         if self.signed {
-            Fixed {
-                num: RFloat::zero(),
-                flags: Default::default(),
-                ctx: self.clone(),
-            }
-        } else {
             let c = Integer::from(1) << (self.nbits - 1);
             Fixed {
                 num: RFloat::Real(true, self.scale, c),
                 flags: Default::default(),
                 ctx: self.clone(),
             }
+        } else {
+            Fixed {
+                num: RFloat::zero(),
+                flags: Default::default(),
+                ctx: self.clone(),
+            }
+        }
+    }
+
+    /// Constructs zero in the format described by [`FixedContext`]
+    pub fn zero(&self) -> Fixed {
+        Fixed {
+            num: RFloat::zero(),
+            flags: Default::default(),
+            ctx: self.clone(),
+        }
+    }
+
+    /// Constructs the smallest representable difference in
+    /// the format described by [`FixedContext`].
+    pub fn quantum(&self) -> Fixed {
+        Fixed {
+            num: RFloat::Real(false, -self.scale, Integer::from(1)),
+            flags: Default::default(),
+            ctx: self.clone(),
         }
     }
 }
@@ -124,14 +150,18 @@ impl FixedContext {
     fn round_wrap(&self, val: RFloat) -> RFloat {
         let offset = val.exp().unwrap() - self.scale;
         let div = Integer::from(1) << self.nbits;
-
         let c = val.c().unwrap() << offset;
+
         if self.signed {
+            // signed wrapping is harder:
+            // `((v + 2^(w - 1)) % 2^w) - 2^(w - 1))`
+            let shift = Integer::from(1) << (self.nbits - 1);
             let m = if val.sign() { -c } else { c };
-            let (_, wrapped) = m.div_rem(div);
+            let wrapped = (m + shift.clone()).rem(div) - shift;
             RFloat::Real(wrapped.is_negative(), self.scale, wrapped.abs())
         } else {
-            let (_, wrapped) = c.div_rem(div);
+            // unsigned wrapping is just `(v % 2^w)`
+            let wrapped = c.rem(div);
             RFloat::Real(false, self.scale, wrapped)
         }
     }
@@ -151,17 +181,29 @@ impl FixedContext {
 
         // step 3: finalize (fixed point)
         let rounded = RFloatContext::round_finalize(split, p, self.rm);
-        if !rounded.is_zero() {
-            let exp = rounded.exp().unwrap();
-            assert!(
-                exp >= self.scale,
-                "unexpected exponent, scale: {}, num: {:?}",
-                self.scale,
-                rounded
-            );
+
+        // early exit if zero
+        if rounded.is_zero() {
+            return Fixed {
+                num: RFloat::zero(),
+                flags: Exceptions {
+                    inexact,
+                    ..Default::default()
+                },
+                ctx: self.clone(),
+            };
         }
 
-        // step 3: may need to round or saturate
+        // double check rounding invariants
+        let exp = rounded.exp().unwrap();
+        assert!(
+            exp >= self.scale,
+            "unexpected exponent, scale: {}, num: {:?}",
+            self.scale,
+            rounded
+        );
+
+        // step 4: may need to round or saturate
         let maxval = self.maxval();
         let minval = self.minval();
         if rounded > maxval.num {
