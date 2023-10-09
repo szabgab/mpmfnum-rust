@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    ops::{RoundedAdd, RoundedMul, RoundedNeg, RoundedSub, RoundedAbs},
+    ops::{RoundedAbs, RoundedAdd, RoundedMul, RoundedNeg, RoundedSub},
     rfloat::RFloat,
     Real, RoundingContext,
 };
