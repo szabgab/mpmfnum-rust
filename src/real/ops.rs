@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    ops::{RoundedAdd, RoundedMul, RoundedNeg, RoundedSub},
+    ops::{RoundedAdd, RoundedMul, RoundedNeg, RoundedSub, RoundedAbs},
     rfloat::RFloat,
     Real, RoundingContext,
 };
@@ -17,6 +17,17 @@ impl RoundedNeg for RealContext {
         match src {
             RFloat::Real(s, exp, c) => RFloat::Real(!s, exp, c),
             RFloat::Infinite(s) => RFloat::Infinite(!s),
+            RFloat::Nan => RFloat::Nan,
+        }
+    }
+}
+
+impl RoundedAbs for RealContext {
+    fn abs<N: Real>(&self, src: &N) -> Self::Rounded {
+        let src = self.round(src); // convert (exactly) to RFloat
+        match src {
+            RFloat::Real(_, exp, c) => RFloat::Real(false, exp, c),
+            RFloat::Infinite(_) => RFloat::Infinite(false),
             RFloat::Nan => RFloat::Nan,
         }
     }
