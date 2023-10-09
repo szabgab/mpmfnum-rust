@@ -1,6 +1,5 @@
 use std::ops::{BitAnd, BitOr};
 
-use num_traits::Zero;
 use rug::Integer;
 
 use crate::ieee754::{Exceptions, IEEE754Val, IEEE754};

@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::cmp::{max, min};
 
-use num_traits::{Signed, Zero};
+use num_traits::Zero;
 use rug::{Float, Integer};
 
 use gmp_mpfr_sys::mpfr;

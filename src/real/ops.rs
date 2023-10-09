@@ -3,8 +3,6 @@ use std::{
     ops::{Add, Mul, Neg, Sub},
 };
 
-use num_traits::{Signed, Zero};
-
 use crate::{
     ops::{RoundedAdd, RoundedMul, RoundedNeg, RoundedSub},
     rfloat::RFloat,

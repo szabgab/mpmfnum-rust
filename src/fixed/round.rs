@@ -1,4 +1,3 @@
-use num_traits::Signed;
 use rug::Integer;
 
 use crate::fixed::{Exceptions, Fixed};

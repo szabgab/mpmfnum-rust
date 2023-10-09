@@ -12,7 +12,6 @@ All computation is done using [`RFloat`] values.
 */
 
 use gmp_mpfr_sys::mpfr;
-use num_traits::Zero;
 use rug::Float;
 
 use crate::rfloat::RFloat;
