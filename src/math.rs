@@ -26,6 +26,15 @@ pub struct RTOResult {
 }
 
 impl RTOResult {
+    /// Constructs an [`RTOResult`] from an MPFR result.
+    pub fn new(val: Float, t: i32, flags: MPFRFlags, prec: usize) -> Self {
+        Self {
+            num: RFloat::from(val).with_ternary(t),
+            prec,
+            flags,
+        }
+    }
+
     /// The numerical result of an operation.
     pub fn num(&self) -> &RFloat {
         &self.num
@@ -87,12 +96,8 @@ macro_rules! mpfr_1ary {
                 (t, mpfr_flags())
             };
 
-            // apply correction to get the last bit and compose
-            RTOResult {
-                num: RFloat::from(dst).with_ternary(t),
-                prec: p,
-                flags,
-            }
+            // compose result
+            RTOResult::new(dst, t, flags, p)
         }
     };
 }
@@ -126,12 +131,8 @@ macro_rules! mpfr_2ary {
                 (t, mpfr_flags())
             };
 
-            // apply correction to get the last bit and compose
-            RTOResult {
-                num: RFloat::from(dst).with_ternary(t),
-                prec: p,
-                flags,
-            }
+            // compose result
+            RTOResult::new(dst, t, flags, p)
         }
     };
 }
@@ -167,12 +168,8 @@ macro_rules! mpfr_3ary {
                 (t, mpfr_flags())
             };
 
-            // apply correction to get the last bit and compose
-            RTOResult {
-                num: RFloat::from(dst).with_ternary(t),
-                prec: p,
-                flags,
-            }
+            // compose result
+            RTOResult::new(dst, t, flags, p)
         }
     };
 }

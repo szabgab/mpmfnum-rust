@@ -51,7 +51,12 @@ rounded_1ary_impl!(RoundedAbs, format_abs, abs, mpfr_abs);
 rounded_1ary_impl!(RoundedSqrt, format_sqrt, sqrt, mpfr_sqrt);
 rounded_1ary_impl!(RoundedCbrt, format_cbrt, cbrt, mpfr_cbrt);
 rounded_1ary_impl!(RoundedRecip, format_recip, recip, mpfr_recip);
-rounded_1ary_impl!(RoundedRecipSqrt, format_recip_sqrt, recip_sqrt, mpfr_recip_sqrt);
+rounded_1ary_impl!(
+    RoundedRecipSqrt,
+    format_recip_sqrt,
+    recip_sqrt,
+    mpfr_recip_sqrt
+);
 rounded_1ary_impl!(RoundedExp, format_exp, exp, mpfr_exp);
 rounded_1ary_impl!(RoundedExp2, format_exp2, exp2, mpfr_exp2);
 rounded_1ary_impl!(RoundedLog, format_log, log, mpfr_log);

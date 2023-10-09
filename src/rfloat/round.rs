@@ -91,7 +91,7 @@ impl RFloatContext {
     }
 
     /// Clears the maximum allowable precision.
-    pub fn without_max_precision(mut self) -> Self {
+    pub fn without_max_p(mut self) -> Self {
         self.max_p = None;
         self
     }
