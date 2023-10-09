@@ -179,6 +179,7 @@ macro_rules! mpfr_3ary {
 
 // Unary operators
 mpfr_1ary!(mpfr_neg, neg, "(- x)");
+mpfr_1ary!(mpfr_abs, abs, "|x|");
 mpfr_1ary!(mpfr_sqrt, sqrt, "sqrt(x)");
 mpfr_1ary!(mpfr_cbrt, cbrt, "cbrt(x)");
 mpfr_1ary!(mpfr_exp, exp, "exp(x)");
@@ -188,10 +189,17 @@ mpfr_1ary!(mpfr_log, log, "ln(x)");
 mpfr_1ary!(mpfr_log2, log2, "log2(x)");
 mpfr_1ary!(mpfr_log10, log10, "log10(x)");
 mpfr_1ary!(mpfr_expm1, expm1, "e^x - 1");
+mpfr_1ary!(mpfr_exp2m1, exp2m1, "2^x - 1");
+mpfr_1ary!(mpfr_exp10m1, exp10m1, "10^x - 1");
 mpfr_1ary!(mpfr_log1p, log1p, "ln(x + 1)");
+mpfr_1ary!(mpfr_log2p1, log2p1, "log2(x + 1)");
+mpfr_1ary!(mpfr_log10p1, log10p1, "log10(x + 1)");
 mpfr_1ary!(mpfr_sin, sin, "sin(x)");
 mpfr_1ary!(mpfr_cos, cos, "cos(x)");
 mpfr_1ary!(mpfr_tan, tan, "tan(x)");
+mpfr_1ary!(mpfr_sin_pi, sinpi, "sin(pi * x)");
+mpfr_1ary!(mpfr_cos_pi, cospi, "cos(pi * x)");
+mpfr_1ary!(mpfr_tan_pi, tanpi, "tan(pi * x)");
 mpfr_1ary!(mpfr_asin, asin, "arcsin(x)");
 mpfr_1ary!(mpfr_acos, acos, "arccos(x)");
 mpfr_1ary!(mpfr_atan, atan, "arctan(x)");

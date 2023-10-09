@@ -31,6 +31,7 @@ macro_rules! rounded_1ary {
 
 // Traits for 1-ary operators
 rounded_1ary!(RoundedNeg, format_neg, neg, "-x");
+rounded_1ary!(RoundedAbs, format_abs, abs, "|x|");
 rounded_1ary!(RoundedSqrt, format_sqrt, sqrt, "sqrt(x)");
 rounded_1ary!(RoundedCbrt, format_cbrt, cbrt, "cbrt(x)");
 rounded_1ary!(RoundedExp, format_exp, exp, "exp(x)");
@@ -38,11 +39,18 @@ rounded_1ary!(RoundedExp2, format_exp2, exp2, "2^x");
 rounded_1ary!(RoundedLog, format_log, log, "ln(x)");
 rounded_1ary!(RoundedLog2, format_log2, log2, "log2(x)");
 rounded_1ary!(RoundedLog10, format_log10, log10, "log10(x)");
-rounded_1ary!(RoundedExpm1, format_expm1, expm1, "expm1(x)");
-rounded_1ary!(RoundedLog1p, format_log1p, log1p, "log1p(x)");
+rounded_1ary!(RoundedExpm1, format_expm1, expm1, "e^x - 1");
+rounded_1ary!(RoundedExp2m1, format_exp2m1, exp2m1, "2^x - 1");
+rounded_1ary!(RoundedExp10m1, format_exp10m1, exp10m1, "10^x - 1");
+rounded_1ary!(RoundedLog1p, format_log1p, log1p, "log(x + 1)");
+rounded_1ary!(RoundedLog2p1, format_log2p1, log2p1, "log2(x + 1)");
+rounded_1ary!(RoundedLog10p1, format_log10p1, log10p1, "log10(x + 1)");
 rounded_1ary!(RoundedSin, format_sin, sin, "sin(x)");
 rounded_1ary!(RoundedCos, format_cos, cos, "cos(x)");
 rounded_1ary!(RoundedTan, format_tan, tan, "tan(x)");
+rounded_1ary!(RoundedSinPi, format_sin_pi, sin_pi, "sin(pi * x)");
+rounded_1ary!(RoundedCosPi, format_cos_pi, cos_pi, "cos(pi * x)");
+rounded_1ary!(RoundedTanPi, format_tan_pi, tan_pi, "tan(pi * x)");
 rounded_1ary!(RoundedAsin, format_asin, asin, "arcsin(x)");
 rounded_1ary!(RoundedAcos, format_acos, acos, "arccos(x)");
 rounded_1ary!(RoundedAtan, format_atan, atan, "arctan(x)");
