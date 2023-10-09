@@ -8,13 +8,13 @@ use gmp_mpfr_sys::mpfr;
 
 use crate::Real;
 
-/// The "real" float format.
-///
-/// An [`RFloat`] is a base-2 number in scientific notation
-/// `(-1)^s * c * 2^exp` where `c` is a _finite-width_ binary integer.
-/// The exponent `exp` is theoretically unbounded and may be as large
-/// or small as needed.
-/// An [`RFloat`] may encode a non-real number (see [`NAN`]).
+/// An arbitrary-precision, floating-point numbers with unbounded exponent.
+/// 
+/// The associated [`RoundingContext`][crate::RoundingContext]
+/// implementation is [`RFloatContext`][crate::rfloat::RFloatContext].
+/// See [`RFloatContext`][crate::rfloat::RFloatContext] for more details
+/// on numerical properties of the [`RFloat`] type.
+/// 
 /// All operations canonicalize -0 to +0 (no sign bit).
 #[derive(Debug, Clone)]
 pub enum RFloat {

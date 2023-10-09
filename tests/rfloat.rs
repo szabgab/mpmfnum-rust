@@ -196,7 +196,7 @@ fn traits() {
 #[test]
 fn round_trivial() {
     // rounding context
-    let ctx = RFloatContext::new().with_max_precision(1);
+    let ctx = RFloatContext::new().with_max_p(1);
 
     // round(zero) = round
     let zero = RFloat::zero();
@@ -310,7 +310,7 @@ fn round_float() {
     // 1.25, 3 bits
 
     // rounding 1.25 with 3 bits, exact
-    let ctx = RFloatContext::new().with_max_precision(3);
+    let ctx = RFloatContext::new().with_max_p(3);
     let (_, n) = ctx.round_params(&one_1_4);
     let (_, err) = RFloatContext::split_at(&one_1_4, n);
     let rounded = ctx.round(&one_1_4);
@@ -320,7 +320,7 @@ fn round_float() {
     // 1.25, 2 bits
 
     // rounding 1.25 with 2 bits, round-to-nearest
-    let ctx = ctx.with_max_precision(2);
+    let ctx = ctx.with_max_p(2);
     let (_, n) = ctx.round_params(&one_1_4);
     let (_, err) = RFloatContext::split_at(&one_1_4, n);
     let rounded = ctx.round(&one_1_4);
@@ -413,7 +413,7 @@ fn round_float_subnorm() {
     let one_8 = RFloat::Real(false, -3, Integer::from(1));
 
     // No subnormals, round-to-nearest
-    let ctx = RFloatContext::new().with_max_precision(2);
+    let ctx = RFloatContext::new().with_max_p(2);
     let (_, n) = ctx.round_params(&half_way);
     let (_, err) = RFloatContext::split_at(&half_way, n);
     let rounded = ctx.round(&half_way);
@@ -437,7 +437,7 @@ fn round_float_subnorm() {
     assert_eq!(err, one_8, "lost bits is 1/8");
 
     // RFloat<2, 4>, round-to-nearest
-    let ctx = RFloatContext::new().with_max_precision(2).with_min_n(-2);
+    let ctx = RFloatContext::new().with_max_p(2).with_min_n(-2);
     let (_, n) = ctx.round_params(&tiny_val);
     let (_, err) = RFloatContext::split_at(&tiny_val, n);
     let rounded = ctx.round(&tiny_val);

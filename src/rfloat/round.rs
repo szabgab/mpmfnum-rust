@@ -12,32 +12,45 @@ pub(crate) struct RoundPrepareResult {
     pub sticky_bit: bool,
 }
 
-/// Rounding contexts for floating-point numbers.
+/// Rounding contexts for floating-point numbers with
+/// unbounded significand and unbounded exponent.
 ///
-/// Rounding a number to a (bounded) rational number takes three parameters:
-/// a maximum precision (see [`Real::p`]), the minimum absolute digit
-/// (see [`Real::n`]), and a rounding mode [`RoundingMode`].
-/// Rounding will theoretically work for all real values.
-/// The requested precision may be as small as one or zero bits,
-/// but there is no way to place an upper bound on the resulting exponent;
-/// infinity and NaN will not be rounded.
+/// The associated storage type is [`RFloat`].
+/// 
+/// Values rounded under this context are base-2 numbers
+/// in scientific notation `(-1)^s * c * 2^exp` where `c` is
+/// a theoreticaly unbounded unsigned integer and the exponent
+/// `exp` is an unbounded signed integer.
 ///
-/// There are three possible rounding behaviors: only `min_n` is specified,
-/// only `max_p` is specified, or both are specified. In the first case,
-/// rounding will behave as with fixed-point numbers with unbounded precision
-/// but the exponent `exp` must be more than `min_n`. For example, if
-/// `min_n == 1`, then the rounded result will be an integer. In the second
-/// case, the rounding will behave as with floating-point numbers, adjusting
-/// `c` so that it has at most `max_p` bits. In the third case, `min_n` takes
-/// precedence, so the result may have less than `max_p` precision even if
-/// the input has at least `max_p` precision. This behavior may be used to
-/// emulate IEEE 754 subnormalization. At least one parameter must be given
-/// or rounding will panic.
+/// An [`RFloatContext`] takes three parameters:
 ///
+///  - (optional) maximum precision (see [`Real::p`]),
+///  - (optional) minimum absolute digit,
+///  - and rounding mode [`RoundingMode`].
+///
+/// The requested precision may be as small as 1 binary digit.
+/// There is no way to restrict the maximum value.
+/// Infinity and NaN will not be rounded.
+///
+/// There are three possible rounding behaviors:
+///  
+///  - only `min_n` is specified,
+///  - only `max_p` is specified,
+///  - or both are specified.
+///
+/// In the first case, rounding will behave as with fixed-point numbers
+/// with unbounded precision but the exponent `exp` must be more than `min_n`.
+/// For example, if `min_n == 1`, then the rounded result will be an integer.
+/// In the second case, the rounding will behave as with floating-point numbers,
+/// adjusting `c` so that it has at most `max_p` bits.
+/// In the third case, `min_n` takes precedence, so the result may have less
+/// than `max_p` precision even if the input has at least `max_p` precision.
+/// This behavior may be used to emulate IEEE 754 subnormalization.
+///
+/// At least one parameter must be given or rounding will panic.
 /// The rounding mode affects how "lost" binary digits are handled.
-/// The possible rounding modes that can be specified are
-/// defined by [`RoundingMode`].
-///
+/// The possible rounding modes that can be specified
+/// are defined by [`RoundingMode`].
 #[derive(Clone, Debug)]
 pub struct RFloatContext {
     max_p: Option<usize>,
@@ -59,7 +72,8 @@ impl RFloatContext {
     }
 
     /// Sets the maximum allowable precision.
-    pub fn with_max_precision(mut self, max_p: usize) -> Self {
+    pub fn with_max_p(mut self, max_p: usize) -> Self {
+        assert!(max_p >= 1, "minimum precision must be at least 1");
         self.max_p = Some(max_p);
         self
     }

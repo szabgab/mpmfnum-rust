@@ -5,11 +5,25 @@ use crate::{
 
 use super::{Exceptions, Float};
 
-/// Rounding contexts for the [`Float`] format.
-///
-/// Parameterized by `p`, the maximum precision for the format.
-/// A rounding mode may be optionally specified (by default,
-/// [`RoundingMode::NearestTiesToEven`]).
+/// Rounding contexts for fixed-precision, floating-point numbers
+/// with unbounded exponent.
+/// 
+/// The associated storage type is [`Float`].
+/// 
+/// This is not IEEE 754 style rounding:
+/// values rounded under this context are base-2 scientific numbers
+/// `(-1)^s * c * 2^exp` where `c` is a fixed-precision unsigned integer
+/// and `exp` is an unbounded signed integer.
+/// 
+/// A [`FloatContext`] is parameterized by
+/// 
+///  - maximum precision (see [`Real::p`]),
+///  - rounding mode.
+/// 
+/// By default, the rounding mode is [`RoundingMode::NearestTiesToEven`].
+/// This rounding context is similar to the one implemented by
+/// [Rug](https://docs.rs/rug/latest/rug/) (MPFR).
+/// 
 #[derive(Clone, Debug)]
 pub struct FloatContext {
     prec: usize,
@@ -54,7 +68,7 @@ impl FloatContext {
         // so we need to compute the context parameters; we only set
         // `max_p` when rounding with a RFloatContext.
         let (p, n) = RFloatContext::new()
-            .with_max_precision(self.max_p())
+            .with_max_p(self.max_p())
             .round_params(num);
 
         // step 2: split the significand at binary digit `n`

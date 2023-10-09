@@ -108,13 +108,14 @@ pub enum IEEE754Val {
 }
 
 /// The IEEE 754 floating-point format.
+/// 
+/// The associated [`RoundingContext`][crate::RoundingContext]
+/// implementation is [`IEEE754Context`].
+/// See [`IEEE754Context`] for more details on numerical properties
+/// of the [`IEEE754`] type.
 ///
-/// This is the floating-point format described in the IEEE 754 standard.
-///
-///  In addition to
-/// numerical data, each [`IEEE754`] value has an [`Exceptions`] instance
-/// as well as a rounding context that are set when the floating-point
-/// number is created.
+/// A [`IEEE754`] value also has an [`Exceptions`] instance to indicate
+/// exceptional events that occured during its construction.
 #[derive(Clone, Debug)]
 pub struct IEEE754 {
     pub(crate) num: IEEE754Val,

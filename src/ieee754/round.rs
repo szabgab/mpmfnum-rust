@@ -3,20 +3,31 @@ use std::ops::{BitAnd, BitOr};
 use num_traits::Zero;
 use rug::Integer;
 
+use crate::{Real, RoundingContext, RoundingMode, RoundingDirection};
 use crate::ieee754::{Exceptions, IEEE754Val, IEEE754};
 use crate::rfloat::{RFloat, RFloatContext};
-use crate::round::RoundingDirection;
 use crate::util::bitmask;
-use crate::{Real, RoundingContext, RoundingMode};
 
 /// Rounding contexts for IEEE 754 floating-point numbers.
+/// 
+/// The associated storage type is [`IEEE754`].
+/// 
+/// Values rounded under this context are floating-point numbers
+/// as described in the IEEE 754 standard: base 2 scientific numbers
+/// `(-1)^s * c * 2^exp` where `c` is a fixed-precision unsigned integer
+/// and `exp` is a signed integer with format-specific bounds.
+/// 
+/// An [`IEEE754Context`] is parameterized by
+/// 
+///  - bitwidth of the exponent field,
+///  - total bitwidth of the encoding,
+///  - rounding mode,
+///  - optional subnormal flushing
 ///
-/// Parameterized by `es`, the bitwidth of the exponent field;
-/// and `nbits`, the total bitwidth of the floating-point encoding.
-/// A rounding mode may be optionally specified (by default,
-/// [`RoundingMode::NearestTiesToEven`]). Subnormal handling
-/// may also be optionally specified (by default, subnormal
-/// numbers are not treated as zeros).
+/// By default, the rounding mode is [`RoundingMode::NearestTiesToEven`],
+/// and subnormals are not flushed during rounding nor interpreted
+/// as zero during an operation.
+/// 
 #[derive(Clone, Debug)]
 pub struct IEEE754Context {
     es: usize,
@@ -309,7 +320,7 @@ impl IEEE754Context {
                 // follow the IEEE specification and round with unbounded exponent
                 let unbounded_ctx = RFloatContext::new()
                     .with_rounding_mode(self.rm)
-                    .with_max_precision(self.max_p());
+                    .with_max_p(self.max_p());
                 let unbounded = unbounded_ctx.round(num);
 
                 // tiny if below MIN_NORM
@@ -430,7 +441,7 @@ impl IEEE754Context {
         // support subnormalization so we need to set both `max_p` and
         // `min_n` when rounding with a RFloatContext.
         let (p, n) = RFloatContext::new()
-            .with_max_precision(self.max_p())
+            .with_max_p(self.max_p())
             .with_min_n(self.expmin() - 1)
             .round_params(num);
 
