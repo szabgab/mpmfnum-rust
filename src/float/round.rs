@@ -40,7 +40,7 @@ impl FloatContext {
     }
 
     /// Sets the precision of this context.
-    pub fn with_prec(mut self, prec: usize) -> Self {
+    pub fn with_max_p(mut self, prec: usize) -> Self {
         self.prec = prec;
         self
     }

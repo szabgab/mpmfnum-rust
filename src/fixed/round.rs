@@ -24,11 +24,25 @@ pub enum Overflow {
 }
 
 /// Rounding contexts for fixed-point numbers.
+/// 
+/// The associated storage type is [`Fixed`].
+/// 
+/// Values rounded this context are fixed-point numbers:
+/// `(-1)^s * c * 2^scale` where `c` is a fixed-precision
+/// unsigned or signed integer and `scale` is a fixed integer.
+/// 
+/// A [`FixedContext`] is parameterized by
+/// 
+///  - signedness (unsigned vs. signed),
+///  - scale factor (position of least-significant digit),
+///  - total bitwidth of the encoding,
+///  - rounding mode,
+///  - overflow behavior.
 ///
-/// Fixed-point numbers are parameterized by `nbits` the total bitwidth
-/// of the number and `scale` the position of the least-significant digit
-/// in the format. Formats may either be signed or unsigned. The rounding
-/// mode affects the rounding direction.
+/// By default, the rounding mode is [`RoundingMode::ToZero`], and
+/// the overflow handling is [`Overflow::Saturate`].
+/// See [`Overflow`] for supported overflow behavior.
+/// 
 #[derive(Clone, Debug)]
 pub struct FixedContext {
     pub(crate) signed: bool,

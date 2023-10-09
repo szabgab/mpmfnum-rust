@@ -27,13 +27,13 @@ pub enum RFloat {
     Nan,
 }
 
-/// An instantiation of [ RFloat::Nan`].
+/// An instantiation of [`RFloat::Nan`].
 pub const NAN: RFloat = RFloat::Nan;
 
-/// An instantiation of [ RFloat::Infinite`] with positive sign.
+/// An instantiation of [`RFloat::Infinite`] with positive sign.
 pub const POS_INF: RFloat = RFloat::Infinite(false);
 
-/// An instantiation of [ RFloat::Infinite`] with negative sign.
+/// An instantiation of [`RFloat::Infinite`] with negative sign.
 pub const NEG_INF: RFloat = RFloat::Infinite(true);
 
 // Implements the `Real` trait for  RFloat`.

@@ -30,13 +30,13 @@ pub struct Exceptions {
 
 /// The classic fixed-point format.
 ///
-/// Fixed-point numbers are parameterized by `nbits` the total bitwidth
-/// of the representation, `scale` the position of the least-significant
-/// digit in the representation, and if it is signed.
+/// The associated [`RoundingContext`][crate::RoundingContext]
+/// implementation is [`FixedContext`].
+/// See [`FixedContext`] for more details on numerical properties
+/// of the [`Fixed`] type.
 ///
-/// In addition to numerical data, each [`Fixed`] value has
-/// an [`Exceptions`] instance as well as a rounding context that are
-/// set when the fixed-point number is created.
+/// A [`Fixed`] value also has an [`Exceptions`] instance to indicate
+/// exceptional events that occured during its construction.
 #[derive(Clone, Debug)]
 pub struct Fixed {
     pub(crate) num: RFloat,

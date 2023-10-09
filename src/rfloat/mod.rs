@@ -3,7 +3,6 @@
 //! This module implements floating-point numbers with [`RFloatContext`].
 //! The associated storage type is [`RFloat`] which represents a
 //! floating-point numbers with unbounded significand and unbounded exponent.
-//! Values rounded under [`RFloatContext`] have unbounded significand.
 //!
 //! The [`RFloat`] type serves as an interchange format between
 //! all number systems since it is the least restrictive format.

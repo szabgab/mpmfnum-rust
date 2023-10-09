@@ -32,17 +32,19 @@
 //!
 //! `mpmfnum` supports various number systems through implementations of [`RoundingContext`]:
 //!
+//!  - [`RealContext`][crate::real::RealContext]
+//!     performs no rounding, that is, the operation is exact,
 //!  - [`RFloatContext`][crate::rfloat::RFloatContext]
 //!     rounds a [`Real`] value to an arbitrary-precision, floating-point numbers
-//!     with unbounded exponent
+//!     with unbounded exponent,
 //!  - [`FloatContext`][crate::float::FloatContext]
 //!     rounds a [`Real`] value to a fixed-precision, floating-point numbers
-//!     with unbounded exponent
+//!     with unbounded exponent,
 //!  - [`IEEE754Context`][crate::ieee754::IEEE754Context]
 //!     rounds a [`Real`] value to a floating-point number as described by
-//!     the IEEE 754 standard
+//!     the IEEE 754 standard,
 //!  - [`FixedContext`][crate::fixed::FixedContext]
-//!     rounds a [`Real`] value to a fixed-point
+//!     rounds a [`Real`] value to a fixed-point,
 //!
 //! Planned support for posits and more!
 //!
