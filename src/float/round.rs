@@ -7,23 +7,23 @@ use super::{Exceptions, Float};
 
 /// Rounding contexts for fixed-precision, floating-point numbers
 /// with unbounded exponent.
-/// 
+///
 /// The associated storage type is [`Float`].
-/// 
+///
 /// This is not IEEE 754 style rounding:
 /// values rounded under this context are base-2 scientific numbers
 /// `(-1)^s * c * 2^exp` where `c` is a fixed-precision unsigned integer
 /// and `exp` is an unbounded signed integer.
-/// 
+///
 /// A [`FloatContext`] is parameterized by
-/// 
+///
 ///  - maximum precision (see [`Real::p`]),
 ///  - rounding mode.
-/// 
+///
 /// By default, the rounding mode is [`RoundingMode::NearestTiesToEven`].
 /// This rounding context is similar to the one implemented by
 /// [Rug](https://docs.rs/rug/latest/rug/) (MPFR).
-/// 
+///
 #[derive(Clone, Debug)]
 pub struct FloatContext {
     prec: usize,

@@ -1,5 +1,5 @@
 //! Multiple flavors of fixed-point numbers.
-//! 
+//!
 //! This module implements fixed-point numbers with [`FixedContext`].
 //! The associated storage type is [`Fixed`].
 

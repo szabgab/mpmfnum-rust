@@ -3,22 +3,22 @@ use std::ops::{BitAnd, BitOr};
 use num_traits::Zero;
 use rug::Integer;
 
-use crate::{Real, RoundingContext, RoundingMode, RoundingDirection};
 use crate::ieee754::{Exceptions, IEEE754Val, IEEE754};
 use crate::rfloat::{RFloat, RFloatContext};
 use crate::util::bitmask;
+use crate::{Real, RoundingContext, RoundingDirection, RoundingMode};
 
 /// Rounding contexts for IEEE 754 floating-point numbers.
-/// 
+///
 /// The associated storage type is [`IEEE754`].
-/// 
+///
 /// Values rounded under this context are floating-point numbers
 /// as described in the IEEE 754 standard: base 2 scientific numbers
 /// `(-1)^s * c * 2^exp` where `c` is a fixed-precision unsigned integer
 /// and `exp` is a signed integer with format-specific bounds.
-/// 
+///
 /// An [`IEEE754Context`] is parameterized by
-/// 
+///
 ///  - bitwidth of the exponent field,
 ///  - total bitwidth of the encoding,
 ///  - rounding mode,
@@ -27,7 +27,7 @@ use crate::util::bitmask;
 /// By default, the rounding mode is [`RoundingMode::NearestTiesToEven`],
 /// and subnormals are not flushed during rounding nor interpreted
 /// as zero during an operation.
-/// 
+///
 #[derive(Clone, Debug)]
 pub struct IEEE754Context {
     es: usize,

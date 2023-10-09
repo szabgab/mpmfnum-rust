@@ -44,7 +44,7 @@ impl Exceptions {
 /// implementation is [`FloatContext`][crate::float::FloatContext].
 /// See [`FloatContext`] for more details on numerical properties
 /// of the [`Float`] type.
-/// 
+///
 /// A [`Float`] also has an [`Exceptions`] instance to indicate
 /// exceptional events that occured during its construction.
 #[derive(Debug, Clone)]

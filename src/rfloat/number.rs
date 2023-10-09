@@ -9,12 +9,12 @@ use gmp_mpfr_sys::mpfr;
 use crate::Real;
 
 /// An arbitrary-precision, floating-point numbers with unbounded exponent.
-/// 
+///
 /// The associated [`RoundingContext`][crate::RoundingContext]
 /// implementation is [`RFloatContext`][crate::rfloat::RFloatContext].
 /// See [`RFloatContext`][crate::rfloat::RFloatContext] for more details
 /// on numerical properties of the [`RFloat`] type.
-/// 
+///
 /// All operations canonicalize -0 to +0 (no sign bit).
 #[derive(Debug, Clone)]
 pub enum RFloat {

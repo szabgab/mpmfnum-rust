@@ -1,5 +1,5 @@
 //! Floating-point numbers as described in the IEEE 754-2019 standard.
-//! 
+//!
 //! This module implements floating-point numbers with [`IEEE754Context`].
 //! The associated storage type is [`IEEE754`] which represents an
 //! IEEE 754 style floating-point number.

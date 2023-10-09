@@ -16,7 +16,7 @@ pub(crate) struct RoundPrepareResult {
 /// unbounded significand and unbounded exponent.
 ///
 /// The associated storage type is [`RFloat`].
-/// 
+///
 /// Values rounded under this context are base-2 numbers
 /// in scientific notation `(-1)^s * c * 2^exp` where `c` is
 /// a theoreticaly unbounded unsigned integer and the exponent

@@ -108,7 +108,7 @@ pub enum IEEE754Val {
 }
 
 /// The IEEE 754 floating-point format.
-/// 
+///
 /// The associated [`RoundingContext`][crate::RoundingContext]
 /// implementation is [`IEEE754Context`].
 /// See [`IEEE754Context`] for more details on numerical properties
