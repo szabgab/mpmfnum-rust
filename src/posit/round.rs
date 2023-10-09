@@ -1,6 +1,8 @@
+use std::cmp::max;
+
 use rug::Integer;
 
-use crate::{Real, RoundingContext};
+use crate::{util::bitmask, Real, RoundingContext};
 
 use super::{Posit, PositVal};
 
@@ -89,12 +91,6 @@ impl PositContext {
         max_r - 1
     }
 
-    /// Largest representable regime
-    pub fn rmin(&self) -> isize {
-        let max_r = (self.nbits - 1) as isize;
-        1 - max_r
-    }
-
     /// Largest representable (normalized) exponent
     pub fn emax(&self) -> isize {
         // format only contains regime bits
@@ -110,7 +106,7 @@ impl PositContext {
     /// Smallest representable (normalized) exponent
     pub fn emin(&self) -> isize {
         // format only contains regime bits
-        self.rscale() * self.rmin()
+        self.rscale() * self.rmax()
     }
 
     /// Largest representable (unnormalized) exponent
@@ -118,7 +114,7 @@ impl PositContext {
         self.emin() // precision is 1 bit
     }
 
-    /// Maximum representable value
+    /// Maximum representable value.
     pub fn maxval(&self) -> Posit {
         Posit {
             num: PositVal::NonZero(false, self.rmax(), 0, Integer::from(1)),
@@ -126,10 +122,10 @@ impl PositContext {
         }
     }
 
-    /// Minimum representable value
+    /// Minimum representable value.
     pub fn minval(&self) -> Posit {
         Posit {
-            num: PositVal::NonZero(false, self.rmin(), 0, Integer::from(1)),
+            num: PositVal::NonZero(false, -self.rmax(), 0, Integer::from(1)),
             ctx: self.clone(),
         }
     }
@@ -139,6 +135,87 @@ impl PositContext {
         Posit {
             num: PositVal::Zero,
             ctx: self.clone(),
+        }
+    }
+
+    /// Constructs `NAR` in this format.
+    pub fn nar(&self) -> Posit {
+        Posit {
+            num: PositVal::Nar,
+            ctx: self.clone(),
+        }
+    }
+
+    /// Converts an [`Integer`] representing a posit number into
+    /// a [`Posit`] value under this [`PositContext`].
+    pub fn bits_to_number(&self, b: Integer) -> Posit {
+        let limit = Integer::from(1) << self.nbits;
+        assert!(b < limit, "must be less than 1 << nbits");
+
+        // decompose into sign and magnitude
+        let s = b.get_bit((self.nbits - 1) as u32);
+        let ns = b & bitmask(self.nbits - 1);
+
+        if ns == 0 {
+            // either 0 or NAR
+            Posit {
+                num: if s { PositVal::Nar } else { PositVal::Zero },
+                ctx: self.clone(),
+            }
+        } else {
+            // scan for LSB of the regime field
+            let r0 = ns.get_bit((self.nbits - 2) as u32);
+            let mut r0_pos = self.nbits - 2;
+            while r0_pos > 0 && ns.get_bit((r0_pos - 1) as u32) == r0 {
+                r0_pos -= 1;
+            }
+
+            if r0_pos == 0 {
+                // special case: we shifted out looking for the LSB
+                // of the regime, so we must be the maximum value
+                Posit {
+                    num: PositVal::NonZero(s, self.rmax(), 0, Integer::from(1)),
+                    ctx: self.clone(),
+                }
+            } else {
+                // exponent and mantissa fields are dynamic and start
+                // below `r0` with mantissa being shifted off first
+                let embits = r0_pos - 1;
+                let rbits = self.nbits - embits - 1;
+                let (ebits, mbits) = if embits <= self.es {
+                    (embits, 0)
+                } else {
+                    (self.es, embits - self.es)
+                };
+
+                // extract bits
+                let efield = ((ns.clone() >> mbits) & bitmask(ebits)).to_isize().unwrap();
+                let mfield = ns & bitmask(mbits);
+
+                // convert regime
+                let kbits = rbits - 1;
+                let regime = if r0 {
+                    kbits as isize - 1
+                } else {
+                    -(kbits as isize)
+                };
+
+                // convert exponent
+                let e = if ebits < self.es {
+                    efield << (self.es - ebits)
+                } else {
+                    efield
+                };
+
+                // convert significand
+                let c = mfield | (1 << mbits);
+
+                // compose result
+                Posit {
+                    num: PositVal::NonZero(s, regime, e - mbits as isize, c),
+                    ctx: self.clone(),
+                }
+            }
         }
     }
 }

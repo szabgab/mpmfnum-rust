@@ -238,7 +238,7 @@ impl IEEE754Context {
         let m = b.bitand(bitmask(p - 1));
 
         // case split by classification
-        let e_norm = e - self.emax();
+        let e_norm = e.to_isize().unwrap() - self.emax();
         let num = if e_norm < self.emin() {
             // subnormal or zero
             if m.is_zero() {
@@ -251,7 +251,7 @@ impl IEEE754Context {
         } else if e_norm <= self.emax() {
             // normal
             let c = (Integer::from(1) << (p - 1)).bitor(m);
-            let exp = e_norm.to_isize().unwrap() - (p as isize - 1);
+            let exp = e_norm - (p as isize - 1);
             IEEE754Val::Normal(s, exp, c)
         } else {
             // non-real
