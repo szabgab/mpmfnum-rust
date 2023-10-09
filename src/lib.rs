@@ -54,6 +54,7 @@ pub mod float;
 pub mod ieee754;
 pub mod math;
 pub mod ops;
+pub mod posit;
 pub mod real;
 pub mod rfloat;
 
