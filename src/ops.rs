@@ -8,9 +8,9 @@ use crate::{Real, RoundingContext};
 
 macro_rules! rounded_1ary {
     ($trait:ident, $imp:ident, $mpmf:ident, $descr:expr) => {
-        #[doc = "Rounded "]
+        #[doc = "Rounded `"]
         #[doc = $descr]
-        #[doc = " for rounding contexts."]
+        #[doc = "` for rounding contexts."]
         pub trait $trait: RoundingContext {
             #[doc = "Performs rounded `"]
             #[doc = $descr]
@@ -34,6 +34,8 @@ rounded_1ary!(RoundedNeg, format_neg, neg, "-x");
 rounded_1ary!(RoundedAbs, format_abs, abs, "|x|");
 rounded_1ary!(RoundedSqrt, format_sqrt, sqrt, "sqrt(x)");
 rounded_1ary!(RoundedCbrt, format_cbrt, cbrt, "cbrt(x)");
+rounded_1ary!(RoundedRecip, format_recip, recip, "1/x");
+rounded_1ary!(RoundedRecipSqrt, format_recip_sqrt, recip_sqrt, "1/sqrt(x)");
 rounded_1ary!(RoundedExp, format_exp, exp, "exp(x)");
 rounded_1ary!(RoundedExp2, format_exp2, exp2, "2^x");
 rounded_1ary!(RoundedLog, format_log, log, "ln(x)");
@@ -67,9 +69,9 @@ rounded_1ary!(RoundedLgamma, format_lgamma, lgamma, "lgamma(x)");
 
 macro_rules! rounded_2ary {
     ($trait:ident, $imp:ident, $mpmf:ident, $descr:expr) => {
-        #[doc = "Rounded "]
+        #[doc = "Rounded `"]
         #[doc = $descr]
-        #[doc = " for rounding contexts."]
+        #[doc = "` for rounding contexts."]
         pub trait $trait: RoundingContext {
             #[doc = "Performs rounded `"]
             #[doc = $descr]
@@ -107,9 +109,9 @@ rounded_2ary!(RoundedAtan2, format_atan2, atan2, "arctan(y / x)");
 
 macro_rules! rounded_3ary {
     ($trait:ident, $imp:ident, $mpmf:ident, $descr:expr) => {
-        #[doc = "Rounded "]
+        #[doc = "Rounded `"]
         #[doc = $descr]
-        #[doc = " for rounding contexts."]
+        #[doc = "` for rounding contexts."]
         pub trait $trait: RoundingContext {
             #[doc = "Performs rounded `"]
             #[doc = $descr]

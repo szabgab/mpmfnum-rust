@@ -182,6 +182,7 @@ mpfr_1ary!(mpfr_neg, neg, "(- x)");
 mpfr_1ary!(mpfr_abs, abs, "|x|");
 mpfr_1ary!(mpfr_sqrt, sqrt, "sqrt(x)");
 mpfr_1ary!(mpfr_cbrt, cbrt, "cbrt(x)");
+mpfr_1ary!(mpfr_recip_sqrt, rec_sqrt, "1/sqrt(x)");
 mpfr_1ary!(mpfr_exp, exp, "exp(x)");
 mpfr_1ary!(mpfr_exp2, exp2, "2^x");
 mpfr_1ary!(mpfr_exp10, exp10, "exp10(x)");
@@ -227,3 +228,31 @@ mpfr_2ary!(mpfr_atan2, atan2, "arctan(y / x)");
 
 // Ternary operators
 mpfr_3ary!(mpfr_fma, fma, "a * b + c");
+
+// Special operators
+
+/// Computes `1/x` to `p` binary digits of precision, rounding to odd.
+pub fn mpfr_recip(src: RFloat, p: usize) -> RTOResult {
+    assert!(
+        p as i64 > mpfr::PREC_MIN && p as i64 <= mpfr::PREC_MAX,
+        "precision must be between {} and {}",
+        mpfr::PREC_MIN + 1,
+        mpfr::PREC_MAX
+    );
+
+    // compute with `p - 1` bits
+    let mut dst = Float::new((p - 1) as u32);
+    let src = Float::from(src);
+    let (t, flags) = unsafe {
+        mpfr::clear_flags();
+        let t = mpfr::ui_div(dst.as_raw_mut(), 1, src.as_raw(), mpfr::rnd_t::RNDZ);
+        (t, mpfr_flags())
+    };
+
+    // apply correction to get the last bit and compose
+    RTOResult {
+        num: RFloat::from(dst).with_ternary(t),
+        prec: p,
+        flags,
+    }
+}
