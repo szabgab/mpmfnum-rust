@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use num_traits::{One, Zero};
 use rug::Integer;
 
@@ -172,6 +174,44 @@ impl Real for Posit {
 
     fn is_numerical(&self) -> bool {
         !matches!(self.num, PositVal::Nar)
+    }
+}
+
+impl PartialEq for Posit {
+    fn eq(&self, other: &Self) -> bool {
+        self.partial_cmp(other) == Some(Ordering::Equal)
+    }
+}
+
+impl PartialOrd for Posit {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (&self.num, &other.num) {
+            (PositVal::Nar, PositVal::Nar) => Some(Ordering::Equal),
+            (PositVal::Nar, _) => Some(Ordering::Less),
+            (_, PositVal::Nar) => Some(Ordering::Greater),
+            (PositVal::Zero, PositVal::Zero) => Some(Ordering::Equal),
+            (PositVal::Zero, PositVal::NonZero(s, _, _, _)) => {
+                if *s {
+                    // 0 > -x
+                    Some(Ordering::Greater)
+                } else {
+                    // 0 < +X
+                    Some(Ordering::Less)
+                }
+            }
+            (PositVal::NonZero(s, _, _, _), PositVal::Zero) => {
+                if *s {
+                    // -x < 0
+                    Some(Ordering::Less)
+                } else {
+                    // +x > 0
+                    Some(Ordering::Greater)
+                }
+            }
+            (PositVal::NonZero(_, _, _, _), PositVal::NonZero(_, _, _, _)) => {
+                RFloat::from(self.clone()).partial_cmp(&RFloat::from(other.clone()))
+            }
+        }
     }
 }
 

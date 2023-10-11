@@ -1,4 +1,4 @@
-use mpmfnum::{posit::*, rfloat::RFloat, Real};
+use mpmfnum::{posit::*, rfloat::RFloat, Real, RoundingContext};
 use rug::Integer;
 
 fn bits_to_rfloat(ctx: &PositContext, i: usize) -> RFloat {
@@ -126,11 +126,11 @@ fn bounds() {
     let ctx = PositContext::new(2, 8);
     assert_eq!(ctx.useed(), 16);
     assert_eq!(
-        RFloat::from(ctx.maxval()),
+        RFloat::from(ctx.maxval(false)),
         RFloat::Real(false, 24, Integer::from(1))
     );
     assert_eq!(
-        RFloat::from(ctx.minval()),
+        RFloat::from(ctx.minval(false)),
         RFloat::Real(false, -24, Integer::from(1))
     );
 
@@ -138,11 +138,51 @@ fn bounds() {
     let ctx = PositContext::new(3, 8);
     assert_eq!(ctx.useed(), 256);
     assert_eq!(
-        RFloat::from(ctx.maxval()),
+        RFloat::from(ctx.maxval(false)),
         RFloat::Real(false, 48, Integer::from(1))
     );
     assert_eq!(
-        RFloat::from(ctx.minval()),
+        RFloat::from(ctx.minval(false)),
         RFloat::Real(false, -48, Integer::from(1))
     );
+}
+
+#[test]
+fn round_small() {
+    let ctx = PositContext::new(2, 8);
+
+    // rounding NaN
+    let nan = RFloat::Nan;
+    let rounded_nan = ctx.round(&nan);
+    assert!(rounded_nan.is_nar(), "round(NaN) = NaR");
+
+    // rounding +Inf
+    let inf = RFloat::Infinite(true);
+    let rounded_inf = ctx.round(&inf);
+    assert!(rounded_inf.is_nar(), "round(+Inf) = NaR");
+
+    // rounding +Inf
+    let inf = RFloat::Infinite(false);
+    let rounded_inf = ctx.round(&inf);
+    assert!(rounded_inf.is_nar(), "round(+Inf) = NaR");
+
+    // rounding 0
+    let zero = RFloat::zero();
+    let rounded_zero = ctx.round(&zero);
+    assert!(rounded_zero.is_zero(), "round(+0) = +0");
+
+    // rounding MAXVAL + 1
+    let maxp1 = RFloat::one() + RFloat::from(ctx.maxval(false));
+    let rounded_maxp1 = ctx.round(&maxp1);
+    assert_eq!(rounded_maxp1, ctx.maxval(false), "round(MAXVAL+1) = MAXVAL");
+
+    // rounding +1
+    let one = RFloat::one();
+    let rounded_one = ctx.round(&one);
+    assert_eq!(one, RFloat::from(rounded_one), "round(+1) = +1");
+
+    // rounding +1.0625
+    let one_1_16 = RFloat::Real(false, -4, Integer::from(17));
+    let rounded = ctx.round(&one_1_16);
+    assert_eq!(one, RFloat::from(rounded), "round(+1.0625) = +1");
 }
