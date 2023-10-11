@@ -26,6 +26,15 @@ pub struct RTOResult {
 }
 
 impl RTOResult {
+    /// Constructs an [`RTOResult`] from an MPFR result.
+    pub fn new(val: Float, t: i32, flags: MPFRFlags, prec: usize) -> Self {
+        Self {
+            num: RFloat::from(val).with_ternary(t),
+            prec,
+            flags,
+        }
+    }
+
     /// The numerical result of an operation.
     pub fn num(&self) -> &RFloat {
         &self.num
@@ -87,12 +96,8 @@ macro_rules! mpfr_1ary {
                 (t, mpfr_flags())
             };
 
-            // apply correction to get the last bit and compose
-            RTOResult {
-                num: RFloat::from(dst).with_ternary(t),
-                prec: p,
-                flags,
-            }
+            // compose result
+            RTOResult::new(dst, t, flags, p)
         }
     };
 }
@@ -126,12 +131,8 @@ macro_rules! mpfr_2ary {
                 (t, mpfr_flags())
             };
 
-            // apply correction to get the last bit and compose
-            RTOResult {
-                num: RFloat::from(dst).with_ternary(t),
-                prec: p,
-                flags,
-            }
+            // compose result
+            RTOResult::new(dst, t, flags, p)
         }
     };
 }
@@ -167,20 +168,18 @@ macro_rules! mpfr_3ary {
                 (t, mpfr_flags())
             };
 
-            // apply correction to get the last bit and compose
-            RTOResult {
-                num: RFloat::from(dst).with_ternary(t),
-                prec: p,
-                flags,
-            }
+            // compose result
+            RTOResult::new(dst, t, flags, p)
         }
     };
 }
 
 // Unary operators
 mpfr_1ary!(mpfr_neg, neg, "(- x)");
+mpfr_1ary!(mpfr_abs, abs, "|x|");
 mpfr_1ary!(mpfr_sqrt, sqrt, "sqrt(x)");
 mpfr_1ary!(mpfr_cbrt, cbrt, "cbrt(x)");
+mpfr_1ary!(mpfr_recip_sqrt, rec_sqrt, "1/sqrt(x)");
 mpfr_1ary!(mpfr_exp, exp, "exp(x)");
 mpfr_1ary!(mpfr_exp2, exp2, "2^x");
 mpfr_1ary!(mpfr_exp10, exp10, "exp10(x)");
@@ -188,10 +187,17 @@ mpfr_1ary!(mpfr_log, log, "ln(x)");
 mpfr_1ary!(mpfr_log2, log2, "log2(x)");
 mpfr_1ary!(mpfr_log10, log10, "log10(x)");
 mpfr_1ary!(mpfr_expm1, expm1, "e^x - 1");
+mpfr_1ary!(mpfr_exp2m1, exp2m1, "2^x - 1");
+mpfr_1ary!(mpfr_exp10m1, exp10m1, "10^x - 1");
 mpfr_1ary!(mpfr_log1p, log1p, "ln(x + 1)");
+mpfr_1ary!(mpfr_log2p1, log2p1, "log2(x + 1)");
+mpfr_1ary!(mpfr_log10p1, log10p1, "log10(x + 1)");
 mpfr_1ary!(mpfr_sin, sin, "sin(x)");
 mpfr_1ary!(mpfr_cos, cos, "cos(x)");
 mpfr_1ary!(mpfr_tan, tan, "tan(x)");
+mpfr_1ary!(mpfr_sin_pi, sinpi, "sin(pi * x)");
+mpfr_1ary!(mpfr_cos_pi, cospi, "cos(pi * x)");
+mpfr_1ary!(mpfr_tan_pi, tanpi, "tan(pi * x)");
 mpfr_1ary!(mpfr_asin, asin, "arcsin(x)");
 mpfr_1ary!(mpfr_acos, acos, "arccos(x)");
 mpfr_1ary!(mpfr_atan, atan, "arctan(x)");
@@ -219,3 +225,31 @@ mpfr_2ary!(mpfr_atan2, atan2, "arctan(y / x)");
 
 // Ternary operators
 mpfr_3ary!(mpfr_fma, fma, "a * b + c");
+
+// Special operators
+
+/// Computes `1/x` to `p` binary digits of precision, rounding to odd.
+pub fn mpfr_recip(src: RFloat, p: usize) -> RTOResult {
+    assert!(
+        p as i64 > mpfr::PREC_MIN && p as i64 <= mpfr::PREC_MAX,
+        "precision must be between {} and {}",
+        mpfr::PREC_MIN + 1,
+        mpfr::PREC_MAX
+    );
+
+    // compute with `p - 1` bits
+    let mut dst = Float::new((p - 1) as u32);
+    let src = Float::from(src);
+    let (t, flags) = unsafe {
+        mpfr::clear_flags();
+        let t = mpfr::ui_div(dst.as_raw_mut(), 1, src.as_raw(), mpfr::rnd_t::RNDZ);
+        (t, mpfr_flags())
+    };
+
+    // apply correction to get the last bit and compose
+    RTOResult {
+        num: RFloat::from(dst).with_ternary(t),
+        prec: p,
+        flags,
+    }
+}

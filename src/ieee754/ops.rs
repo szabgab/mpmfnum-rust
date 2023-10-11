@@ -47,18 +47,33 @@ macro_rules! rounded_1ary_impl {
 }
 
 rounded_1ary_impl!(RoundedNeg, format_neg, neg, mpfr_neg);
+rounded_1ary_impl!(RoundedAbs, format_abs, abs, mpfr_abs);
 rounded_1ary_impl!(RoundedSqrt, format_sqrt, sqrt, mpfr_sqrt);
 rounded_1ary_impl!(RoundedCbrt, format_cbrt, cbrt, mpfr_cbrt);
+rounded_1ary_impl!(RoundedRecip, format_recip, recip, mpfr_recip);
+rounded_1ary_impl!(
+    RoundedRecipSqrt,
+    format_recip_sqrt,
+    recip_sqrt,
+    mpfr_recip_sqrt
+);
 rounded_1ary_impl!(RoundedExp, format_exp, exp, mpfr_exp);
 rounded_1ary_impl!(RoundedExp2, format_exp2, exp2, mpfr_exp2);
 rounded_1ary_impl!(RoundedLog, format_log, log, mpfr_log);
 rounded_1ary_impl!(RoundedLog2, format_log2, log2, mpfr_log2);
 rounded_1ary_impl!(RoundedLog10, format_log10, log10, mpfr_log10);
 rounded_1ary_impl!(RoundedExpm1, format_expm1, expm1, mpfr_expm1);
+rounded_1ary_impl!(RoundedExp2m1, format_exp2m1, exp2m1, mpfr_exp2m1);
+rounded_1ary_impl!(RoundedExp10m1, format_exp10m1, exp10m1, mpfr_exp10m1);
 rounded_1ary_impl!(RoundedLog1p, format_log1p, log1p, mpfr_log1p);
+rounded_1ary_impl!(RoundedLog2p1, format_log2p1, log2p1, mpfr_log2p1);
+rounded_1ary_impl!(RoundedLog10p1, format_log10p1, log10p1, mpfr_log10p1);
 rounded_1ary_impl!(RoundedSin, format_sin, sin, mpfr_sin);
 rounded_1ary_impl!(RoundedCos, format_cos, cos, mpfr_cos);
 rounded_1ary_impl!(RoundedTan, format_tan, tan, mpfr_tan);
+rounded_1ary_impl!(RoundedSinPi, format_sin_pi, sin_pi, mpfr_sin_pi);
+rounded_1ary_impl!(RoundedCosPi, format_cos_pi, cos_pi, mpfr_cos_pi);
+rounded_1ary_impl!(RoundedTanPi, format_tan_pi, tan_pi, mpfr_tan_pi);
 rounded_1ary_impl!(RoundedAsin, format_asin, asin, mpfr_asin);
 rounded_1ary_impl!(RoundedAcos, format_acos, acos, mpfr_acos);
 rounded_1ary_impl!(RoundedAtan, format_atan, atan, mpfr_atan);
