@@ -146,7 +146,7 @@ impl PositContext {
         }
     }
 
-    /// Converts an [`Integer`] representing a posit number into
+    /// Converts an [`Integer`] representing a posit bitpattern into
     /// a [`Posit`] value under this [`PositContext`].
     pub fn bits_to_number(&self, b: Integer) -> Posit {
         let limit = Integer::from(1) << self.nbits;
@@ -189,7 +189,7 @@ impl PositContext {
                 };
 
                 // extract bits
-                let efield = ((ns.clone() >> mbits) & bitmask(ebits)).to_isize().unwrap();
+                let efield = (ns.clone() >> mbits) & bitmask(ebits);
                 let mfield = ns & bitmask(mbits);
 
                 // convert regime
@@ -202,9 +202,9 @@ impl PositContext {
 
                 // convert exponent
                 let e = if ebits < self.es {
-                    efield << (self.es - ebits)
+                    efield.to_isize().unwrap() << (self.es - ebits)
                 } else {
-                    efield
+                    efield.to_isize().unwrap()
                 };
 
                 // convert significand

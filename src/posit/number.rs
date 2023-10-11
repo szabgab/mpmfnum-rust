@@ -1,6 +1,7 @@
+use num_traits::{One, Zero};
 use rug::Integer;
 
-use crate::{rfloat::RFloat, Real};
+use crate::{rfloat::RFloat, util::bitmask, Real};
 
 use super::PositContext;
 
@@ -32,6 +33,61 @@ impl Posit {
     /// Returns the rounding context under which this number was created.
     pub fn ctx(&self) -> &PositContext {
         &self.ctx
+    }
+
+    /// Converts this [`Posit`] to an [`Integer`] representing a posit bitpattern.
+    pub fn into_bits(self) -> Integer {
+        let es = self.ctx.es();
+        let nbits = self.ctx.nbits();
+        match self.num {
+            PositVal::Zero => Integer::from(0),
+            PositVal::Nar => Integer::from(1) << (nbits - 1),
+            PositVal::NonZero(s, r, exp, c) => {
+                // convert sign
+                let sfield = if s { Integer::one() } else { Integer::zero() };
+
+                // compute size of regime field and regime LSB
+                let (kbits, r0) = if r < 0 {
+                    (-r as usize, false)
+                } else {
+                    (r as usize + 1, true)
+                };
+
+                // check for special case: format encoded with sign + regime
+                if kbits == nbits - 1 {
+                    sfield << (nbits - 1) | bitmask(nbits - 1)
+                } else {
+                    // compute size of exponent and significand fields
+                    let rbits = kbits + 1;
+                    let embits = nbits - (rbits + 1);
+                    let (ebits, mbits) = if embits <= es {
+                        (embits, 0)
+                    } else {
+                        (es, embits - es)
+                    };
+
+                    // convert regime
+                    let rfield = if r0 {
+                        // !r0 => rfield = 11..110
+                        bitmask(kbits) << 1
+                    } else {
+                        // r0 => rfield = 00..001
+                        Integer::one()
+                    };
+
+                    // convert exponent
+                    let e = exp + (c.significant_bits() as isize - 1);
+                    let efield = Integer::from(e >> (es - ebits));
+
+                    // convert significand
+                    let p = c.significant_bits() as usize;
+                    let mfield = bitmask(p - 1) & c;
+
+                    // compose
+                    (sfield << (nbits - 1)) | (rfield << embits) | (efield << mbits) | mfield
+                }
+            }
+        }
     }
 }
 
