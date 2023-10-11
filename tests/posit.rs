@@ -90,10 +90,33 @@ fn enumerate() {
                 v
             );
         }
+    }
+}
 
-        let f = ctx.bits_to_number(Integer::from(i));
-        let j = f.into_bits();
-        assert_eq!(i, j, "failed round-trip: i={}, j={}, v={:?}", i, j, num);
+#[test]
+fn round_trip() {
+    // posit<2, 6> format
+    let ctx = PositContext::new(2, 6);
+    for i in 0..(1 << ctx.nbits()) {
+        let num = ctx.bits_to_number(Integer::from(i));
+        let j = num.clone().into_bits();
+        assert_eq!(i, j, "round trip failed: i={}, j={}, num={:?}", i, j, num);
+    }
+
+    // posit<2, 8> format
+    let ctx = PositContext::new(2, 8);
+    for i in 0..(1 << ctx.nbits()) {
+        let num = ctx.bits_to_number(Integer::from(i));
+        let j = num.clone().into_bits();
+        assert_eq!(i, j, "round trip failed: i={}, j={}, num={:?}", i, j, num);
+    }
+
+    // posit<3, 12> format
+    let ctx = PositContext::new(3, 12);
+    for i in 0..(1 << ctx.nbits()) {
+        let num = ctx.bits_to_number(Integer::from(i));
+        let j = num.clone().into_bits();
+        assert_eq!(i, j, "round trip failed: i={}, j={}, num={:?}", i, j, num);
     }
 }
 
@@ -109,5 +132,17 @@ fn bounds() {
     assert_eq!(
         RFloat::from(ctx.minval()),
         RFloat::Real(false, -24, Integer::from(1))
+    );
+
+    // posit<3, 8> format
+    let ctx = PositContext::new(3, 8);
+    assert_eq!(ctx.useed(), 256);
+    assert_eq!(
+        RFloat::from(ctx.maxval()),
+        RFloat::Real(false, 48, Integer::from(1))
+    );
+    assert_eq!(
+        RFloat::from(ctx.minval()),
+        RFloat::Real(false, -48, Integer::from(1))
     );
 }
