@@ -284,46 +284,70 @@ impl PartialOrd for RFloat {
             }
             (RFloat::Real(s1, exp1, c1), RFloat::Real(s2, exp2, c2)) => {
                 // finite <?> finite
-                // check for zero
-                if c1.is_zero() && c2.is_zero() {
-                    Some(Ordering::Equal)
-                } else if c1.is_zero() {
-                    if *s2 {
-                        // 0 > -finite
-                        Some(Ordering::Greater)
-                    } else {
-                        // 0 < finite
-                        Some(Ordering::Less)
+                // check for zero values
+                match (c1.is_zero(), c2.is_zero()) {
+                    (true, true) => {
+                        // both zero => equal
+                        Some(Ordering::Equal)
                     }
-                } else if c2.is_zero() {
-                    if *s1 {
-                        // -finite < 0
-                        Some(Ordering::Less)
-                    } else {
-                        // finite > 0
-                        Some(Ordering::Greater)
+                    (true, false) => {
+                        if *s2 {
+                            // 0 > -finite
+                            Some(Ordering::Greater)
+                        } else {
+                            // 0 < finite
+                            Some(Ordering::Less)
+                        }
                     }
-                } else {
-                    // non-zero, finite <?> non-zero, finite
-
-                    // normalize: inefficient but slow
-                    let n1 = exp1 - 1;
-                    let n2 = exp2 - 1;
-                    let n = min(n1, n2);
-
-                    // compare ordinals
-                    let mut ord1 = Integer::from(c1 << (n1 - n));
-                    let mut ord2 = Integer::from(c2 << (n2 - n));
-
-                    if *s1 {
-                        ord1 = -ord1;
+                    (false, true) => {
+                        if *s1 {
+                            // -finite < 0
+                            Some(Ordering::Less)
+                        } else {
+                            // finite > 0
+                            Some(Ordering::Greater)
+                        }
                     }
+                    (false, false) => {
+                        // finite, non-zero <?> finite, non-zero
+                        // check by increasing order of complexity: signs first
+                        if *s1 != *s2 {
+                            if *s1 {
+                                // self < 0 < other
+                                Some(Ordering::Less)
+                            } else {
+                                // self > 0 > other
+                                Some(Ordering::Greater)
+                            }
+                        } else {
+                            // signs are the same, so we need to check magnitude
+                            // use the normalized exponent first (position of the MSB)
+                            let e1 = (exp1 - 1) + (c1.significant_bits() as isize);
+                            let e2 = (exp2 - 1) + (c2.significant_bits() as isize);
+                            let mag_cmp = match e1.cmp(&e2) {
+                                Ordering::Less => Ordering::Less,
+                                Ordering::Greater => Ordering::Greater,
+                                Ordering::Equal => {
+                                    // slow path: need to normalize
+                                    let n1 = exp1 - 1;
+                                    let n2 = exp2 - 1;
+                                    let n = min(n1, n2);
 
-                    if *s2 {
-                        ord2 = -ord2;
+                                    // compare ordinals
+                                    let ord1 = Integer::from(c1 << (n1 - n));
+                                    let ord2 = Integer::from(c2 << (n2 - n));
+                                    ord1.cmp(&ord2)
+                                }
+                            };
+
+                            // need to possibly flip if negative
+                            if *s1 {
+                                Some(mag_cmp.reverse())
+                            } else {
+                                Some(mag_cmp)
+                            }
+                        }
                     }
-
-                    Some(ord1.cmp(&ord2))
                 }
             }
         }

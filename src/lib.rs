@@ -44,7 +44,7 @@
 //!     rounds a [`Real`] value to a floating-point number as described by
 //!     the IEEE 754 standard,
 //!  - [`FixedContext`][crate::fixed::FixedContext]
-//!     rounds a [`Real`] value to a fixed-point,
+//!     rounds a [`Real`] value to a fixed-point numbers.
 //!
 //! Planned support for posits and more!
 //!
