@@ -1,6 +1,8 @@
 use rug::Integer;
 
-use crate::{rfloat::RFloatContext, util::bitmask, Real, RoundingContext, RoundingMode};
+use crate::rfloat::RFloatContext;
+use crate::util::bitmask;
+use crate::{Real, RoundingContext, RoundingMode};
 
 use super::{Posit, PositVal};
 
@@ -23,7 +25,7 @@ use super::{Posit, PositVal};
 ///  - total bitwidth of the encoding
 ///
 /// For values in between the largest and smallest magnitude,
-/// [`NearestTiesToEven`][RoundingDirection::NearestTiesToEven].
+/// [`NearestTiesToEven`][RoundingMode::NearestTiesToEven].
 /// Otherwise, the values are flushed to `NAR`.
 #[derive(Clone, Debug)]
 pub struct PositContext {
