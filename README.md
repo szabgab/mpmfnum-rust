@@ -3,8 +3,7 @@
 Rust library for simulating number systems.
 
 Supports IEEE-754 floating-point numbers, fixed-point numbers, and more.
-Inspired by [FPCore](https://fpbench.org/) and
-  Bill Zorn's [Titanic](https://github.com/billzorn/titanic) library.
+Inspired by [FPCore](https://fpbench.org/) and the [Titanic](https://github.com/billzorn/titanic) library.
 
 This library is hosted as a crate [here](https://crates.io/crates/mpmfnum).
 The documentation can be found [here](https://docs.rs/mpmfnum/latest/mpmfnum/).

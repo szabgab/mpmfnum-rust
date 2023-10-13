@@ -1,6 +1,5 @@
-use std::ops::{BitAnd, BitOr};
-
 use rug::Integer;
+use std::ops::{BitAnd, BitOr};
 
 use crate::ieee754::{Exceptions, IEEE754Val, IEEE754};
 use crate::rfloat::{RFloat, RFloatContext};
@@ -61,11 +60,12 @@ impl IEEE754Context {
             es
         );
         assert!(
-            nbits >= es + 3,
+            nbits >= es + Self::PREC_MIN,
             "total bitwidth needs to be at least {} bits, given {} bits",
-            es + 3,
+            es + Self::PREC_MIN,
             nbits
         );
+
         Self {
             es,
             nbits,
@@ -97,9 +97,7 @@ impl IEEE754Context {
 
     /// Returns the exponent bitwidth of the format produced by
     /// this context (when viewed as a bitvector). This is guaranteed
-    /// to satisfy `2 <= self.es() <= self.nbits() - 2. Exponent
-    /// overflowing will likely occur past 60 bits, but MPFR generally
-    /// has a limit at 31 bits.
+    /// to satisfy `2 <= self.es() < self.nbits() - 2.
     pub fn es(&self) -> usize {
         self.es
     }
@@ -121,7 +119,7 @@ impl IEEE754Context {
 
     /// Returns the total bitwidth of the format produced by this context
     /// (when viewed as a bitvector). This is guaranteed to satisfy
-    /// `self.es() + 2 <= self.nbits()`.
+    /// `self.es() + 2 < self.nbits()`.
     pub fn nbits(&self) -> usize {
         self.nbits
     }
@@ -240,7 +238,7 @@ impl IEEE754Context {
         let m = b.bitand(bitmask(p - 1));
 
         // case split by classification
-        let e_norm = e - self.emax();
+        let e_norm = e.to_isize().unwrap() - self.emax();
         let num = if e_norm < self.emin() {
             // subnormal or zero
             if m.is_zero() {
@@ -253,7 +251,7 @@ impl IEEE754Context {
         } else if e_norm <= self.emax() {
             // normal
             let c = (Integer::from(1) << (p - 1)).bitor(m);
-            let exp = e_norm.to_isize().unwrap() - (p as isize - 1);
+            let exp = e_norm - (p as isize - 1);
             IEEE754Val::Normal(s, exp, c)
         } else {
             // non-real

@@ -44,9 +44,10 @@
 //!     rounds a [`Real`] value to a floating-point number as described by
 //!     the IEEE 754 standard,
 //!  - [`FixedContext`][crate::fixed::FixedContext]
-//!     rounds a [`Real`] value to a fixed-point numbers.
-//!
-//! Planned support for posits and more!
+//!     rounds a [`Real`] value to a fixed-point numbers,
+//!  - [`PositContext`][crate::posit::PositContext]
+//!     rounds a [`Real`] value to a posit number as described
+//!     by the Posit standard.
 //!
 
 pub mod fixed;
@@ -54,6 +55,7 @@ pub mod float;
 pub mod ieee754;
 pub mod math;
 pub mod ops;
+pub mod posit;
 pub mod real;
 pub mod rfloat;
 

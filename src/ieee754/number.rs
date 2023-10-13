@@ -168,7 +168,7 @@ impl IEEE754 {
     }
 
     /// Converts this [`IEEE754`] to an [`Integer`] representing an IEEE 754 bitpattern.
-    pub fn into_bits(&self) -> Integer {
+    pub fn into_bits(self) -> Integer {
         let nbits = self.ctx.nbits();
         let (s, unsigned) = match &self.num {
             IEEE754Val::Zero(s) => (*s, Integer::zero()),
