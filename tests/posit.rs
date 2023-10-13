@@ -172,17 +172,40 @@ fn round_small() {
     assert!(rounded_zero.is_zero(), "round(+0) = +0");
 
     // rounding MAXVAL + 1
-    let maxp1 = RFloat::one() + RFloat::from(ctx.maxval(false));
+    let maxp1 = RFloat::from(ctx.maxval(false)) + RFloat::one();
     let rounded_maxp1 = ctx.round(&maxp1);
     assert_eq!(rounded_maxp1, ctx.maxval(false), "round(MAXVAL+1) = MAXVAL");
+
+    // rounding MINVAL + 1
+    let minval = RFloat::from(ctx.minval(false));
+    let tiny = RFloat::Real(
+        minval.sign(),
+        minval.exp().unwrap() - 1,
+        minval.c().unwrap(),
+    );
+    let rounded_tiny = ctx.round(&tiny);
+    assert_eq!(
+        rounded_tiny,
+        ctx.minval(false),
+        "rouned(MINVAL * 2^-1, MINVAL)"
+    );
 
     // rounding +1
     let one = RFloat::one();
     let rounded_one = ctx.round(&one);
-    assert_eq!(one, RFloat::from(rounded_one), "round(+1) = +1");
+    assert_eq!(RFloat::from(rounded_one), one, "round(+1) = +1");
 
     // rounding +1.0625
     let one_1_16 = RFloat::Real(false, -4, Integer::from(17));
     let rounded = ctx.round(&one_1_16);
-    assert_eq!(one, RFloat::from(rounded), "round(+1.0625) = +1");
+    assert_eq!(RFloat::from(rounded), one, "round(+1.0625) = +1");
+
+    // rounding +1.1875
+    let one_3_16 = RFloat::Real(false, -4, Integer::from(19));
+    let rounded = ctx.round(&one_3_16);
+    assert_eq!(
+        RFloat::from(rounded),
+        RFloat::Real(false, -4, Integer::from(20)),
+        "round(+1.1875) = +1.25"
+    );
 }

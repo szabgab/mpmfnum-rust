@@ -221,7 +221,15 @@ impl PositContext {
 // Rounding utility functions.
 impl PositContext {
     fn round_finite<T: Real>(&self, val: &T) -> Posit {
-        // extract fields
+        assert!(!val.is_nar(), "must be a finite value {:?}", val);
+
+        // easy case: exact zero
+        if val.is_zero() {
+            return self.zero();
+        }
+
+        // overflow and underlow immediately saturate,
+        // we can simply check the (normalized) exponent.
         let s = val.sign();
         let e = val.e().unwrap();
         if e >= self.emax() {
@@ -245,9 +253,9 @@ impl PositContext {
                 embits - self.es
             };
 
-            // step 2: rounding as an unbounded, fixed-precision floating-point,
-            // so we need to compute the context parameters: we use
-            // precision `mbits + 1` using `NearestTiesToEven`
+            // step 2: rounding as an unbounded, fixed-precision
+            // floating-point number, so we need to compute the context
+            // parameters: we use precision `mbits + 1` using `NearestTiesToEven`
             let (p, n) = RFloatContext::new().with_max_p(mbits + 1).round_params(val);
 
             // step 3: split the significand at binary digit `n`
@@ -256,7 +264,7 @@ impl PositContext {
             // step 4: finalize the rounding
             let rounded = RFloatContext::round_finalize(split, p, RoundingMode::NearestTiesToEven);
 
-            // recompute exponent
+            // recompute exponent (in case it has changed)
             let e = rounded.e().unwrap();
             let r = e / useed;
             let e = e % useed;
@@ -278,11 +286,11 @@ impl RoundingContext for PositContext {
     type Rounded = Posit;
 
     fn round<T: Real>(&self, val: &T) -> Self::Rounded {
-        if val.is_zero() {
-            self.zero()
-        } else if val.is_nar() {
+        if val.is_nar() {
+            // all NaN and infinities are mapped to Nar
             self.nar()
         } else {
+            // all other values must be rounded
             self.round_finite(val)
         }
     }
