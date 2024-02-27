@@ -21,20 +21,13 @@ pub enum RFloat {
     /// A finite (real) number specified by the canonical triple
     /// of sign, exponent, significand.
     Real(bool, isize, Integer),
-    /// An infinite number (signed to indicate direction).
-    Infinite(bool),
+    /// A positive infinity.
+    PosInfinity,
+    /// A negative infinity.
+    NegInfinity,
     /// Not a real number; either an undefined or infinte result.
     Nan,
 }
-
-/// An instantiation of [`RFloat::Nan`].
-pub const NAN: RFloat = RFloat::Nan;
-
-/// An instantiation of [`RFloat::Infinite`] with positive sign.
-pub const POS_INF: RFloat = RFloat::Infinite(false);
-
-/// An instantiation of [`RFloat::Infinite`] with negative sign.
-pub const NEG_INF: RFloat = RFloat::Infinite(true);
 
 // Implements the `Real` trait for  RFloat`.
 // See  RFloat` for a description of the trait and its members.
@@ -46,7 +39,8 @@ impl Real for RFloat {
     fn sign(&self) -> Option<bool> {
         match self {
             RFloat::Real(s, _, _) => Some(*s),
-            RFloat::Infinite(s) => Some(*s),
+            RFloat::PosInfinity => Some(false),
+            RFloat::NegInfinity => Some(true),
             RFloat::Nan => None,
         }
     }
@@ -60,7 +54,8 @@ impl Real for RFloat {
                     Some(*exp)
                 }
             }
-            RFloat::Infinite(_) => None,
+            RFloat::PosInfinity => None,
+            RFloat::NegInfinity => None,
             RFloat::Nan => None,
         }
     }
@@ -75,7 +70,8 @@ impl Real for RFloat {
                     Some((exp - 1) + c.significant_bits() as isize)
                 }
             }
-            RFloat::Infinite(_) => None,
+            RFloat::PosInfinity => None,
+            RFloat::NegInfinity => None,
             RFloat::Nan => None,
         }
     }
@@ -90,7 +86,8 @@ impl Real for RFloat {
                     Some(exp - 1)
                 }
             }
-            RFloat::Infinite(_) => None,
+            RFloat::PosInfinity => None,
+            RFloat::NegInfinity => None,
             RFloat::Nan => None,
         }
     }
@@ -98,7 +95,8 @@ impl Real for RFloat {
     fn c(&self) -> Option<Integer> {
         match self {
             RFloat::Real(_, _, c) => Some(c.clone()),
-            RFloat::Infinite(_) => None,
+            RFloat::PosInfinity => None,
+            RFloat::NegInfinity => None,
             RFloat::Nan => None,
         }
     }
@@ -112,39 +110,39 @@ impl Real for RFloat {
                     Some(c.clone())
                 }
             }
-            RFloat::Infinite(_) => None,
+            RFloat::PosInfinity => None,
+            RFloat::NegInfinity => None,
             RFloat::Nan => None,
         }
     }
 
-    fn p(&self) -> usize {
+    fn p(&self) -> Option<usize> {
         match self {
-            RFloat::Real(_, _, c) => c.significant_bits() as usize,
-            RFloat::Infinite(_) => 0,
-            RFloat::Nan => 0,
+            RFloat::Real(_, _, c) => Some(c.significant_bits() as usize),
+            RFloat::PosInfinity => None,
+            RFloat::NegInfinity => None,
+            RFloat::Nan => None,
         }
     }
 
     fn is_nar(&self) -> bool {
         match self {
             RFloat::Real(_, _, _) => false,
-            RFloat::Infinite(_) => true,
+            RFloat::PosInfinity => true,
+            RFloat::NegInfinity => true,
             RFloat::Nan => true,
         }
     }
 
     fn is_finite(&self) -> bool {
-        match self {
-            RFloat::Real(_, _, _) => true,
-            RFloat::Infinite(_) => false,
-            RFloat::Nan => false,
-        }
+        matches!(self, RFloat::Real(_, _, _))
     }
 
     fn is_infinite(&self) -> bool {
         match self {
             RFloat::Real(_, _, _) => false,
-            RFloat::Infinite(_) => true,
+            RFloat::PosInfinity => true,
+            RFloat::NegInfinity => true,
             RFloat::Nan => false,
         }
     }
@@ -152,7 +150,8 @@ impl Real for RFloat {
     fn is_zero(&self) -> bool {
         match self {
             RFloat::Real(_, _, c) => c.is_zero(),
-            RFloat::Infinite(_) => false,
+            RFloat::PosInfinity => false,
+            RFloat::NegInfinity => false,
             RFloat::Nan => false,
         }
     }
@@ -166,7 +165,8 @@ impl Real for RFloat {
                     Some(*s)
                 }
             }
-            RFloat::Infinite(s) => Some(*s),
+            RFloat::PosInfinity => Some(false),
+            RFloat::NegInfinity => Some(true),
             RFloat::Nan => None,
         }
     }
@@ -174,7 +174,8 @@ impl Real for RFloat {
     fn is_numerical(&self) -> bool {
         match self {
             RFloat::Real(_, _, _) => true,
-            RFloat::Infinite(_) => true,
+            RFloat::PosInfinity => true,
+            RFloat::NegInfinity => true,
             RFloat::Nan => false,
         }
     }
@@ -191,13 +192,13 @@ impl RFloat {
         RFloat::Real(false, 0, Integer::from(1))
     }
 
-    /// Returns true if the number is [`NAN`].
+    /// Returns true if the value is not-a-number.
     pub fn is_nan(&self) -> bool {
         matches!(self, RFloat::Nan)
     }
 
     /// Canonicalizes this number.
-    /// All zeros are mapped to [ RFloat::Real(false, 0, 0)`].
+    /// All zeros are mapped to +0.0.
     pub fn canonicalize(&self) -> Self {
         if self.is_zero() {
             RFloat::zero()
@@ -207,20 +208,22 @@ impl RFloat {
     }
 
     /// Returns the `n`th absolute binary digit.
-    pub fn get_bit(&self, n: isize) -> bool {
+    /// Only well-defined for finite, non-zero numbers.
+    pub fn get_bit(&self, n: isize) -> Option<bool> {
         match self {
-            RFloat::Nan => false,
-            RFloat::Infinite(_) => false,
-            RFloat::Real(_, _, c) if c.is_zero() => false,
+            RFloat::Nan => None,
+            RFloat::PosInfinity => None,
+            RFloat::NegInfinity => None,
             RFloat::Real(_, exp, c) => {
-                let e = self.e().unwrap();
-                let exp = *exp;
-                if n < exp || n > e {
-                    // below the least significant digit or above
-                    // the most significant digit
-                    false
+                if c.is_zero() {
+                    None
+                } else if n < *exp || n > self.e().unwrap() {
+                    // below the least significant digit OR
+                    // above the most significant digit
+                    Some(false)
                 } else {
-                    c.get_bit((n - exp) as u32)
+                    // within the significand
+                    Some(c.get_bit((n - exp) as u32))
                 }
             }
         }
@@ -236,7 +239,11 @@ impl RFloat {
             Self::Nan
         } else if val.is_infinite() {
             // Any infinity is either +/- infinity.
-            Self::Infinite(val.sign().unwrap())
+            if val.sign().unwrap() {
+                Self::NegInfinity
+            } else {
+                Self::PosInfinity
+            }
         } else if val.is_zero() {
             // Any zero is just +0
             Self::zero()
@@ -252,36 +259,12 @@ impl PartialOrd for RFloat {
         match (self, other) {
             (RFloat::Nan, _) => None,
             (_, RFloat::Nan) => None,
-            (RFloat::Infinite(s1), RFloat::Infinite(s2)) => {
-                if *s1 == *s2 {
-                    // infinities of the same sign
-                    Some(Ordering::Equal)
-                } else if *s1 {
-                    // -Inf < +Inf
-                    Some(Ordering::Less)
-                } else {
-                    // +Inf > -Inf
-                    Some(Ordering::Greater)
-                }
-            }
-            (RFloat::Infinite(s), _) => {
-                if *s {
-                    // -Inf < finite
-                    Some(Ordering::Less)
-                } else {
-                    // +Inf > finite
-                    Some(Ordering::Greater)
-                }
-            }
-            (_, RFloat::Infinite(s)) => {
-                if *s {
-                    // finite > -Inf
-                    Some(Ordering::Greater)
-                } else {
-                    // finite < +Inf
-                    Some(Ordering::Less)
-                }
-            }
+            (RFloat::PosInfinity, RFloat::PosInfinity) => Some(Ordering::Equal),
+            (RFloat::NegInfinity, RFloat::NegInfinity) => Some(Ordering::Equal),
+            (RFloat::PosInfinity, _) => Some(Ordering::Greater),
+            (RFloat::NegInfinity, _) => Some(Ordering::Less),
+            (_, RFloat::NegInfinity) => Some(Ordering::Greater),
+            (_, RFloat::PosInfinity) => Some(Ordering::Less),
             (RFloat::Real(s1, exp1, c1), RFloat::Real(s2, exp2, c2)) => {
                 // finite <?> finite
                 // check for zero values
@@ -369,13 +352,8 @@ impl From<RFloat> for Float {
         use rug::float::*;
         match val {
             RFloat::Nan => Float::with_val(prec_min(), Special::Nan),
-            RFloat::Infinite(s) => {
-                if s {
-                    Float::with_val(prec_min(), Special::NegInfinity)
-                } else {
-                    Float::with_val(prec_min(), Special::Infinity)
-                }
-            }
+            RFloat::PosInfinity => Float::with_val(prec_min(), Special::Infinity),
+            RFloat::NegInfinity => Float::with_val(prec_min(), Special::NegInfinity),
             RFloat::Real(s, exp, c) => {
                 if c.is_zero() {
                     Float::with_val(prec_min(), 0.0)
@@ -403,7 +381,11 @@ impl From<Float> for RFloat {
         if val.is_nan() {
             Self::Nan
         } else if val.is_infinite() {
-            Self::Infinite(val.is_sign_negative())
+            if val.is_sign_negative() {
+                Self::NegInfinity
+            } else {
+                Self::PosInfinity
+            }
         } else if val.is_zero() {
             Self::zero()
         } else {

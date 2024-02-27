@@ -57,9 +57,9 @@ pub trait Real: Debug {
 
     /// Precision of the significand.
     /// This is just `floor(logb(c))` where `b` is the radix and `c` is
-    /// the integer significand. For values that do not encode numbers,
-    /// intervals, or even limiting behavior, the result is 0.
-    fn p(&self) -> usize;
+    /// the integer significand. Only well-defined for finite,
+    /// non-zero numbers.
+    fn p(&self) -> Option<usize>;
 
     /// Returns true if this number is not a real number.
     /// Example: NaN or +/-Inf from the IEEE 754 standard.

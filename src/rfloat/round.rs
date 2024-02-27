@@ -1,3 +1,4 @@
+use num_traits::Zero;
 use rug::Integer;
 
 use crate::rfloat::RFloat;
@@ -10,6 +11,88 @@ pub(crate) struct RoundPrepareResult {
     pub num: RFloat,
     pub halfway_bit: bool,
     pub sticky_bit: bool,
+}
+
+/// Result of splitting a [`Real`] at binary digit `n`.
+#[derive(Clone, Debug)]
+pub struct Split {
+    high: RFloat,
+    low: RFloat,
+    n: isize,
+}
+
+impl Split {
+    /// Splits a [`Real`] at binary digit `n`, returning two [`RFloat`] values:
+    ///
+    ///  - all significant digits above position `n`
+    ///  - all significant digits at or below position `n`
+    ///
+    /// The sum of the resulting values will be exactly the input number,
+    /// that is, it "splits" a number.
+    fn split<T: Real>(num: &T, n: isize) -> (RFloat, RFloat) {
+        assert!(!num.is_nar(), "must be real {:?}", num);
+
+        let s = num.sign().unwrap();
+        if num.is_zero() {
+            let high = RFloat::Real(s, 0, Integer::zero());
+            let low = RFloat::Real(s, 0, Integer::zero());
+            (high, low)
+        } else {
+            // number components
+            let e = num.e().unwrap();
+            let exp = num.exp().unwrap();
+            let c = num.c().unwrap();
+
+            // case split by split point offset
+            if n >= e {
+                // split point is above the significant digits
+                let high = RFloat::Real(s, 0, Integer::zero());
+                let low = RFloat::Real(s, exp, c);
+                (high, low)
+            } else if n < exp {
+                // split point is below the significant digits
+                let high = RFloat::Real(s, exp, c);
+                let low = RFloat::Real(s, 0, Integer::zero());
+                (high, low)
+            } else {
+                // split point is within the significant digits
+                let offset = n - (exp - 1);
+                let mask = bitmask(offset as usize);
+                let high = RFloat::Real(s, n + 1, c.clone() >> offset);
+                let low = RFloat::Real(s, exp, c & mask);
+                (high, low)
+            }
+        }
+    }
+
+    /// Splits a [`Real`] at binary digit `n` into two [`RFloat`] values:
+    ///
+    ///  - all significant digits above position `n`
+    ///  - all significant digits at or below position `n`
+    ///
+    /// The sum of the resulting values will be exactly the input number,
+    /// that is, it "splits" a number.
+    pub fn new<T: Real>(num: &T, n: isize) -> Self {
+        let (high, low) = Self::split(num, n);
+        Self { high, low, n }
+    }
+
+    /// Extracts the upper value of the split.
+    pub fn high(&self) -> &RFloat {
+        &self.high
+    }
+
+    /// Extracts the `n`th absolute digit from the split.
+    /// This is the next binary digit below the upper value of the split.
+    pub fn halfway_bit(&self) -> bool {
+        self.low.get_bit(self.n).unwrap()
+    }
+
+    /// Returns [`true`] if any absolute digit below `n` is non-zero.
+    pub fn sticky_bit(&self) -> bool {
+        let (_, lower) = Self::split(&self.low, self.n - 1);
+        !lower.is_zero()
+    }
 }
 
 /// Rounding contexts for floating-point numbers with
@@ -102,53 +185,6 @@ impl RFloatContext {
         self
     }
 
-    /// Splits a [`Real`] at binary digit `n`, returning two [`RFloat`] values:
-    ///
-    ///  - all significant digits above position `n`
-    ///  - all significant digits at or below position `n`
-    ///
-    /// The sum of the resulting values will be exactly the input
-    /// number, that is, it "splits" a number.
-    pub fn split_at<T: Real>(num: &T, n: isize) -> (RFloat, RFloat) {
-        if num.is_nar() {
-            panic!("must be real {:?}", num);
-        } else if num.is_zero() {
-            let s = num.sign().unwrap();
-            let high = RFloat::Real(s, n + 1, Integer::from(0));
-            let low = RFloat::Real(s, n, Integer::from(0));
-            (high, low)
-        } else {
-            // number components
-            let s = num.sign().unwrap();
-            let e = num.e().unwrap();
-            let exp = num.exp().unwrap();
-            let c = num.c().unwrap();
-
-            // case split by split point offset
-            if n >= e {
-                // split point is above the significant digits
-                let high = RFloat::Real(s, n + 1, Integer::from(0));
-                let low = RFloat::Real(s, exp, c);
-                (high, low)
-            } else if n < exp {
-                // split point is below the significant digits
-                let high = RFloat::Real(s, exp, c);
-                let low = RFloat::Real(s, n, Integer::from(0));
-                (high, low)
-            } else {
-                // split point is within the significant digits
-                let offset = n - (exp - 1);
-                let mask = bitmask(offset as usize);
-                let c_high = c.clone() >> offset;
-                let c_low = c & mask;
-
-                let high = RFloat::Real(s, n + 1, c_high);
-                let low = RFloat::Real(s, exp, c_low);
-                (high, low)
-            }
-        }
-    }
-
     /// Rounding parameters necessary to complete rounding under
     /// this context for a given [`Real`]: the maximum precision `p` allowed
     /// and the minimum absolute digit `n`.
@@ -199,19 +235,20 @@ impl RFloatContext {
     /// and an inexact bit if there are any lower order digits (also called
     /// the sticky bit).
     pub(crate) fn round_prepare<T: Real>(num: &T, n: isize) -> RoundPrepareResult {
+        // we must be dealing with finite, non-zero value!
+        assert!(num.is_finite() && num.is_zero());
+
         // split number at the `n`th digit
-        let (high, low) = Self::split_at(num, n);
+        let split = Split::new(num, n);
 
-        // split the lower part at the `n-1`th digit
-        let (half, low) = Self::split_at(&low, n - 1);
-
-        // compute the rounding bits
-        let halfway_bit = half.get_bit(n);
-        let sticky_bit = !low.is_zero();
+        // extract the relevant parts of `num`.
+        let sticky_bit = split.sticky_bit();
+        let halfway_bit = split.halfway_bit();
+        let num = split.high().clone();
 
         // compose result
         RoundPrepareResult {
-            num: high,
+            num,
             halfway_bit,
             sticky_bit,
         }
@@ -345,8 +382,11 @@ impl RoundingContext for RFloatContext {
             RFloat::zero()
         } else if num.is_infinite() {
             // infinite number
-            let s = num.is_negative().unwrap();
-            RFloat::Infinite(s)
+            if num.is_negative().unwrap() {
+                RFloat::NegInfinity
+            } else {
+                RFloat::PosInfinity
+            }
         } else if num.is_nar() {
             // other non-real
             RFloat::Nan
