@@ -1,4 +1,4 @@
-use crate::Real;
+use crate::{Real, Split};
 
 /// Universal trait for rounding contexts.
 ///
@@ -22,6 +22,10 @@ pub trait RoundingContext {
     /// Rounds any [`Real`] value to a [`RoundingContext::Format`] value,
     /// rounding according to this [`RoundingContext`].
     fn round<T: Real>(&self, val: &T) -> Self::Format;
+
+    /// Rounds any [`Split`] to a [`RoundingContext::Format`] value,
+    /// rounding according to this [`RoundingContext`].
+    fn round_split(&self, split: Split) -> Self::Format;
 }
 
 /// Rounding modes for rounding contexts.

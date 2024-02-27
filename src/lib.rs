@@ -61,7 +61,9 @@ pub mod math;
 mod number;
 pub mod ops;
 mod round;
+mod split;
 mod util;
 
 pub use crate::number::Real;
 pub use crate::round::{RoundingContext, RoundingDirection, RoundingMode};
+pub use crate::split::Split;
