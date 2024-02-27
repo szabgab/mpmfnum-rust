@@ -209,7 +209,7 @@ impl RFloatContext {
             Some(c) => c,
             None => Integer::zero(),
         };
-    
+
         // rounding bits
         let (halfway_bit, sticky_bit) = split.rs();
 

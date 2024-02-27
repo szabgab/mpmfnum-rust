@@ -1,9 +1,9 @@
 use num_traits::Zero;
 use rug::Integer;
 
-use crate::{util::*, RoundingContext};
 use crate::rfloat::RFloat;
 use crate::Real;
+use crate::{util::*, RoundingContext};
 
 /// Result of splitting a [`Real`] at binary digit `n`.
 #[derive(Clone, Debug)]
@@ -66,7 +66,12 @@ impl Split {
     pub fn new<T: Real>(num: &T, max_p: Option<usize>, n: isize) -> Self {
         assert!(!num.is_nar(), "must be real {:?}", num);
         let (high, low) = Self::split(num, n);
-        Self { high, low, max_p, n }
+        Self {
+            high,
+            low,
+            max_p,
+            n,
+        }
     }
 
     /// Extracts the upper value of the split.
@@ -103,7 +108,7 @@ impl Split {
     }
 
     /// Rounds this [`Split`] according to a [`RoundingContext`].
-    pub fn round<Ctx: RoundingContext>(&self, ctx: &Ctx)  -> Ctx::Format {  
+    pub fn round<Ctx: RoundingContext>(&self, ctx: &Ctx) -> Ctx::Format {
         ctx.round_split(self.to_owned())
     }
 }
