@@ -43,11 +43,11 @@ impl Real for RFloat {
         2
     }
 
-    fn sign(&self) -> bool {
+    fn sign(&self) -> Option<bool> {
         match self {
-            RFloat::Real(s, _, _) => *s,
-            RFloat::Infinite(s) => *s,
-            RFloat::Nan => false,
+            RFloat::Real(s, _, _) => Some(*s),
+            RFloat::Infinite(s) => Some(*s),
+            RFloat::Nan => None,
         }
     }
 
@@ -236,13 +236,13 @@ impl RFloat {
             Self::Nan
         } else if val.is_infinite() {
             // Any infinity is either +/- infinity.
-            Self::Infinite(val.sign())
+            Self::Infinite(val.sign().unwrap())
         } else if val.is_zero() {
             // Any zero is just +0
             Self::zero()
         } else {
             // Finite, non-zero
-            Self::Real(val.sign(), val.exp().unwrap(), val.c().unwrap())
+            Self::Real(val.sign().unwrap(), val.exp().unwrap(), val.c().unwrap())
         }
     }
 }

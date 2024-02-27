@@ -113,13 +113,13 @@ impl RFloatContext {
         if num.is_nar() {
             panic!("must be real {:?}", num);
         } else if num.is_zero() {
-            let s = num.sign();
+            let s = num.sign().unwrap();
             let high = RFloat::Real(s, n + 1, Integer::from(0));
             let low = RFloat::Real(s, n, Integer::from(0));
             (high, low)
         } else {
             // number components
-            let s = num.sign();
+            let s = num.sign().unwrap();
             let e = num.e().unwrap();
             let exp = num.exp().unwrap();
             let c = num.c().unwrap();
@@ -331,9 +331,9 @@ impl Default for RFloatContext {
 }
 
 impl RoundingContext for RFloatContext {
-    type Rounded = RFloat;
+    type Format = RFloat;
 
-    fn round<T: Real>(&self, num: &T) -> Self::Rounded {
+    fn round<T: Real>(&self, num: &T) -> Self::Format {
         assert!(
             self.max_p.is_some() || self.min_n.is_some(),
             "must specify either maximum precision or least absolute digit"

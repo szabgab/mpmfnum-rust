@@ -1,11 +1,12 @@
 //! Floating-point numbers with unbounded significand and exponent.
 //!
 //! This module implements floating-point numbers with [`RFloatContext`].
-//! The associated storage type is [`RFloat`] which represents a
-//! floating-point numbers with unbounded significand and unbounded exponent.
+//! The associated storage type is [`RFloat`] which represents
+//! binary floating-point numbers with unbounded significand and
+//! unbounded exponent.
 //!
 //! The [`RFloat`] type serves as an interchange format between
-//! all number systems since it is the least restrictive format.
+//! binary numbers since it is the least restrictive.
 //!
 
 mod number;

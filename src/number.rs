@@ -24,9 +24,9 @@ pub trait Real: Debug {
     fn radix() -> usize;
 
     /// The sign bit.
-    /// For number formats with no notion of sign bit,
-    /// the result will always be false.
-    fn sign(&self) -> bool;
+    /// This is not always well-defined, so the result is an [`Option`].
+    /// This is distinct from `is_negative` (e.g. `-0.0` is not negative).
+    fn sign(&self) -> Option<bool>;
 
     /// The exponent of this number when viewed as `(-1)^s * c * b^exp`
     /// where `c` is an integer integer. Only well-defined for finite,
@@ -79,7 +79,7 @@ pub trait Real: Debug {
     fn is_zero(&self) -> bool;
 
     /// Returns true if this number is negative.
-    /// This is not always well-defined, so the result is an Option.
+    /// This is not always well-defined, so the result is an [`Option`].
     /// This is not necessarily the same as the sign bit (the IEEE 754
     /// standard differentiates between -0.0 and +0.0).
     fn is_negative(&self) -> Option<bool>;

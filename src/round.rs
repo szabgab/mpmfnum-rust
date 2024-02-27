@@ -17,24 +17,11 @@ use crate::Real;
 ///
 pub trait RoundingContext {
     /// Result type of operations under this context.
-    type Rounded: Real;
+    type Format: Real;
 
-    /// Rounds any [`Real`] value to a [`RoundingContext::Rounded`] value,
+    /// Rounds any [`Real`] value to a [`RoundingContext::Format`] value,
     /// rounding according to this [`RoundingContext`].
-    fn round<T: Real>(&self, val: &T) -> Self::Rounded;
-
-    /// Rounds a [`RoundingContext::Rounded`] value to another
-    /// [`RoundingContext::Rounded`] value, rounding according to this
-    /// [`RoundingContext`].
-    ///
-    /// Since this is a restriction on [`RoundingContext::round`],
-    /// its behavior may be slightly different since format-specific
-    /// behaviors may be implemented.
-    ///
-    /// By default, its behavior is the same as [`RoundingContext::round`].
-    fn format_round(&self, val: &Self::Rounded) -> Self::Rounded {
-        self.round(val)
-    }
+    fn round<T: Real>(&self, val: &T) -> Self::Format;
 }
 
 /// Rounding modes for rounding contexts.
@@ -103,6 +90,25 @@ pub enum RoundingMode {
     ToOdd,
 }
 
+impl RoundingMode {
+    /// Converts a rounding mode and sign into a rounding direction
+    /// and a boolean indication if the direction is for tie-breaking only.
+    pub fn to_direction(self, sign: bool) -> (bool, RoundingDirection) {
+        match (self, sign) {
+            (RoundingMode::NearestTiesToEven, _) => (true, RoundingDirection::ToEven),
+            (RoundingMode::NearestTiesAwayZero, _) => (true, RoundingDirection::AwayZero),
+            (RoundingMode::ToPositive, false) => (false, RoundingDirection::AwayZero),
+            (RoundingMode::ToPositive, true) => (false, RoundingDirection::ToZero),
+            (RoundingMode::ToNegative, false) => (false, RoundingDirection::ToZero),
+            (RoundingMode::ToNegative, true) => (false, RoundingDirection::AwayZero),
+            (RoundingMode::ToZero, _) => (false, RoundingDirection::ToZero),
+            (RoundingMode::AwayZero, _) => (false, RoundingDirection::AwayZero),
+            (RoundingMode::ToEven, _) => (false, RoundingDirection::ToEven),
+            (RoundingMode::ToOdd, _) => (false, RoundingDirection::ToOdd),
+        }
+    }
+}
+
 /// Directed rounding.
 ///
 /// We can translate _sign_ of an unrounded number and a [`RoundingMode`],
@@ -123,23 +129,4 @@ pub enum RoundingDirection {
     /// Rounds to the closest representable value whose mantissa has
     /// a least significant bit of 1.
     ToOdd,
-}
-
-impl RoundingMode {
-    /// Converts a rounding mode and sign into a rounding direction
-    /// and a boolean indication if the direction is for tie-breaking only.
-    pub fn to_direction(self, sign: bool) -> (bool, RoundingDirection) {
-        match (self, sign) {
-            (RoundingMode::NearestTiesToEven, _) => (true, RoundingDirection::ToEven),
-            (RoundingMode::NearestTiesAwayZero, _) => (true, RoundingDirection::AwayZero),
-            (RoundingMode::ToPositive, false) => (false, RoundingDirection::AwayZero),
-            (RoundingMode::ToPositive, true) => (false, RoundingDirection::ToZero),
-            (RoundingMode::ToNegative, false) => (false, RoundingDirection::ToZero),
-            (RoundingMode::ToNegative, true) => (false, RoundingDirection::AwayZero),
-            (RoundingMode::ToZero, _) => (false, RoundingDirection::ToZero),
-            (RoundingMode::AwayZero, _) => (false, RoundingDirection::AwayZero),
-            (RoundingMode::ToEven, _) => (false, RoundingDirection::ToEven),
-            (RoundingMode::ToOdd, _) => (false, RoundingDirection::ToOdd),
-        }
-    }
 }

@@ -50,16 +50,16 @@
 //!     by the Posit standard.
 //!
 
-pub mod fixed;
-pub mod float;
-pub mod ieee754;
-pub mod math;
-pub mod ops;
-pub mod posit;
-pub mod real;
+// pub mod fixed;
+// pub mod float;
+// pub mod ieee754;
+// pub mod posit;
+// pub mod real;
 pub mod rfloat;
 
+pub mod math;
 mod number;
+pub mod ops;
 mod round;
 mod util;
 
