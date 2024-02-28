@@ -1,5 +1,5 @@
 use crate::rfloat::RFloat;
-use crate::{Real, RoundingContext};
+use crate::{Real, RoundingContext, Split};
 
 /// Rounding contexts for exact arithmetic.
 ///
@@ -32,7 +32,7 @@ impl RoundingContext for RealContext {
         }
     }
 
-    fn round_split(&self, split: crate::Split) -> Self::Format {
+    fn round_split(&self, split: Split) -> Self::Format {
         if split.is_zero() {
             RFloat::zero()
         } else {

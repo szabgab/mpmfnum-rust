@@ -17,7 +17,7 @@ use crate::{Real, RoundingContext, RoundingMode, Split};
 ///
 /// An [`RFloatContext`] takes three parameters:
 ///
-///  - (optional) maximum precision (see [`Real::p`]),
+///  - (optional) maximum precision (see [`Real::prec`]),
 ///  - (optional) minimum absolute digit,
 ///  - and rounding mode [`RoundingMode`].
 ///
@@ -206,7 +206,7 @@ impl RFloatContext {
         let s = split.num().sign().unwrap();
         let (mut exp, mut c) = match split.num().exp() {
             Some(exp) => (exp, split.num().c().unwrap()), // non-zero
-            None => (split.split_pos() + 1, Integer::zero())
+            None => (split.split_pos() + 1, Integer::zero()),
         };
 
         // rounding bits
@@ -277,6 +277,11 @@ impl RoundingContext for RFloatContext {
     }
 
     fn round_split(&self, split: Split) -> Self::Format {
+        // exceptional case: exact zero
+        if split.is_zero() {
+            return RFloat::zero();
+        }
+
         // step 3: finalize the rounding
         let rounded = Self::round_finalize(split, self.rm);
 

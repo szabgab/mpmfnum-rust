@@ -17,7 +17,7 @@ use super::{Exceptions, Float};
 ///
 /// A [`FloatContext`] is parameterized by
 ///
-///  - maximum precision (see [`Real::p`]),
+///  - maximum precision (see [`Real::prec`]),
 ///  - rounding mode.
 ///
 /// By default, the rounding mode is [`RoundingMode::NearestTiesToEven`].
@@ -110,6 +110,15 @@ impl RoundingContext for FloatContext {
     }
 
     fn round_split(&self, split: Split) -> Self::Format {
+        // exceptional case: exact zero
+        if split.is_zero() {
+            return Float {
+                num: RFloat::zero(),
+                flags: Exceptions::default(),
+                ctx: self.clone(),
+            };
+        }
+
         // step 3: extract split parameters and inexactness flag
         let inexact = !split.is_exact();
         let unrounded_e = split.e();

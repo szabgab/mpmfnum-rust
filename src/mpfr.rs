@@ -26,7 +26,7 @@ pub struct MPFRResult {
 }
 
 impl MPFRResult {
-    /// Constructs an [`RTOResult`] from an MPFR result.
+    /// Constructs an [`MPFRResult`] from an MPFR computation.
     pub fn new(val: Float, t: i32, flags: MPFRFlags, prec: usize) -> Self {
         let num = RFloat::from(val).with_ternary(t);
         Self { num, prec, flags }

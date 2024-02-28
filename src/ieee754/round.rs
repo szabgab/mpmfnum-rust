@@ -508,7 +508,12 @@ impl RoundingContext for IEEE754Context {
         }
     }
 
-    fn round_split(&self, split: crate::Split) -> Self::Format {
+    fn round_split(&self, split: Split) -> Self::Format {
+        // exceptional case: exact zero
+        if split.is_zero() {
+            return self.zero(split.sign().unwrap());
+        }
+
         // step 3: extract split parameters and compute some exception flags
         let inexact = !split.is_exact();
         let unrounded_e = split.e();

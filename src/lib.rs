@@ -53,7 +53,7 @@
 // pub mod fixed;
 pub mod float;
 pub mod ieee754;
-// pub mod posit;
+pub mod posit;
 pub mod real;
 pub mod rfloat;
 
@@ -65,6 +65,6 @@ mod split;
 mod util;
 
 pub use crate::number::Real;
-pub use crate::round::{RoundingContext, RoundingDirection, RoundingMode};
 pub use crate::rfloat::RFloat;
+pub use crate::round::{RoundingContext, RoundingDirection, RoundingMode};
 pub use crate::split::Split;
