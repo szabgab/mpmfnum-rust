@@ -1,6 +1,9 @@
 use std::fmt::Debug;
-
 use rug::Integer;
+use num_traits::Zero;
+
+use crate::rfloat::RFloat;
+use crate::util::bitmask;
 
 /// Universal trait for extended real numbers.
 ///
@@ -61,16 +64,16 @@ pub trait Real: Debug {
     /// non-zero numbers.
     fn prec(&self) -> Option<usize>;
 
-    /// Returns true if this number is not a real number.
+    /// Returns `true` if this number is not a real number.
     /// Example: NaN or +/-Inf from the IEEE 754 standard.
     fn is_nar(&self) -> bool;
 
-    /// Returns true if this number is finite.
+    /// Returns `true` if this number is finite.
     /// For values that do not encode numbers, intervals, or even limiting
     /// behavior, the result is false.
     fn is_finite(&self) -> bool;
 
-    /// Returns true if this number if infinite.
+    /// Returns `true` if this number if infinite.
     /// For values that do not encode numbers, intervals, or even limiting
     /// behavior, the result is false.
     fn is_infinite(&self) -> bool;
@@ -78,13 +81,55 @@ pub trait Real: Debug {
     /// Returns true if this number is zero.
     fn is_zero(&self) -> bool;
 
-    /// Returns true if this number is negative.
+    /// Returns `true` if this number is negative.
     /// This is not always well-defined, so the result is an [`Option`].
     /// This is not necessarily the same as the sign bit (the IEEE 754
     /// standard differentiates between -0.0 and +0.0).
     fn is_negative(&self) -> Option<bool>;
 
-    /// Returns true if this number represents a numerical value:
+    /// Returns `true` if this number represents a numerical value:
     /// either a finite number, interval, or some limiting value.
     fn is_numerical(&self) -> bool;
+
+    /// Splits this value at the `n`the binary digit,
+    /// returning two [`RFloat`] values:
+    ///
+    ///  - all significant digits above position `n`
+    ///  - all significant digits at or below position `n`
+    ///
+    /// The exact sum of the resulting values will be exactly `num`,
+    /// so it "splits" `num`.
+    fn split(&self, n: isize) -> (RFloat, RFloat) {
+        let s = self.sign().unwrap();
+        if self.is_zero() {
+            let high = RFloat::Real(s, 0, Integer::zero());
+            let low = RFloat::Real(s, 0, Integer::zero());
+            (high, low)
+        } else {
+            // number components
+            let e = self.e().unwrap();
+            let exp = self.exp().unwrap();
+            let c = self.c().unwrap();
+
+            // case split by split point offset
+            if n >= e {
+                // split point is above the significant digits
+                let high = RFloat::Real(s, 0, Integer::zero());
+                let low = RFloat::Real(s, exp, c);
+                (high, low)
+            } else if n < exp {
+                // split point is below the significant digits
+                let high = RFloat::Real(s, exp, c);
+                let low = RFloat::Real(s, 0, Integer::zero());
+                (high, low)
+            } else {
+                // split point is within the significant digits
+                let offset = n - (exp - 1);
+                let mask = bitmask(offset as usize);
+                let high = RFloat::Real(s, n + 1, c.to_owned() >> offset);
+                let low = RFloat::Real(s, exp, c & mask);
+                (high, low)
+            }
+        }
+    }
 }

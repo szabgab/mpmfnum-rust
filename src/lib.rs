@@ -51,7 +51,7 @@
 //!
 
 // pub mod fixed;
-// pub mod float;
+pub mod float;
 // pub mod ieee754;
 // pub mod posit;
 // pub mod real;

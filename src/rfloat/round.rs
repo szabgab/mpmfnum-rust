@@ -204,7 +204,7 @@ impl RFloatContext {
     pub(crate) fn round_finalize(split: Split, rm: RoundingMode) -> RFloat {
         // truncated result
         let s = split.num().sign().unwrap();
-        let mut exp = split.n() + 1;
+        let mut exp = split.split_pos() + 1;
         let mut c = match split.num().c() {
             Some(c) => c,
             None => Integer::zero(),
