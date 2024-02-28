@@ -15,7 +15,18 @@ macro_rules! rounded_1ary {
             #[doc = "Performs rounded `"]
             #[doc = $descr]
             #[doc = "`."]
-            fn $impl(&self, src: &Self::Format) -> Self::Format;
+            fn $impl<N: Real>(&self, src: &N) -> Self::Format;
+        }
+
+        #[doc = "Computes `"]
+        #[doc = $descr]
+        #[doc = "` and rounds according to the [`RoundingContext`] ctx."]
+        pub fn $impl<Ctx, N>(ctx: &Ctx, src: &N) -> Ctx::Format
+        where
+            Ctx: $trait,
+            N: Real,
+        {
+            ctx.$impl(src)
         }
     };
 }
@@ -72,6 +83,18 @@ macro_rules! rounded_2ary {
                 N1: Real,
                 N2: Real;
         }
+
+        #[doc = "Computes `"]
+        #[doc = $descr]
+        #[doc = "` and rounds according to the [`RoundingContext`] ctx."]
+        pub fn $impl<Ctx, N1, N2>(ctx: &Ctx, src1: &N1, src2: &N2) -> Ctx::Format
+        where
+            Ctx: $trait,
+            N1: Real,
+            N2: Real,
+        {
+            ctx.$impl(src1, src2)
+        }
     };
 }
 
@@ -100,6 +123,19 @@ macro_rules! rounded_3ary {
                 N1: Real,
                 N2: Real,
                 N3: Real;
+        }
+
+        #[doc = "Computes `"]
+        #[doc = $descr]
+        #[doc = "` and rounds according to the [`RoundingContext`] ctx."]
+        pub fn $impl<Ctx, N1, N2, N3>(ctx: &Ctx, src1: &N1, src2: &N2, src3: &N3) -> Ctx::Format
+        where
+            Ctx: $trait,
+            N1: Real,
+            N2: Real,
+            N3: Real,
+        {
+            ctx.$impl(src1, src2, src3)
         }
     };
 }

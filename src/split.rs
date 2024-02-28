@@ -5,7 +5,7 @@ use crate::rfloat::RFloat;
 use crate::Real;
 use crate::{util::*, RoundingContext};
 
-/// Result of splitting a [`Real`] at binary digit `n`.
+/// Result of splitting a [`Real`] value at the `n`the binary digit.
 #[derive(Clone, Debug)]
 pub struct Split {
     high: RFloat,
@@ -15,13 +15,14 @@ pub struct Split {
 }
 
 impl Split {
-    /// Splits a [`Real`] at binary digit `n`, returning two [`RFloat`] values:
+    /// Splits a [`Real`] value at the `n`the binary digit,
+    /// returning two [`RFloat`] values:
     ///
     ///  - all significant digits above position `n`
     ///  - all significant digits at or below position `n`
     ///
-    /// The sum of the resulting values will be exactly the input number,
-    /// that is, it "splits" a number.
+    /// The exact sum of the resulting values will be exactly `num`,
+    /// so it "splits" `num`.
     fn split<T: Real>(num: &T, n: isize) -> (RFloat, RFloat) {
         let s = num.sign().unwrap();
         if num.is_zero() {

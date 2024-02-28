@@ -57,7 +57,7 @@
 // pub mod real;
 pub mod rfloat;
 
-pub mod math;
+pub mod mpfr;
 mod number;
 pub mod ops;
 mod round;

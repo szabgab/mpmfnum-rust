@@ -116,7 +116,7 @@ impl Real for RFloat {
         }
     }
 
-    fn p(&self) -> Option<usize> {
+    fn prec(&self) -> Option<usize> {
         match self {
             RFloat::Real(_, _, c) => Some(c.significant_bits() as usize),
             RFloat::PosInfinity => None,

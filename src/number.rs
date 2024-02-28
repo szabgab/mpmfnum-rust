@@ -45,7 +45,7 @@ pub trait Real: Debug {
     /// finite, non-zero numbers.
     fn n(&self) -> Option<isize>;
 
-    /// The integer significand of this number when viewed as
+    /// The _unsigned" integer significand of this number when viewed as
     /// `(-1)^s * c * b^exp`. Only well-defined for finite, non-zero
     /// numbers. Only well-defined for finite, non-zero numbers.
     fn c(&self) -> Option<Integer>;
@@ -59,7 +59,7 @@ pub trait Real: Debug {
     /// This is just `floor(logb(c))` where `b` is the radix and `c` is
     /// the integer significand. Only well-defined for finite,
     /// non-zero numbers.
-    fn p(&self) -> Option<usize>;
+    fn prec(&self) -> Option<usize>;
 
     /// Returns true if this number is not a real number.
     /// Example: NaN or +/-Inf from the IEEE 754 standard.

@@ -117,7 +117,7 @@ fn traits() {
     // RFloat::p
     let expected = [Some(0), Some(1), Some(3), None, None, None];
     for (val, expected) in vals.iter().zip(expected.iter()) {
-        let actual = val.p();
+        let actual = val.prec();
         assert_eq!(
             actual,
             expected.clone(),
