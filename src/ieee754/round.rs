@@ -503,41 +503,31 @@ impl RoundingContext for IEEE754Context {
             // step 2: split the significand at binary digit `n`
             let split = Split::new(num, p, n);
 
-            // step 3...: finalize rounding using the split
-            self.round_split(split)
+            // step 3: extract split parameters and compute some exception flags
+            let inexact = !split.is_exact();
+            let unrounded_e = split.e();
+            let (tiny_pre, tiny_post) = match unrounded_e {
+                None => (false, false), // exact zero result means no tininess
+                Some(e) => {
+                    // need to actually compute the flags
+                    let tiny_pre = e < self.emin();
+                    let tiny_post = self.round_tiny(&split);
+                    (tiny_pre, tiny_post)
+                }
+            };
+
+            // step 4: finalize the rounding (unbounded exponent)
+            let unbounded = RFloatContext::round_finalize(split, self.rm);
+
+            // step 5: carry flag
+            let carry = match (unrounded_e, unbounded.e()) {
+                (Some(e1), Some(e2)) => e2 > e1,
+                (_, _) => false,
+            };
+
+            // step 6: finalize the rounding (bounded exponent)
+            self.round_finalize(unbounded, tiny_pre, tiny_post, inexact, carry)
         }
-    }
-
-    fn round_split(&self, split: Split) -> Self::Format {
-        // exceptional case: exact zero
-        if split.is_zero() {
-            return self.zero(split.sign().unwrap());
-        }
-
-        // step 3: extract split parameters and compute some exception flags
-        let inexact = !split.is_exact();
-        let unrounded_e = split.e();
-        let (tiny_pre, tiny_post) = match unrounded_e {
-            None => (false, false), // exact zero result means no tininess
-            Some(e) => {
-                // need to actually compute the flags
-                let tiny_pre = e < self.emin();
-                let tiny_post = self.round_tiny(&split);
-                (tiny_pre, tiny_post)
-            }
-        };
-
-        // step 4: finalize the rounding (unbounded exponent)
-        let unbounded = RFloatContext::round_finalize(split, self.rm);
-
-        // step 5: carry flag
-        let carry = match (unrounded_e, unbounded.e()) {
-            (Some(e1), Some(e2)) => e2 > e1,
-            (_, _) => false,
-        };
-
-        // step 6: finalize the rounding (bounded exponent)
-        self.round_finalize(unbounded, tiny_pre, tiny_post, inexact, carry)
     }
 
     // fn format_round(&self, val: &Self::Format) -> Self::Format {

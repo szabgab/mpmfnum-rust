@@ -2,7 +2,7 @@ use num_traits::Zero;
 use rug::Integer;
 
 use crate::rfloat::RFloat;
-use crate::{Real, RoundingContext};
+use crate::Real;
 
 /// An exact sum of two [`Real`] values split at an absolute binary digit.
 #[derive(Clone, Debug)]
@@ -68,11 +68,6 @@ impl Split {
     /// Returns `true` if the lost digits are all zero.
     pub fn is_exact(&self) -> bool {
         self.low.is_zero()
-    }
-
-    /// Rounds this [`Split`] according to a [`RoundingContext`].
-    pub fn round<Ctx: RoundingContext>(&self, ctx: &Ctx) -> Ctx::Format {
-        ctx.round_split(self.to_owned())
     }
 }
 

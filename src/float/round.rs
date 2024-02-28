@@ -104,43 +104,29 @@ impl RoundingContext for FloatContext {
             // step 2: split the significand at binary digit `n`
             let split = Split::new(val, p, n);
 
-            // step 3...: finalize the rounding using the split
-            self.round_split(split)
-        }
-    }
+            // step 3: extract split parameters and inexactness flag
+            let inexact = !split.is_exact();
+            let unrounded_e = split.e();
 
-    fn round_split(&self, split: Split) -> Self::Format {
-        // exceptional case: exact zero
-        if split.is_zero() {
-            return Float {
-                num: RFloat::zero(),
-                flags: Exceptions::default(),
-                ctx: self.clone(),
+            // step 4: finalize (unbounded exponent)
+            let rounded = RFloatContext::round_finalize(split, self.rm);
+
+            // step 5: carry flag
+            let carry = match (unrounded_e, rounded.e()) {
+                (Some(e1), Some(e2)) => e2 > e1,
+                (_, _) => false,
             };
-        }
 
-        // step 3: extract split parameters and inexactness flag
-        let inexact = !split.is_exact();
-        let unrounded_e = split.e();
-
-        // step 4: finalize (unbounded exponent)
-        let rounded = RFloatContext::round_finalize(split, self.rm);
-
-        // step 5: carry flag
-        let carry = match (unrounded_e, rounded.e()) {
-            (Some(e1), Some(e2)) => e2 > e1,
-            (_, _) => false,
-        };
-
-        // step 6: compose result
-        Float {
-            num: rounded,
-            flags: Exceptions {
-                inexact,
-                carry,
-                ..Default::default()
-            },
-            ctx: self.clone(),
+            // step 6: compose result
+            Float {
+                num: rounded,
+                flags: Exceptions {
+                    inexact,
+                    carry,
+                    ..Default::default()
+                },
+                ctx: self.clone(),
+            }
         }
     }
 }

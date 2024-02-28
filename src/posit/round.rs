@@ -306,27 +306,4 @@ impl RoundingContext for PositContext {
             }
         }
     }
-
-    fn round_split(&self, split: Split) -> Self::Format {
-        // exceptional case: exact zero
-        if split.is_zero() {
-            return self.zero();
-        }
-
-        // overflow and underflow immediately saturate,
-        // we can simply check the (normalized) exponent.
-        let s = split.sign().unwrap();
-        let e = split.e().unwrap();
-        if e >= self.emax() {
-            // |val| >= MAXVAL
-            self.maxval(s)
-        } else if e <= self.emin() {
-            // |val| <= MINVAL
-            self.minval(s)
-        } else {
-            // within representable range
-            let (useed, _) = self.round_params(&split);
-            self.round_finite(split, useed)
-        }
-    }
 }

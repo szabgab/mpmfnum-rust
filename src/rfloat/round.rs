@@ -271,21 +271,11 @@ impl RoundingContext for RFloatContext {
             // step 2: split the significand at binary digit `n`
             let split = Split::new(num, p, n);
 
-            // step 3...: use the split to finish the rounding
-            self.round_split(split)
+            // step 3: finalize the rounding
+            let rounded = Self::round_finalize(split, self.rm);
+
+            // return the rounded number
+            rounded.canonicalize()
         }
-    }
-
-    fn round_split(&self, split: Split) -> Self::Format {
-        // exceptional case: exact zero
-        if split.is_zero() {
-            return RFloat::zero();
-        }
-
-        // step 3: finalize the rounding
-        let rounded = Self::round_finalize(split, self.rm);
-
-        // return the rounded number
-        rounded.canonicalize()
     }
 }

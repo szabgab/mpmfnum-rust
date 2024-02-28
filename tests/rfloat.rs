@@ -210,7 +210,7 @@ fn round_trivial() {
     let (p, n) = ctx.round_params(&zero);
     let split = Split::new(&zero, p, n);
     let err = split.lost();
-    let rounded = split.round(&ctx);
+    let rounded = ctx.round(&zero);
     assert!(rounded.is_zero(), "round(0) = 0");
     assert!(err.is_zero(), "rounding 0 should have a zero lost bits");
 
@@ -231,7 +231,7 @@ fn round1(ctx: &RFloatContext, num: &RFloat) -> (RFloat, RFloat) {
     let (p, n) = ctx.round_params(num);
     let split = Split::new(num, p, n);
     let err = split.lost().clone();
-    let rounded = split.round(ctx);
+    let rounded = ctx.round(num);
     (rounded, err)
 }
 
