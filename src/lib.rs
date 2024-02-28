@@ -50,7 +50,7 @@
 //!     by the Posit standard.
 //!
 
-// pub mod fixed;
+pub mod fixed;
 pub mod float;
 pub mod ieee754;
 pub mod posit;
