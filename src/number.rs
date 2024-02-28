@@ -1,6 +1,6 @@
-use std::fmt::Debug;
-use rug::Integer;
 use num_traits::Zero;
+use rug::Integer;
+use std::fmt::Debug;
 
 use crate::rfloat::RFloat;
 use crate::util::bitmask;

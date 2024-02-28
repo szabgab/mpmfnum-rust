@@ -52,7 +52,7 @@
 
 // pub mod fixed;
 pub mod float;
-// pub mod ieee754;
+pub mod ieee754;
 // pub mod posit;
 // pub mod real;
 pub mod rfloat;
