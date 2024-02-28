@@ -175,7 +175,11 @@ impl IEEE754Context {
     /// Returns a signed zero.
     pub fn zero(&self, sign: bool) -> IEEE754 {
         IEEE754 {
-            num: IEEE754Val::Zero(sign),
+            num: if sign {
+                IEEE754Val::NegZero
+            } else {
+                IEEE754Val::PosZero
+            },
             flags: Exceptions::default(),
             ctx: self.clone(),
         }
@@ -202,7 +206,11 @@ impl IEEE754Context {
     /// Constructs an infinity with a sign.
     pub fn inf(&self, sign: bool) -> IEEE754 {
         IEEE754 {
-            num: IEEE754Val::Infinity(sign),
+            num: if sign {
+                IEEE754Val::NegInfinity
+            } else {
+                IEEE754Val::PosInfinity
+            },
             flags: Default::default(),
             ctx: self.clone(),
         }
@@ -244,7 +252,11 @@ impl IEEE754Context {
             // subnormal or zero
             if m.is_zero() {
                 // zero
-                IEEE754Val::Zero(s)
+                if s {
+                    IEEE754Val::NegZero
+                } else {
+                    IEEE754Val::PosZero
+                }
             } else {
                 // subnormal
                 IEEE754Val::Subnormal(s, m)
@@ -258,7 +270,11 @@ impl IEEE754Context {
             // non-real
             if m.is_zero() {
                 // infinity
-                IEEE754Val::Infinity(s)
+                if s {
+                    IEEE754Val::NegInfinity
+                } else {
+                    IEEE754Val::PosInfinity
+                }
             } else {
                 // nan
                 let quiet = m.get_bit((p - 2) as u32);
@@ -345,7 +361,11 @@ impl IEEE754Context {
         // rounded result is zero
         if unbounded.is_zero() {
             return IEEE754 {
-                num: IEEE754Val::Zero(sign),
+                num: if sign {
+                    IEEE754Val::NegZero
+                } else {
+                    IEEE754Val::PosZero
+                },
                 flags: Exceptions {
                     underflow_pre: tiny_pre && inexact,
                     underflow_post: tiny_post && inexact,
@@ -363,7 +383,11 @@ impl IEEE754Context {
         if e > self.emax() {
             if IEEE754Context::overflow_to_infinity(sign, self.rm) {
                 return IEEE754 {
-                    num: IEEE754Val::Infinity(sign),
+                    num: if sign {
+                        IEEE754Val::NegInfinity
+                    } else {
+                        IEEE754Val::PosInfinity
+                    },
                     flags: Exceptions {
                         overflow: true,
                         inexact: true,
@@ -383,7 +407,11 @@ impl IEEE754Context {
         if self.ftz && tiny_post {
             // flush to zero
             return IEEE754 {
-                num: IEEE754Val::Zero(sign),
+                num: if sign {
+                    IEEE754Val::NegZero
+                } else {
+                    IEEE754Val::PosZero
+                },
                 flags: Exceptions {
                     underflow_pre: true,
                     underflow_post: true,
@@ -438,16 +466,20 @@ impl RoundingContext for IEEE754Context {
     fn round<T: Real>(&self, num: &T) -> Self::Format {
         // case split by class
         if num.is_zero() {
-            let sign = num.sign().unwrap_or(false);
             IEEE754 {
-                num: IEEE754Val::Zero(sign),
+                num: match num.sign() {
+                    Some(true) => IEEE754Val::NegZero,
+                    _ => IEEE754Val::PosZero,
+                },
                 flags: Exceptions::default(),
                 ctx: self.clone(),
             }
         } else if num.is_infinite() {
-            let sign = num.sign().unwrap_or(false);
             IEEE754 {
-                num: IEEE754Val::Infinity(sign),
+                num: match num.sign() {
+                    Some(true) => IEEE754Val::NegInfinity,
+                    _ => IEEE754Val::PosInfinity,
+                },
                 flags: Exceptions::default(),
                 ctx: self.clone(),
             }
