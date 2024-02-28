@@ -204,10 +204,9 @@ impl RFloatContext {
     pub(crate) fn round_finalize(split: Split, rm: RoundingMode) -> RFloat {
         // truncated result
         let s = split.num().sign().unwrap();
-        let mut exp = split.split_pos() + 1;
-        let mut c = match split.num().c() {
-            Some(c) => c,
-            None => Integer::zero(),
+        let (mut exp, mut c) = match split.num().exp() {
+            Some(exp) => (exp, split.num().c().unwrap()), // non-zero
+            None => (split.split_pos() + 1, Integer::zero())
         };
 
         // rounding bits

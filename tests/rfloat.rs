@@ -543,171 +543,168 @@ fn is_equal(x: &RFloat, y: &RFloat) -> bool {
     }
 }
 
-// fn assert_expected_mul(x: &RFloat, y: &RFloat, expected: &RFloat) {
-//     let left = x.clone() * y.clone();
-//     let right = y.clone() * x.clone();
-//     assert!(
-//         is_equal(&left, expected),
-//         "for {:?} * {:?}: expected {:?}, actual {:?}",
-//         x,
-//         y,
-//         expected,
-//         left
-//     );
-//     assert!(
-//         is_equal(&left, expected),
-//         "multiplication is commutative: {:?} != {:?}",
-//         left,
-//         right
-//     );
-// }
+fn assert_expected_mul(x: &RFloat, y: &RFloat, expected: &RFloat) {
+    let left = x.clone() * y.clone();
+    let right = y.clone() * x.clone();
+    assert!(
+        is_equal(&left, expected),
+        "for {:?} * {:?}: expected {:?}, actual {:?}",
+        x,
+        y,
+        expected,
+        left
+    );
+    assert!(
+        is_equal(&left, expected),
+        "multiplication is commutative: {:?} != {:?}",
+        left,
+        right
+    );
+}
 
-// #[test]
-// fn multiplication() {
-//     // test values
-//     let zero = RFloat::zero(); // 0
-//     let one = RFloat::one(); // 1
-//     let frac = RFloat::Real(true, -4, Integer::from(7)); // -7 * 2^-4
-//     let pos_inf = RFloat::PosInfinity; // +Inf
-//     let neg_inf = RFloat::NegInfinity; // -Inf,
-//     let nan = RFloat::Nan; // NaN
+#[test]
+fn multiplication() {
+    // test values
+    let zero = RFloat::zero(); // 0
+    let one = RFloat::one(); // 1
+    let frac = RFloat::Real(true, -4, Integer::from(7)); // -7 * 2^-4
+    let pos_inf = RFloat::PosInfinity; // +Inf
+    let neg_inf = RFloat::NegInfinity; // -Inf,
+    let nan = RFloat::Nan; // NaN
 
-//     let vals = [&zero, &one, &frac, &pos_inf, &neg_inf, &nan];
+    let vals = [&zero, &one, &frac, &pos_inf, &neg_inf, &nan];
 
-//     // Multiply by 0
-//     let expected = [&zero, &zero, &zero, &nan, &nan, &nan];
-//     for (&val, &expected) in vals.iter().zip(expected.iter()) {
-//         assert_expected_mul(&zero, val, expected);
-//     }
+    // Multiply by 0
+    let expected = [&zero, &zero, &zero, &nan, &nan, &nan];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        assert_expected_mul(&zero, val, expected);
+    }
 
-//     // Multiply by 1
-//     let expected = [&zero, &one, &frac, &pos_inf, &neg_inf, &nan];
-//     for (&val, &expected) in vals.iter().zip(expected.iter()) {
-//         assert_expected_mul(&one, val, expected);
-//     }
+    // Multiply by 1
+    let expected = [&zero, &one, &frac, &pos_inf, &neg_inf, &nan];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        assert_expected_mul(&one, val, expected);
+    }
 
-//     // Multiply by -7 * 2^-4
-//     let frac_sqr = RFloat::Real(false, -8, Integer::from(49));
-//     let expected = [&zero, &frac, &frac_sqr, &neg_inf, &pos_inf, &nan];
-//     for (&val, &expected) in vals.iter().zip(expected.iter()) {
-//         assert_expected_mul(&frac, val, expected);
-//     }
+    // Multiply by -7 * 2^-4
+    let frac_sqr = RFloat::Real(false, -8, Integer::from(49));
+    let expected = [&zero, &frac, &frac_sqr, &neg_inf, &pos_inf, &nan];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        assert_expected_mul(&frac, val, expected);
+    }
 
-//     // Multiply by +Inf
-//     let expected = [&nan, &pos_inf, &neg_inf, &pos_inf, &neg_inf, &nan];
-//     for (&val, &expected) in vals.iter().zip(expected.iter()) {
-//         assert_expected_mul(&pos_inf, val, expected);
-//     }
+    // Multiply by +Inf
+    let expected = [&nan, &pos_inf, &neg_inf, &pos_inf, &neg_inf, &nan];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        assert_expected_mul(&pos_inf, val, expected);
+    }
 
-//     // Multiply by -Inf
-//     let expected = [&nan, &neg_inf, &pos_inf, &neg_inf, &pos_inf, &nan];
-//     for (&val, &expected) in vals.iter().zip(expected.iter()) {
-//         assert_expected_mul(&neg_inf, val, expected);
-//     }
+    // Multiply by -Inf
+    let expected = [&nan, &neg_inf, &pos_inf, &neg_inf, &pos_inf, &nan];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        assert_expected_mul(&neg_inf, val, expected);
+    }
 
-//     // Multiply by Nan
-//     let expected = [&nan; 6];
-//     for (&val, &expected) in vals.iter().zip(expected.iter()) {
-//         assert_expected_mul(&nan, val, expected);
-//     }
-// }
+    // Multiply by Nan
+    let expected = [&nan; 6];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        assert_expected_mul(&nan, val, expected);
+    }
+}
 
-// fn assert_expected_add(x: &RFloat, y: &RFloat, expected: &RFloat) {
-//     let left = x.clone() + y.clone();
-//     let right = y.clone() + x.clone();
-//     assert!(
-//         is_equal(&left, expected),
-//         "for {:?} + {:?}: expected {:?}, actual {:?}",
-//         x,
-//         y,
-//         expected,
-//         left
-//     );
-//     assert!(
-//         is_equal(&left, expected),
-//         "addition is commutative: {:?} != {:?}",
-//         left,
-//         right
-//     );
-// }
+fn assert_expected_add(x: &RFloat, y: &RFloat, expected: &RFloat) {
+    let left = x.clone() + y.clone();
+    let right = y.clone() + x.clone();
+    assert!(
+        is_equal(&left, expected),
+        "for {:?} + {:?}: expected {:?}, actual {:?}",
+        x,
+        y,
+        expected,
+        left
+    );
+    assert!(
+        is_equal(&left, expected),
+        "addition is commutative: {:?} != {:?}",
+        left,
+        right
+    );
+}
 
-// #[test]
-// fn addition() {
-//     // test values
-//     let zero = RFloat::zero(); // 0
-//     let one = RFloat::one(); // 1
-//     let frac = RFloat::Real(true, -4, Integer::from(7)); // -7 * 2^-4
-//     let pos_inf = RFloat::PosInfinity; // +Inf
-//     let neg_inf = RFloat::NegInfinity; // -Inf,
-//     let nan = RFloat::Nan; // NaN
+#[test]
+fn addition() {
+    // test values
+    let zero = RFloat::zero(); // 0
+    let one = RFloat::one(); // 1
+    let frac = RFloat::Real(true, -4, Integer::from(7)); // -7 * 2^-4
+    let pos_inf = RFloat::PosInfinity; // +Inf
+    let neg_inf = RFloat::NegInfinity; // -Inf,
+    let nan = RFloat::Nan; // NaN
 
-//     let two = RFloat::Real(false, 0, Integer::from(2)); // 2
-//     let two_frac = RFloat::Real(true, -4, Integer::from(14)); // 14 * 2^-4
-//     let one_m_frac = RFloat::Real(false, -4, Integer::from(9)); // 9 * 2^-4
+    let two = RFloat::Real(false, 0, Integer::from(2)); // 2
+    let two_frac = RFloat::Real(true, -4, Integer::from(14)); // 14 * 2^-4
+    let one_m_frac = RFloat::Real(false, -4, Integer::from(9)); // 9 * 2^-4
 
-//     let vals = [&zero, &one, &frac, &pos_inf, &neg_inf, &nan];
+    let vals = [&zero, &one, &frac, &pos_inf, &neg_inf, &nan];
 
-//     // Add by 0
-//     let expected = [&zero, &one, &frac, &pos_inf, &neg_inf, &nan];
-//     for (&val, &expected) in vals.iter().zip(expected.iter()) {
-//         assert_expected_add(&zero, val, expected);
-//     }
+    // Add by 0
+    let expected = [&zero, &one, &frac, &pos_inf, &neg_inf, &nan];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        assert_expected_add(&zero, val, expected);
+    }
 
-//     // Add by 1
-//     let expected = [&one, &two, &one_m_frac, &pos_inf, &neg_inf, &nan];
-//     for (&val, &expected) in vals.iter().zip(expected.iter()) {
-//         assert_expected_add(&one, val, expected);
-//     }
+    // Add by 1
+    let expected = [&one, &two, &one_m_frac, &pos_inf, &neg_inf, &nan];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        assert_expected_add(&one, val, expected);
+    }
 
-//     // Add by -7 * 2^-4
-//     let expected = [&frac, &one_m_frac, &two_frac, &pos_inf, &neg_inf, &nan];
-//     for (&val, &expected) in vals.iter().zip(expected.iter()) {
-//         assert_expected_add(&frac, val, expected);
-//     }
+    // Add by -7 * 2^-4
+    let expected = [&frac, &one_m_frac, &two_frac, &pos_inf, &neg_inf, &nan];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        assert_expected_add(&frac, val, expected);
+    }
 
-//     // Add by +Inf
-//     let expected = [&pos_inf, &pos_inf, &pos_inf, &pos_inf, &nan, &nan];
-//     for (&val, &expected) in vals.iter().zip(expected.iter()) {
-//         assert_expected_add(&pos_inf, val, expected);
-//     }
+    // Add by +Inf
+    let expected = [&pos_inf, &pos_inf, &pos_inf, &pos_inf, &nan, &nan];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        assert_expected_add(&pos_inf, val, expected);
+    }
 
-//     // Add by -Inf
-//     let expected = [&neg_inf, &neg_inf, &neg_inf, &nan, &neg_inf, &nan];
-//     for (&val, &expected) in vals.iter().zip(expected.iter()) {
-//         assert_expected_add(&neg_inf, val, expected);
-//     }
+    // Add by -Inf
+    let expected = [&neg_inf, &neg_inf, &neg_inf, &nan, &neg_inf, &nan];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        assert_expected_add(&neg_inf, val, expected);
+    }
 
-//     // Add by Nan
-//     let expected = [&nan; 6];
-//     for (&val, &expected) in vals.iter().zip(expected.iter()) {
-//         assert_expected_add(&nan, val, expected);
-//     }
-// }
+    // Add by Nan
+    let expected = [&nan; 6];
+    for (&val, &expected) in vals.iter().zip(expected.iter()) {
+        assert_expected_add(&nan, val, expected);
+    }
+}
 
-// #[test]
-// fn neg() {
-//     // test values
-//     let zero = RFloat::zero(); // 0
-//     let one = RFloat::one(); // 1
-//     let frac = RFloat::Real(true, -4, Integer::from(7)); // -7 * 2^-4
-//     let pos_inf = RFloat::PosInfinity; // +Inf
-//     let neg_inf = RFloat::NegInfinity; // -Inf,
-//     let nan = RFloat::Nan; // NaN
+#[test]
+fn neg() {
+    // test values
+    let zero = RFloat::zero(); // 0
+    let one = RFloat::one(); // 1
+    let frac = RFloat::Real(true, -4, Integer::from(7)); // -7 * 2^-4
+    let pos_inf = RFloat::PosInfinity; // +Inf
+    let neg_inf = RFloat::NegInfinity; // -Inf,
 
-//     let neg_zero = -zero;
-//     let neg_one = -one;
-//     let neg_frac = -frac;
-//     let neg_pos_inf = -pos_inf;
-//     let neg_neg_inf = -neg_inf;
-//     let neg_nan = nan;
+    let neg_zero = -zero;
+    let neg_one = -one;
+    let neg_frac = -frac;
+    let neg_pos_inf = -pos_inf;
+    let neg_neg_inf = -neg_inf;
 
-//     assert!(!neg_zero.sign(), "-0 should not have a sign");
-//     assert!(neg_one.sign(), "-1 is signed");
-//     assert!(!neg_frac.sign(), "-(-7 * 2^-4) is not signed");
-//     assert!(neg_pos_inf.sign(), "-(+Inf) is signed");
-//     assert!(!neg_neg_inf.sign(), "-(-Inf) is not signed");
-//     assert!(!neg_nan.sign(), "-Nan is not signed");
-// }
+    assert!(!neg_zero.sign().unwrap(), "-0 should not have a sign");
+    assert!(neg_one.sign().unwrap(), "-1 is signed");
+    assert!(!neg_frac.sign().unwrap(), "-(-7 * 2^-4) is not signed");
+    assert!(neg_pos_inf.sign().unwrap(), "-(+Inf) is signed");
+    assert!(!neg_neg_inf.sign().unwrap(), "-(-Inf) is not signed");
+}
 
 #[test]
 fn mpfr_integration() {
