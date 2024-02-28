@@ -437,10 +437,10 @@ impl RoundingContext for IEEE754Context {
 
     fn round<T: Real>(&self, num: &T) -> Self::Format {
         // case split by class
-        if num.is_nar() {
+        if num.is_zero() {
             let sign = num.sign().unwrap_or(false);
             IEEE754 {
-                num: IEEE754Val::Nan(sign, true, Integer::zero()),
+                num: IEEE754Val::Zero(sign),
                 flags: Exceptions::default(),
                 ctx: self.clone(),
             }
@@ -451,13 +451,13 @@ impl RoundingContext for IEEE754Context {
                 flags: Exceptions::default(),
                 ctx: self.clone(),
             }
-        } else if num.is_zero() {
-                let sign = num.sign().unwrap_or(false);
-                IEEE754 {
-                    num: IEEE754Val::Zero(sign),
-                    flags: Exceptions::default(),
-                    ctx: self.clone(),
-                }
+        } else if num.is_nar() {
+            let sign = num.sign().unwrap_or(false);
+            IEEE754 {
+                num: IEEE754Val::Nan(sign, true, Integer::zero()),
+                flags: Exceptions::default(),
+                ctx: self.clone(),
+            }
         } else {
             // step 1: rounding as an unbounded, fixed-precision floating-point,
             // so we need to compute the context parameters; IEEE 754 numbers
@@ -482,26 +482,27 @@ impl RoundingContext for IEEE754Context {
         let unrounded_e = split.e();
         let (tiny_pre, tiny_post) = match unrounded_e {
             None => (false, false), // exact zero result means no tininess
-            Some(e) => { // need to actually compute the flags
+            Some(e) => {
+                // need to actually compute the flags
                 let tiny_pre = e < self.emin();
                 let tiny_post = self.round_tiny(&split);
                 (tiny_pre, tiny_post)
             }
         };
- 
+
         // step 4: finalize the rounding (unbounded exponent)
         let unbounded = RFloatContext::round_finalize(split, self.rm);
 
         // step 5: carry flag
-        let carry = match unrounded_e {
-            Some(e) => unbounded.e().unwrap() > e,
-            None => false,
+        let carry = match (unrounded_e, unbounded.e()) {
+            (Some(e1), Some(e2)) => e2 > e1,
+            (_, _) => false,
         };
 
         // step 6: finalize the rounding (bounded exponent)
         self.round_finalize(unbounded, tiny_pre, tiny_post, inexact, carry)
     }
-    
+
     // fn format_round(&self, val: &Self::Format) -> Self::Format {
     //     match &val.num {
     //         IEEE754Val::Zero(s) => {

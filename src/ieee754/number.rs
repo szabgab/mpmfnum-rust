@@ -319,7 +319,13 @@ impl From<IEEE754> for RFloat {
             IEEE754Val::Zero(_) => RFloat::zero(),
             IEEE754Val::Subnormal(s, c) => RFloat::Real(s, val.ctx.expmin(), c),
             IEEE754Val::Normal(s, exp, c) => RFloat::Real(s, exp, c),
-            IEEE754Val::Infinity(s) => if s { RFloat::NegInfinity } else { RFloat:: PosInfinity },
+            IEEE754Val::Infinity(s) => {
+                if s {
+                    RFloat::NegInfinity
+                } else {
+                    RFloat::PosInfinity
+                }
+            }
             IEEE754Val::Nan(_, _, _) => RFloat::Nan,
         }
     }

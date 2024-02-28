@@ -1,3 +1,4 @@
+use num_traits::Zero;
 use rug::Integer;
 
 use crate::rfloat::RFloat;
@@ -106,10 +107,13 @@ impl Real for Split {
     }
 
     fn c(&self) -> Option<Integer> {
-        match (self.high.c(), self.low.c()) {
-            (None, None) => None,
-            (Some(c), None) | (None, Some(c)) => Some(c),
-            (Some(c1), Some(c2)) => {
+        match (self.high.is_zero(), self.low.is_zero()) {
+            (true, true) => Some(Integer::zero()),
+            (false, true) => self.high.c(),
+            (true, false) => self.low.c(),
+            (false, false) => {
+                let c1 = self.high.c().unwrap();
+                let c2 = self.low.c().unwrap();
                 let offset = self.high.exp().unwrap() - self.low.exp().unwrap();
                 Some((c1 << offset) + c2)
             }

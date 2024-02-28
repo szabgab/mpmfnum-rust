@@ -67,9 +67,9 @@ impl RoundingContext for FloatContext {
 
     fn round<T: Real>(&self, val: &T) -> Self::Format {
         // case split by class
-        if val.is_nar() {
+        if val.is_zero() {
             Float {
-                num: RFloat::Nan,
+                num: RFloat::zero(),
                 flags: Exceptions::default(),
                 ctx: self.clone(),
             }
@@ -87,9 +87,9 @@ impl RoundingContext for FloatContext {
                     ctx: self.clone(),
                 }
             }
-        } else if val.is_zero() {
+        } else if val.is_nar() {
             Float {
-                num: RFloat::zero(),
+                num: RFloat::Nan,
                 flags: Exceptions::default(),
                 ctx: self.clone(),
             }
@@ -118,9 +118,9 @@ impl RoundingContext for FloatContext {
         let rounded = RFloatContext::round_finalize(split, self.rm);
 
         // step 5: carry flag
-        let carry = match unrounded_e {
-            Some(e) => rounded.e().unwrap() > e,
-            None => false,
+        let carry = match (unrounded_e, rounded.e()) {
+            (Some(e1), Some(e2)) => e2 > e1,
+            (_, _) => false,
         };
 
         // step 6: compose result
