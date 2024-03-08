@@ -32,7 +32,6 @@ pub struct IEEE754Context {
     es: usize,
     nbits: usize,
     rm: RoundingMode,
-    daz: bool,
     ftz: bool,
 }
 
@@ -71,7 +70,6 @@ impl IEEE754Context {
             es,
             nbits,
             rm: RoundingMode::NearestTiesToEven,
-            daz: false,
             ftz: false,
         }
     }
@@ -79,13 +77,6 @@ impl IEEE754Context {
     /// Sets the rounding mode.
     pub fn with_rounding_mode(mut self, rm: RoundingMode) -> Self {
         self.rm = rm;
-        self
-    }
-
-    /// Sets the subnormal argument behavior.
-    /// If enabled, any subnormal argument will be interpreted as zero.
-    pub fn with_daz(mut self, enable: bool) -> Self {
-        self.daz = enable;
         self
     }
 
@@ -106,11 +97,6 @@ impl IEEE754Context {
     /// Returns the rounding mode of this context.
     pub fn rm(&self) -> RoundingMode {
         self.rm
-    }
-
-    /// Returns the daz (denormals-are-zero) field.
-    pub fn daz(&self) -> bool {
-        self.daz
     }
 
     /// Returns the ftz (flush-to-zero) field.
