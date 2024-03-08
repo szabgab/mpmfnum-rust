@@ -17,5 +17,5 @@ cargo add mpmfnum
 Or add `mpmfnum` to your `Cargo.toml` like this:
 ```toml
 [dependencies]
-mpmfnum = "0.1.0"
+mpmfnum = "0.2.0"
 ```
