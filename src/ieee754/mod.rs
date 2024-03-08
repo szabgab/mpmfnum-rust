@@ -5,10 +5,9 @@
 //! IEEE 754 style floating-point number.
 
 mod number;
-mod ops;
+pub mod ops;
 mod round;
 
 pub(crate) use number::IEEE754Val;
 pub use number::{Exceptions, IEEE754};
-pub use ops::*;
 pub use round::IEEE754Context;
