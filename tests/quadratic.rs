@@ -5,9 +5,17 @@ use mpmfnum::ieee754::IEEE754Context;
 use mpmfnum::ops::*;
 use mpmfnum::*;
 
-context_alias!(QuadraticCtx, RoundedNeg + RoundedAdd + RoundedSub + RoundedMul + RoundedDiv + RoundedSqrt);
+context_alias!(
+    QuadraticCtx,
+    RoundedNeg + RoundedAdd + RoundedSub + RoundedMul + RoundedDiv + RoundedSqrt
+);
 
-fn naive_quad<Ctx>(a: &Ctx::Format, b: &Ctx::Format, c: &Ctx::Format, ctx: &Ctx) -> (Ctx::Format, Ctx::Format)
+fn naive_quad<Ctx>(
+    a: &Ctx::Format,
+    b: &Ctx::Format,
+    c: &Ctx::Format,
+    ctx: &Ctx,
+) -> (Ctx::Format, Ctx::Format)
 where
     Ctx: QuadraticCtx,
 {
