@@ -5,30 +5,27 @@ use mpmfnum::ieee754::IEEE754Context;
 use mpmfnum::ops::*;
 use mpmfnum::*;
 
-trait QuadraticCtx:
-    RoundingContext + RoundedNeg + RoundedAdd + RoundedSub + RoundedMul + RoundedDiv + RoundedSqrt
-{
-}
+context_alias!(
+    QuadraticCtx,
+    RoundedNeg + RoundedAdd + RoundedSub + RoundedMul + RoundedDiv + RoundedSqrt
+);
 
-impl<T> QuadraticCtx for T where
-    T: RoundingContext
-        + RoundedNeg
-        + RoundedAdd
-        + RoundedSub
-        + RoundedMul
-        + RoundedDiv
-        + RoundedSqrt
-{
-}
-
-fn naive_quadp<Ctx>(a: &Ctx::Format, b: &Ctx::Format, c: &Ctx::Format, ctx: &Ctx) -> Ctx::Format
+fn naive_quad<Ctx>(
+    a: &Ctx::Format,
+    b: &Ctx::Format,
+    c: &Ctx::Format,
+    ctx: &Ctx,
+) -> (Ctx::Format, Ctx::Format)
 where
     Ctx: QuadraticCtx,
 {
     let two = RFloat::Real(false, 1, Integer::one());
     let four = RFloat::Real(false, 2, Integer::one());
     let discr = ctx.sqrt(&ctx.sub(&ctx.mul(b, b), &ctx.mul(&four, &ctx.mul(a, c))));
-    ctx.div(&ctx.add(&ctx.neg(b), &discr), &ctx.mul(&two, a))
+    let pos = ctx.add(&ctx.neg(b), &discr);
+    let neg = ctx.sub(&ctx.neg(b), &discr);
+    let factor = ctx.mul(&two, a);
+    (ctx.div(&pos, &factor), ctx.div(&neg, &factor))
 }
 
 #[test]
@@ -38,5 +35,6 @@ fn run() {
     let b = ctx.zero(false);
     let c = ctx.zero(false);
 
-    let r = naive_quadp(&a, &b, &c, &ctx);
+    let (pos, neg) = naive_quad(&a, &b, &c, &ctx);
+    println!("{:?} {:?}", pos, neg);
 }
