@@ -28,7 +28,7 @@ pub trait RoundingContext {
 /// associates a groups a set of traits into a single named trait.
 #[macro_export]
 macro_rules! context_alias {
-    ($id:ident, $t0:ident $(, $ti:ident )* ) => {
+    ($id:ident, $t0:ident $(+ $ti:ident )* ) => {
         trait $id: RoundingContext + $t0 $(+ $ti )* {}
         impl<T : RoundingContext + $t0 $(+ $ti )*> $id for T {}
     };
