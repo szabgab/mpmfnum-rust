@@ -88,8 +88,10 @@ impl Exceptions {
 /// the IEEE 754 standard.
 #[derive(Clone, Debug)]
 pub enum IEEE754Val {
-    /// Signed zero: `Zero(s)`: where `s` specifies `-0` or `+0`.
-    Zero(bool),
+    /// Unsigned zero
+    PosZero,
+    /// Signed zero
+    NegZero,
     /// Subnormal numbers: `Subnormal(s, c)` encodes `(-1)^s * c * 2^expmin`.
     /// If the float has parameters `es` and `nbits`, then `c` is an
     /// integer of bitwidth `nbits - es - 1`.
@@ -98,8 +100,10 @@ pub enum IEEE754Val {
     /// where `exp` is between `expmin` and `expmax` and `c` is an
     /// integer of bitwidth `nbits - es`.
     Normal(bool, isize, Integer),
-    /// Signed infinity: `Infinity(s)` encodes `+/- Inf`.
-    Infinity(bool),
+    /// Positive infinity: encodes `+Inf`
+    PosInfinity,
+    /// Negative infinity: encodes `-Inf`
+    NegInfinity,
     /// Not-a-number: `Nan(s, quiet, payload)` where `s` specifies the
     /// sign bit, `quiet` the signaling bit, and `payload` the payload
     /// of the NaN value. Either `quiet` must be true or `payload` must
@@ -171,7 +175,8 @@ impl IEEE754 {
     pub fn into_bits(self) -> Integer {
         let nbits = self.ctx.nbits();
         let (s, unsigned) = match &self.num {
-            IEEE754Val::Zero(s) => (*s, Integer::zero()),
+            IEEE754Val::PosZero => (false, Integer::zero()),
+            IEEE754Val::NegZero => (true, Integer::zero()),
             IEEE754Val::Subnormal(s, c) => (*s, c.clone()),
             IEEE754Val::Normal(s, exp, c) => {
                 let m = self.ctx().max_m();
@@ -179,10 +184,15 @@ impl IEEE754 {
                 let mfield = c.clone().bitand(bitmask(m));
                 (*s, mfield.bitor(efield))
             }
-            IEEE754Val::Infinity(s) => {
+            IEEE754Val::PosInfinity => {
                 let m = self.ctx().max_m();
                 let efield = bitmask(self.ctx.es()) << m;
-                (*s, efield)
+                (false, efield)
+            }
+            IEEE754Val::NegInfinity => {
+                let m = self.ctx().max_m();
+                let efield = bitmask(self.ctx.es()) << m;
+                (true, efield)
             }
             IEEE754Val::Nan(s, q, payload) => {
                 let m = self.ctx().max_m() as isize;
@@ -210,100 +220,97 @@ impl Real for IEEE754 {
         2
     }
 
-    fn sign(&self) -> bool {
+    fn sign(&self) -> Option<bool> {
         match &self.num {
-            IEEE754Val::Zero(s) => *s,
-            IEEE754Val::Subnormal(s, _) => *s,
-            IEEE754Val::Normal(s, _, _) => *s,
-            IEEE754Val::Infinity(s) => *s,
-            IEEE754Val::Nan(s, _, _) => *s,
+            IEEE754Val::PosZero => Some(false),
+            IEEE754Val::NegZero => Some(true),
+            IEEE754Val::Subnormal(s, _) => Some(*s),
+            IEEE754Val::Normal(s, _, _) => Some(*s),
+            IEEE754Val::PosInfinity => Some(false),
+            IEEE754Val::NegInfinity => Some(true),
+            IEEE754Val::Nan(s, _, _) => Some(*s),
         }
     }
 
     fn exp(&self) -> Option<isize> {
         match &self.num {
-            IEEE754Val::Zero(_) => None,
             IEEE754Val::Subnormal(_, _) => Some(self.ctx().expmin()),
             IEEE754Val::Normal(_, exp, _) => Some(*exp),
-            IEEE754Val::Infinity(_) => None,
-            IEEE754Val::Nan(_, _, _) => None,
+            _ => None,
         }
     }
 
     fn e(&self) -> Option<isize> {
         match &self.num {
-            IEEE754Val::Zero(_) => None,
             IEEE754Val::Subnormal(_, c) => {
-                Some((self.ctx().expmin() - 1) + (c.significant_bits() as isize))
+                let n = self.ctx().expmin() - 1;
+                Some(n + (c.significant_bits() as isize))
             }
             IEEE754Val::Normal(_, exp, c) => Some((*exp - 1) + (c.significant_bits() as isize)),
-            IEEE754Val::Infinity(_) => None,
-            IEEE754Val::Nan(_, _, _) => None,
+            _ => None,
         }
     }
 
     fn n(&self) -> Option<isize> {
         match &self.num {
-            IEEE754Val::Zero(_) => None,
             IEEE754Val::Subnormal(_, _) => Some(self.ctx().expmin() - 1),
             IEEE754Val::Normal(_, exp, _) => Some(exp - 1),
-            IEEE754Val::Infinity(_) => None,
-            IEEE754Val::Nan(_, _, _) => None,
+            _ => None,
         }
     }
 
     fn c(&self) -> Option<Integer> {
         match &self.num {
-            IEEE754Val::Zero(_) => Some(Integer::zero()),
             IEEE754Val::Subnormal(_, c) => Some(c.clone()),
             IEEE754Val::Normal(_, _, c) => Some(c.clone()),
-            IEEE754Val::Infinity(_) => None,
-            IEEE754Val::Nan(_, _, _) => None,
+            _ => None,
         }
     }
 
     fn m(&self) -> Option<Integer> {
-        self.c().map(|c| if self.sign() { -c } else { c })
+        self.c().map(|c| if self.sign().unwrap() { -c } else { c })
     }
 
-    fn p(&self) -> usize {
+    fn prec(&self) -> Option<usize> {
         match &self.num {
-            IEEE754Val::Zero(_) => 0,
-            IEEE754Val::Subnormal(_, c) => c.significant_bits() as usize,
-            IEEE754Val::Normal(_, _, c) => c.significant_bits() as usize,
-            IEEE754Val::Infinity(_) => 0,
-            IEEE754Val::Nan(_, _, _) => 0,
+            IEEE754Val::Subnormal(_, c) => Some(c.significant_bits() as usize),
+            IEEE754Val::Normal(_, _, c) => Some(c.significant_bits() as usize),
+            _ => None,
         }
     }
 
     fn is_nar(&self) -> bool {
         matches!(
             &self.num,
-            IEEE754Val::Infinity(_) | IEEE754Val::Nan(_, _, _)
+            IEEE754Val::PosInfinity | IEEE754Val::NegInfinity | IEEE754Val::Nan(_, _, _)
         )
     }
 
     fn is_finite(&self) -> bool {
         matches!(
             &self.num,
-            IEEE754Val::Zero(_) | IEEE754Val::Subnormal(_, _) | IEEE754Val::Normal(_, _, _)
+            IEEE754Val::PosZero
+                | IEEE754Val::NegZero
+                | IEEE754Val::Subnormal(_, _)
+                | IEEE754Val::Normal(_, _, _)
         )
     }
 
     fn is_infinite(&self) -> bool {
-        matches!(&self.num, IEEE754Val::Infinity(_))
+        matches!(&self.num, IEEE754Val::PosInfinity | IEEE754Val::NegInfinity)
     }
 
     fn is_zero(&self) -> bool {
-        matches!(&self.num, IEEE754Val::Zero(_))
+        matches!(&self.num, IEEE754Val::PosZero | IEEE754Val::NegZero)
     }
 
     fn is_negative(&self) -> Option<bool> {
         match &self.num {
-            IEEE754Val::Zero(s) => Some(*s),
+            IEEE754Val::PosZero | IEEE754Val::NegZero => None,
             IEEE754Val::Subnormal(s, _) => Some(*s),
             IEEE754Val::Normal(s, _, _) => Some(*s),
-            IEEE754Val::Infinity(s) => Some(*s),
+            IEEE754Val::PosInfinity => Some(false),
+            IEEE754Val::NegInfinity => Some(true),
             IEEE754Val::Nan(_, _, _) => None,
         }
     }
@@ -316,10 +323,11 @@ impl Real for IEEE754 {
 impl From<IEEE754> for RFloat {
     fn from(val: IEEE754) -> Self {
         match val.num {
-            IEEE754Val::Zero(_) => RFloat::zero(),
+            IEEE754Val::PosZero | IEEE754Val::NegZero => RFloat::zero(),
             IEEE754Val::Subnormal(s, c) => RFloat::Real(s, val.ctx.expmin(), c),
             IEEE754Val::Normal(s, exp, c) => RFloat::Real(s, exp, c),
-            IEEE754Val::Infinity(s) => RFloat::Infinite(s),
+            IEEE754Val::PosInfinity => RFloat::PosInfinity,
+            IEEE754Val::NegInfinity => RFloat::NegInfinity,
             IEEE754Val::Nan(_, _, _) => RFloat::Nan,
         }
     }
@@ -327,7 +335,7 @@ impl From<IEEE754> for RFloat {
 
 impl From<IEEE754> for rug::Float {
     fn from(val: IEEE754) -> Self {
-        let s = val.sign();
+        let s = val.sign().unwrap();
         let f = rug::Float::from(RFloat::from(val));
         if f.is_zero() && s {
             -f

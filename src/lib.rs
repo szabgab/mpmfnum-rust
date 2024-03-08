@@ -46,22 +46,25 @@
 //!  - [`FixedContext`][crate::fixed::FixedContext]
 //!     rounds a [`Real`] value to a fixed-point numbers,
 //!  - [`PositContext`][crate::posit::PositContext]
-//!     rounds a [`Real`] value to a posit number as described
-//!     by the Posit standard.
+//!     rounds a [`Real`] value to a posit number as described by
+//!     the Posit standard.
 //!
 
 pub mod fixed;
 pub mod float;
 pub mod ieee754;
-pub mod math;
-pub mod ops;
 pub mod posit;
 pub mod real;
 pub mod rfloat;
 
+pub mod mpfr;
 mod number;
+pub mod ops;
 mod round;
+mod split;
 mod util;
 
 pub use crate::number::Real;
+pub use crate::rfloat::RFloat;
 pub use crate::round::{RoundingContext, RoundingDirection, RoundingMode};
+pub use crate::split::Split;

@@ -1,10 +1,11 @@
+use num_traits::Zero;
 use rug::Integer;
 use std::ops::{BitAnd, BitOr};
 
 use crate::ieee754::{Exceptions, IEEE754Val, IEEE754};
 use crate::rfloat::{RFloat, RFloatContext};
 use crate::util::bitmask;
-use crate::{Real, RoundingContext, RoundingDirection, RoundingMode};
+use crate::{Real, RoundingContext, RoundingDirection, RoundingMode, Split};
 
 /// Rounding contexts for IEEE 754 floating-point numbers.
 ///
@@ -174,7 +175,11 @@ impl IEEE754Context {
     /// Returns a signed zero.
     pub fn zero(&self, sign: bool) -> IEEE754 {
         IEEE754 {
-            num: IEEE754Val::Zero(sign),
+            num: if sign {
+                IEEE754Val::NegZero
+            } else {
+                IEEE754Val::PosZero
+            },
             flags: Exceptions::default(),
             ctx: self.clone(),
         }
@@ -201,7 +206,11 @@ impl IEEE754Context {
     /// Constructs an infinity with a sign.
     pub fn inf(&self, sign: bool) -> IEEE754 {
         IEEE754 {
-            num: IEEE754Val::Infinity(sign),
+            num: if sign {
+                IEEE754Val::NegInfinity
+            } else {
+                IEEE754Val::PosInfinity
+            },
             flags: Default::default(),
             ctx: self.clone(),
         }
@@ -243,7 +252,11 @@ impl IEEE754Context {
             // subnormal or zero
             if m.is_zero() {
                 // zero
-                IEEE754Val::Zero(s)
+                if s {
+                    IEEE754Val::NegZero
+                } else {
+                    IEEE754Val::PosZero
+                }
             } else {
                 // subnormal
                 IEEE754Val::Subnormal(s, m)
@@ -257,7 +270,11 @@ impl IEEE754Context {
             // non-real
             if m.is_zero() {
                 // infinity
-                IEEE754Val::Infinity(s)
+                if s {
+                    IEEE754Val::NegInfinity
+                } else {
+                    IEEE754Val::PosInfinity
+                }
             } else {
                 // nan
                 let quiet = m.get_bit((p - 2) as u32);
@@ -338,10 +355,17 @@ impl IEEE754Context {
         inexact: bool,
         carry: bool,
     ) -> IEEE754 {
+        // all outcomes require a sign
+        let sign = unbounded.sign().unwrap();
+
         // rounded result is zero
         if unbounded.is_zero() {
             return IEEE754 {
-                num: IEEE754Val::Zero(unbounded.sign()),
+                num: if sign {
+                    IEEE754Val::NegZero
+                } else {
+                    IEEE754Val::PosZero
+                },
                 flags: Exceptions {
                     underflow_pre: tiny_pre && inexact,
                     underflow_post: tiny_post && inexact,
@@ -357,10 +381,13 @@ impl IEEE754Context {
         // check for overflow
         let e = unbounded.e().unwrap();
         if e > self.emax() {
-            let sign = unbounded.sign();
             if IEEE754Context::overflow_to_infinity(sign, self.rm) {
                 return IEEE754 {
-                    num: IEEE754Val::Infinity(sign),
+                    num: if sign {
+                        IEEE754Val::NegInfinity
+                    } else {
+                        IEEE754Val::PosInfinity
+                    },
                     flags: Exceptions {
                         overflow: true,
                         inexact: true,
@@ -380,7 +407,11 @@ impl IEEE754Context {
         if self.ftz && tiny_post {
             // flush to zero
             return IEEE754 {
-                num: IEEE754Val::Zero(unbounded.sign()),
+                num: if sign {
+                    IEEE754Val::NegZero
+                } else {
+                    IEEE754Val::PosZero
+                },
                 flags: Exceptions {
                     underflow_pre: true,
                     underflow_post: true,
@@ -394,10 +425,9 @@ impl IEEE754Context {
         }
 
         // normal or subnormal result
+        let c = unbounded.c().unwrap();
         if e < self.emin() {
             // subnormal result
-            let sign = unbounded.sign();
-            let c = unbounded.c().unwrap();
             IEEE754 {
                 num: IEEE754Val::Subnormal(sign, c),
                 flags: Exceptions {
@@ -412,9 +442,7 @@ impl IEEE754Context {
             }
         } else {
             // normal result
-            let sign = unbounded.sign();
             let exp = unbounded.exp().unwrap();
-            let c = unbounded.c().unwrap();
             IEEE754 {
                 num: IEEE754Val::Normal(sign, exp, c),
                 flags: Exceptions {
@@ -430,119 +458,75 @@ impl IEEE754Context {
             }
         }
     }
-
-    /// Rounds a finite (non-zero) number.
-    fn round_finite<T: Real>(&self, num: &T) -> IEEE754 {
-        // step 1: rounding as an unbounded, fixed-precision floating-point,
-        // so we need to compute the context parameters; IEEE 754 numbers
-        // support subnormalization so we need to set both `max_p` and
-        // `min_n` when rounding with a RFloatContext.
-        let (p, n) = RFloatContext::new()
-            .with_max_p(self.max_p())
-            .with_min_n(self.expmin() - 1)
-            .round_params(num);
-
-        // step 2: split the significand at binary digit `n`
-        let split = RFloatContext::round_prepare(num, n);
-
-        // step 3: compute certain exception flags
-        let inexact = split.halfway_bit || split.sticky_bit;
-        let (tiny_pre, tiny_post) = if num.is_zero() {
-            // exact zero result means no tininess
-            (false, false)
-        } else {
-            // need to actually compute the flags
-            let e_trunc = num.e().unwrap();
-            let tiny_pre = e_trunc < self.emin();
-            let tiny_post = self.round_tiny(num);
-            (tiny_pre, tiny_post)
-        };
-
-        // step 4: finalize the rounding (unbounded exponent)
-        let unbounded = RFloatContext::round_finalize(split, p, self.rm);
-        let carry = matches!((num.e(), unbounded.e()), (Some(e1), Some(e2)) if e2 > e1);
-
-        // step 5: finalize the rounding (bounded exponent)
-        self.round_finalize(unbounded, tiny_pre, tiny_post, inexact, carry)
-    }
 }
 
 impl RoundingContext for IEEE754Context {
-    type Rounded = IEEE754;
+    type Format = IEEE754;
 
-    fn round<T: Real>(&self, num: &T) -> Self::Rounded {
+    fn round<T: Real>(&self, num: &T) -> Self::Format {
         // case split by class
         if num.is_zero() {
             IEEE754 {
-                num: IEEE754Val::Zero(num.sign()),
+                num: match num.sign() {
+                    Some(true) => IEEE754Val::NegZero,
+                    _ => IEEE754Val::PosZero,
+                },
                 flags: Exceptions::default(),
                 ctx: self.clone(),
             }
         } else if num.is_infinite() {
             IEEE754 {
-                num: IEEE754Val::Infinity(num.sign()),
+                num: match num.sign() {
+                    Some(true) => IEEE754Val::NegInfinity,
+                    _ => IEEE754Val::PosInfinity,
+                },
                 flags: Exceptions::default(),
                 ctx: self.clone(),
             }
         } else if num.is_nar() {
+            let sign = num.sign().unwrap_or(false);
             IEEE754 {
-                num: IEEE754Val::Nan(num.sign(), true, Integer::from(0)),
+                num: IEEE754Val::Nan(sign, true, Integer::zero()),
                 flags: Exceptions::default(),
                 ctx: self.clone(),
             }
         } else {
-            self.round_finite(num)
-        }
-    }
+            // step 1: rounding as an unbounded, fixed-precision floating-point,
+            // so we need to compute the context parameters; IEEE 754 numbers
+            // support subnormalization so we need to set both `max_p` and
+            // `min_n` when rounding with a RFloatContext.
+            let (p, n) = RFloatContext::new()
+                .with_max_p(self.max_p())
+                .with_min_n(self.expmin() - 1)
+                .round_params(num);
 
-    fn format_round(&self, val: &Self::Rounded) -> Self::Rounded {
-        match &val.num {
-            IEEE754Val::Zero(s) => {
-                // +/-0 is preserved
-                IEEE754 {
-                    num: IEEE754Val::Zero(*s),
-                    flags: Default::default(),
-                    ctx: self.clone(),
-                }
-            }
-            IEEE754Val::Infinity(s) => {
-                // +/-Inf is preserved
-                IEEE754 {
-                    num: IEEE754Val::Infinity(*s),
-                    flags: Default::default(),
-                    ctx: self.clone(),
-                }
-            }
-            IEEE754Val::Nan(s, _, payload) => {
-                // NaN
-                // rounding truncates the payload
-                // always quiets the result
-                let offset = self.max_p() as isize - val.ctx.max_p() as isize;
-                let payload = match offset.cmp(&0) {
-                    std::cmp::Ordering::Less => {
-                        // truncation: chop off the lower bits
-                        Integer::from(payload >> -offset)
-                    }
-                    std::cmp::Ordering::Greater => {
-                        // padding
-                        Integer::from(payload << offset)
-                    }
-                    std::cmp::Ordering::Equal => {
-                        // payload is preserved exactly
-                        payload.clone()
-                    }
-                };
+            // step 2: split the significand at binary digit `n`
+            let split = Split::new(num, p, n);
 
-                IEEE754 {
-                    num: IEEE754Val::Nan(*s, true, payload),
-                    flags: Default::default(),
-                    ctx: self.clone(),
+            // step 3: extract split parameters and compute some exception flags
+            let inexact = !split.is_exact();
+            let unrounded_e = split.e();
+            let (tiny_pre, tiny_post) = match unrounded_e {
+                None => (false, false), // exact zero result means no tininess
+                Some(e) => {
+                    // need to actually compute the flags
+                    let tiny_pre = e < self.emin();
+                    let tiny_post = self.round_tiny(&split);
+                    (tiny_pre, tiny_post)
                 }
-            }
-            _ => {
-                // finite, non-zero
-                self.round_finite(val)
-            }
+            };
+
+            // step 4: finalize the rounding (unbounded exponent)
+            let unbounded = RFloatContext::round_finalize(split, self.rm);
+
+            // step 5: carry flag
+            let carry = match (unrounded_e, unbounded.e()) {
+                (Some(e1), Some(e2)) => e2 > e1,
+                (_, _) => false,
+            };
+
+            // step 6: finalize the rounding (bounded exponent)
+            self.round_finalize(unbounded, tiny_pre, tiny_post, inexact, carry)
         }
     }
 }

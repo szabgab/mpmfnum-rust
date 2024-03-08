@@ -4,7 +4,7 @@ use rug::Integer;
 
 use crate::fixed::{Exceptions, Fixed};
 use crate::rfloat::{RFloat, RFloatContext};
-use crate::{Real, RoundingContext, RoundingMode};
+use crate::{Real, RoundingContext, RoundingMode, Split};
 
 /// Fixed-point overflow behavior.
 ///
@@ -156,7 +156,7 @@ impl FixedContext {
             // signed wrapping is harder:
             // `((v + 2^(w - 1)) % 2^w) - 2^(w - 1))`
             let shift = Integer::from(1) << (self.nbits - 1);
-            let m = if val.sign() { -c } else { c };
+            let m = if val.sign().unwrap() { -c } else { c };
             let wrapped = (m + shift.clone()).rem(div) - shift;
             RFloat::Real(wrapped.is_negative(), self.scale, wrapped.abs())
         } else {
@@ -165,92 +165,12 @@ impl FixedContext {
             RFloat::Real(false, self.scale, wrapped)
         }
     }
-
-    fn round_finite<T: Real>(&self, num: &T) -> Fixed {
-        // step 1: rounding as a unbounded fixed-point number
-        // so we need to compute the context parameters; we only set
-        // `min_n` when rounding with a RFloatContext, the first
-        // digit we want to chop off.
-        let (p, n) = RFloatContext::new()
-            .with_min_n(self.scale - 1)
-            .round_params(num);
-
-        // step 2: split the significand at binary digit `n`
-        let split = RFloatContext::round_prepare(num, n);
-        let inexact = split.halfway_bit || split.sticky_bit;
-
-        // step 3: finalize (fixed point)
-        let rounded = RFloatContext::round_finalize(split, p, self.rm);
-
-        // early exit if zero
-        if rounded.is_zero() {
-            return Fixed {
-                num: RFloat::zero(),
-                flags: Exceptions {
-                    inexact,
-                    ..Default::default()
-                },
-                ctx: self.clone(),
-            };
-        }
-
-        // double check rounding invariants
-        let exp = rounded.exp().unwrap();
-        assert!(
-            exp >= self.scale,
-            "unexpected exponent, scale: {}, num: {:?}",
-            self.scale,
-            rounded
-        );
-
-        // step 4: may need to round or saturate
-        let maxval = self.maxval();
-        let minval = self.minval();
-        if rounded > maxval.num {
-            // larger than the maxval
-            Fixed {
-                num: match self.overflow {
-                    Overflow::Wrap => self.round_wrap(rounded),
-                    Overflow::Saturate => maxval.num,
-                },
-                flags: Exceptions {
-                    inexact,
-                    overflow: true,
-                    ..Default::default()
-                },
-                ctx: self.clone(),
-            }
-        } else if rounded < minval.num {
-            // smaller than the minval
-            Fixed {
-                num: match self.overflow {
-                    Overflow::Wrap => self.round_wrap(rounded),
-                    Overflow::Saturate => minval.num,
-                },
-                flags: Exceptions {
-                    inexact,
-                    underflow: false,
-                    ..Default::default()
-                },
-                ctx: self.clone(),
-            }
-        } else {
-            Fixed {
-                num: rounded,
-                flags: Exceptions {
-                    inexact,
-                    ..Default::default()
-                },
-                ctx: self.clone(),
-            }
-        }
-    }
 }
 
 impl RoundingContext for FixedContext {
-    type Rounded = Fixed;
+    type Format = Fixed;
 
-    fn round<T: Real>(&self, val: &T) -> Self::Rounded {
+    fn round<T: Real>(&self, val: &T) -> Self::Format {
         // case split by class
         if val.is_zero() {
             // zero is always representable
@@ -262,10 +182,9 @@ impl RoundingContext for FixedContext {
         } else if val.is_infinite() {
             // +Inf goes to MAX
             // -Inf goes to MIN
-            if val.sign() {
-                self.minval()
-            } else {
-                self.maxval()
+            match val.sign() {
+                Some(true) => self.maxval(),
+                _ => self.minval(),
             }
         } else if val.is_nar() {
             // +/- NaN goes to 0
@@ -278,7 +197,85 @@ impl RoundingContext for FixedContext {
                 ctx: self.clone(),
             }
         } else {
-            self.round_finite(val)
+            // step 1: rounding as a unbounded fixed-point number
+            // so we need to compute the context parameters; we only set
+            // `min_n` when rounding with a RFloatContext, the first
+            // digit we want to chop off.
+            let (p, n) = RFloatContext::new()
+                .with_min_n(self.scale - 1)
+                .round_params(val);
+
+            // step 2: split the significand at binary digit `n`
+            let split = Split::new(val, p, n);
+
+            // step 3: extract split parameters and compute inexact flag
+            let inexact = !split.is_exact();
+
+            // step 3: finalize (fixed point)
+            let rounded = RFloatContext::round_finalize(split, self.rm);
+
+            // early exit if zero
+            if rounded.is_zero() {
+                return Fixed {
+                    num: RFloat::zero(),
+                    flags: Exceptions {
+                        inexact,
+                        ..Default::default()
+                    },
+                    ctx: self.clone(),
+                };
+            }
+
+            // double check rounding invariants
+            let exp = rounded.exp().unwrap();
+            assert!(
+                exp >= self.scale,
+                "unexpected exponent, scale: {}, num: {:?}",
+                self.scale,
+                rounded
+            );
+
+            // step 4: may need to round or saturate
+            let maxval = self.maxval();
+            let minval = self.minval();
+            if rounded > maxval.num {
+                // larger than the maxval
+                Fixed {
+                    num: match self.overflow {
+                        Overflow::Wrap => self.round_wrap(rounded),
+                        Overflow::Saturate => maxval.num,
+                    },
+                    flags: Exceptions {
+                        inexact,
+                        overflow: true,
+                        ..Default::default()
+                    },
+                    ctx: self.clone(),
+                }
+            } else if rounded < minval.num {
+                // smaller than the minval
+                Fixed {
+                    num: match self.overflow {
+                        Overflow::Wrap => self.round_wrap(rounded),
+                        Overflow::Saturate => minval.num,
+                    },
+                    flags: Exceptions {
+                        inexact,
+                        underflow: false,
+                        ..Default::default()
+                    },
+                    ctx: self.clone(),
+                }
+            } else {
+                Fixed {
+                    num: rounded,
+                    flags: Exceptions {
+                        inexact,
+                        ..Default::default()
+                    },
+                    ctx: self.clone(),
+                }
+            }
         }
     }
 }

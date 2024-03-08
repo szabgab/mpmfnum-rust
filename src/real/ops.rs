@@ -12,29 +12,30 @@ use crate::{
 use super::RealContext;
 
 impl RoundedNeg for RealContext {
-    fn neg<N: Real>(&self, src: &N) -> Self::Rounded {
+    fn neg<N: Real>(&self, src: &N) -> Self::Format {
         let src = self.round(src); // convert (exactly) to RFloat
         match src {
             RFloat::Real(s, exp, c) => RFloat::Real(!s, exp, c),
-            RFloat::Infinite(s) => RFloat::Infinite(!s),
+            RFloat::PosInfinity => RFloat::NegInfinity,
+            RFloat::NegInfinity => RFloat::PosInfinity,
             RFloat::Nan => RFloat::Nan,
         }
     }
 }
 
 impl RoundedAbs for RealContext {
-    fn abs<N: Real>(&self, src: &N) -> Self::Rounded {
+    fn abs<N: Real>(&self, src: &N) -> Self::Format {
         let src = self.round(src); // convert (exactly) to RFloat
         match src {
             RFloat::Real(_, exp, c) => RFloat::Real(false, exp, c),
-            RFloat::Infinite(_) => RFloat::Infinite(false),
+            RFloat::PosInfinity | RFloat::NegInfinity => RFloat::PosInfinity,
             RFloat::Nan => RFloat::Nan,
         }
     }
 }
 
 impl RoundedAdd for RealContext {
-    fn add<N1, N2>(&self, src1: &N1, src2: &N2) -> Self::Rounded
+    fn add<N1, N2>(&self, src1: &N1, src2: &N2) -> Self::Format
     where
         N1: Real,
         N2: Real,
@@ -45,14 +46,12 @@ impl RoundedAdd for RealContext {
             // invalid arguments means invalid result
             (RFloat::Nan, _) | (_, RFloat::Nan) => RFloat::Nan,
             // infinities
-            (RFloat::Infinite(s1), RFloat::Infinite(s2)) => {
-                if s1 == s2 {
-                    RFloat::Infinite(s1)
-                } else {
-                    RFloat::Nan
-                }
-            }
-            (RFloat::Infinite(s), _) | (_, RFloat::Infinite(s)) => RFloat::Infinite(s),
+            (RFloat::PosInfinity, RFloat::PosInfinity) => RFloat::PosInfinity,
+            (RFloat::NegInfinity, RFloat::NegInfinity) => RFloat::NegInfinity,
+            (RFloat::PosInfinity, RFloat::NegInfinity)
+            | (RFloat::NegInfinity, RFloat::PosInfinity) => RFloat::Nan,
+            (RFloat::PosInfinity, _) | (_, RFloat::PosInfinity) => RFloat::PosInfinity,
+            (RFloat::NegInfinity, _) | (_, RFloat::NegInfinity) => RFloat::NegInfinity,
             // finite
             (RFloat::Real(s1, exp1, c1), RFloat::Real(s2, exp2, c2)) => {
                 if c2.is_zero() {
@@ -86,7 +85,7 @@ impl RoundedAdd for RealContext {
 }
 
 impl RoundedSub for RealContext {
-    fn sub<N1, N2>(&self, src1: &N1, src2: &N2) -> Self::Rounded
+    fn sub<N1, N2>(&self, src1: &N1, src2: &N2) -> Self::Format
     where
         N1: Real,
         N2: Real,
@@ -96,38 +95,55 @@ impl RoundedSub for RealContext {
 }
 
 impl RoundedMul for RealContext {
-    fn mul<N1, N2>(&self, src1: &N1, src2: &N2) -> Self::Rounded
+    fn mul<N1, N2>(&self, src1: &N1, src2: &N2) -> Self::Format
     where
         N1: Real,
         N2: Real,
     {
         let src1 = self.round(src1); // convert (exactly) to RFloat
         let src2 = self.round(src2); // convert (exactly) to RFloat
-        match (src1, src2) {
-            // invalid arguments means invalid result
-            (RFloat::Nan, _) | (_, RFloat::Nan) => RFloat::Nan,
-            // infinities
-            (RFloat::Infinite(s1), RFloat::Infinite(s2)) => RFloat::Infinite(s1 != s2),
-            (RFloat::Infinite(sinf), RFloat::Real(s, _, c))
-            | (RFloat::Real(s, _, c), RFloat::Infinite(sinf)) => {
-                if c.is_zero() {
-                    // Inf * 0 is undefined
-                    RFloat::Nan
-                } else {
-                    // Inf * non-zero is just Inf
-                    RFloat::Infinite(sinf != s)
-                }
+
+        // case split by class
+        // match statements are somehow worse
+        if src1.is_nan() || src2.is_nan() {
+            // undefined
+            RFloat::Nan
+        } else if src1.is_infinite() {
+            if src2.is_zero() {
+                // Inf * 0 is undefined
+                RFloat::Nan
+            } else if src1.sign().unwrap() == src2.sign().unwrap() {
+                // Inf * non-zero (same signs)
+                RFloat::PosInfinity
+            } else {
+                // Inf * non-zero (opposite signs)
+                RFloat::NegInfinity
             }
-            // finite values
-            (RFloat::Real(s1, exp1, c1), RFloat::Real(s2, exp2, c2)) => {
-                if c1.is_zero() || c2.is_zero() {
-                    // finite * zero is zero
-                    RFloat::zero()
-                } else {
-                    // non-zero * non-zero is non-zero
-                    RFloat::Real(s1 != s2, exp1 + exp2, c1 * c2)
-                }
+        } else if src2.is_infinite() {
+            if src1.is_zero() {
+                // 0 * Inf is undefined
+                RFloat::Nan
+            } else if src1.sign().unwrap() == src2.sign().unwrap() {
+                // non-zero * Inf (same signs)
+                RFloat::PosInfinity
+            } else {
+                // non-zero * Inf (opposite signs)
+                RFloat::NegInfinity
             }
+        } else if src1.is_zero() || src2.is_zero() {
+            // 0 * finite is 0
+            RFloat::zero()
+        } else {
+            // finite, non-zero * finite, non-zero
+            let s1 = src1.sign().unwrap();
+            let exp1 = src1.exp().unwrap();
+            let c1 = src1.c().unwrap();
+
+            let s2 = src2.sign().unwrap();
+            let exp2 = src2.exp().unwrap();
+            let c2 = src2.c().unwrap();
+
+            RFloat::Real(s1 != s2, exp1 + exp2, c1 * c2)
         }
     }
 }

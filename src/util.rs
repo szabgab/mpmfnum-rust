@@ -1,7 +1,7 @@
 use gmp_mpfr_sys::mpfr;
 use rug::Integer;
 
-/// Produces a bitmask (as an Mpz) encoding `(1 << n) - 1`
+/// Produces a bitmask (as an [`Integer`]) encoding `(1 << n) - 1`
 /// which can be used to extract the first `n` binary digits.
 pub(crate) fn bitmask(n: usize) -> Integer {
     (Integer::from(1) << n) - 1

@@ -14,15 +14,19 @@ impl RealContext {
 }
 
 impl RoundingContext for RealContext {
-    type Rounded = RFloat;
+    type Format = RFloat;
 
-    fn round<T: Real>(&self, val: &T) -> Self::Rounded {
+    fn round<T: Real>(&self, val: &T) -> Self::Format {
         if val.is_zero() {
             RFloat::zero()
         } else if val.is_finite() {
-            RFloat::Real(val.sign(), val.exp().unwrap(), val.c().unwrap())
+            let sign = val.sign().unwrap_or(false);
+            RFloat::Real(sign, val.exp().unwrap(), val.c().unwrap())
         } else if val.is_infinite() {
-            RFloat::Infinite(val.sign())
+            match val.sign() {
+                Some(true) => RFloat::NegInfinity,
+                _ => RFloat::PosInfinity,
+            }
         } else {
             RFloat::Nan
         }

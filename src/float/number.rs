@@ -1,3 +1,4 @@
+use rug::Integer;
 use std::cmp::Ordering;
 
 use crate::{rfloat::RFloat, Real};
@@ -71,7 +72,7 @@ impl Real for Float {
         2
     }
 
-    fn sign(&self) -> bool {
+    fn sign(&self) -> Option<bool> {
         self.num.sign()
     }
 
@@ -87,16 +88,16 @@ impl Real for Float {
         self.num.n()
     }
 
-    fn c(&self) -> Option<rug::Integer> {
+    fn c(&self) -> Option<Integer> {
         self.num.c()
     }
 
-    fn m(&self) -> Option<rug::Integer> {
+    fn m(&self) -> Option<Integer> {
         self.num.m()
     }
 
-    fn p(&self) -> usize {
-        self.num.p()
+    fn prec(&self) -> Option<usize> {
+        self.num.prec()
     }
 
     fn is_nar(&self) -> bool {

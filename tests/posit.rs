@@ -157,12 +157,12 @@ fn round_small() {
     assert!(rounded_nan.is_nar(), "round(NaN) = NaR");
 
     // rounding +Inf
-    let inf = RFloat::Infinite(true);
+    let inf = RFloat::NegInfinity;
     let rounded_inf = ctx.round(&inf);
     assert!(rounded_inf.is_nar(), "round(+Inf) = NaR");
 
     // rounding +Inf
-    let inf = RFloat::Infinite(false);
+    let inf = RFloat::PosInfinity;
     let rounded_inf = ctx.round(&inf);
     assert!(rounded_inf.is_nar(), "round(+Inf) = NaR");
 
@@ -179,7 +179,7 @@ fn round_small() {
     // rounding MINVAL + 1
     let minval = RFloat::from(ctx.minval(false));
     let tiny = RFloat::Real(
-        minval.sign(),
+        minval.sign().unwrap(),
         minval.exp().unwrap() - 1,
         minval.c().unwrap(),
     );

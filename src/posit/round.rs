@@ -2,7 +2,7 @@ use rug::Integer;
 
 use crate::rfloat::RFloatContext;
 use crate::util::bitmask;
-use crate::{Real, RoundingContext, RoundingMode};
+use crate::{Real, RoundingContext, RoundingMode, Split};
 
 use super::{Posit, PositVal};
 
@@ -222,78 +222,88 @@ impl PositContext {
 
 // Rounding utility functions.
 impl PositContext {
-    fn round_finite<T: Real>(&self, val: &T) -> Posit {
-        assert!(!val.is_nar(), "must be a finite value {:?}", val);
+    fn round_params<T: Real>(&self, num: &T) -> (isize, usize) {
+        assert!(
+            !num.is_nar() && !num.is_zero(),
+            "must be a finite, non-zero {:?}",
+            num
+        );
 
-        // easy case: exact zero
-        if val.is_zero() {
-            return self.zero();
-        }
-
-        // overflow and underlow immediately saturate,
-        // we can simply check the (normalized) exponent.
-        let s = val.sign();
-        let e = val.e().unwrap();
-        if e >= self.emax() {
-            // |val| >= MAXVAL
-            self.maxval(s)
-        } else if e <= self.emin() {
-            // |val| <= MINVAL
-            self.minval(s)
+        let useed = self.useed();
+        let r = num.e().unwrap() / useed;
+        let kbits = if r < 0 { -r } else { r + 1 } as usize;
+        let embits = self.nbits - (kbits + 2);
+        let mbits = if embits <= self.es {
+            0
         } else {
-            // within representable range
+            embits - self.es
+        };
 
-            // step 1: compute size of the mantissa since it is dynamic,
-            // it is a function of the size of the regime field
-            let useed = self.useed();
-            let r = e / useed;
-            let kbits = if r < 0 { -r } else { r + 1 } as usize;
-            let embits = self.nbits - (kbits + 2);
-            let mbits = if embits <= self.es {
-                0
-            } else {
-                embits - self.es
-            };
+        (useed, mbits)
+    }
 
-            // step 2: rounding as an unbounded, fixed-precision
-            // floating-point number, so we need to compute the context
-            // parameters: we use precision `mbits + 1` using `NearestTiesToEven`
-            let (p, n) = RFloatContext::new().with_max_p(mbits + 1).round_params(val);
+    fn round_finite(&self, split: Split, useed: isize) -> Posit {
+        // step 4: extract split parameters
+        let s = split.sign().unwrap();
 
-            // step 3: split the significand at binary digit `n`
-            let split = RFloatContext::round_prepare(val, n);
+        // step 5: finalize the rounding
+        let rounded = RFloatContext::round_finalize(split, RoundingMode::NearestTiesToEven);
 
-            // step 4: finalize the rounding
-            let rounded = RFloatContext::round_finalize(split, p, RoundingMode::NearestTiesToEven);
+        // step 6: recompute exponent (in case it has changed)
+        let e = rounded.e().unwrap();
+        let r = e / useed;
+        let e = e % useed;
 
-            // recompute exponent (in case it has changed)
-            let e = rounded.e().unwrap();
-            let r = e / useed;
-            let e = e % useed;
-
-            // unnormalized exponent and significand
-            let c = rounded.c().unwrap();
-            let exp = (e + 1) - (c.significant_bits() as isize);
-
-            // compose result
-            Posit {
-                num: PositVal::NonZero(s, r, exp, c),
-                ctx: self.clone(),
-            }
+        // compose result
+        let c = rounded.c().unwrap();
+        let exp = (e + 1) - (c.significant_bits() as isize);
+        Posit {
+            num: PositVal::NonZero(s, r, exp, c),
+            ctx: self.clone(),
         }
     }
 }
 
 impl RoundingContext for PositContext {
-    type Rounded = Posit;
+    type Format = Posit;
 
-    fn round<T: Real>(&self, val: &T) -> Self::Rounded {
+    fn round<T: Real>(&self, val: &T) -> Self::Format {
         if val.is_nar() {
             // all NaN and infinities are mapped to Nar
             self.nar()
+        } else if val.is_zero() {
+            // exact zeros are mapped to zero
+            self.zero()
         } else {
-            // all other values must be rounded
-            self.round_finite(val)
+            // all other values might be rounded
+
+            // overflow and underflow immediately saturate,
+            // we can simply check the (normalized) exponent.
+            let s = val.sign().unwrap();
+            let e = val.e().unwrap();
+            if e >= self.emax() {
+                // |val| >= MAXVAL
+                self.maxval(s)
+            } else if e <= self.emin() {
+                // |val| <= MINVAL
+                self.minval(s)
+            } else {
+                // within representable range
+
+                // step 1: compute posit format parameters since it is dynamic
+                let (useed, mbits) = self.round_params(val);
+
+                // step 2: rounding as an unbounded, fixed-precision
+                // floating-point number, so we need to compute the context
+                // parameters: we use precision `mbits + 1` using `NearestTiesToEven`
+                let (p, n) = RFloatContext::new().with_max_p(mbits + 1).round_params(val);
+
+                // step 3: split the significand at binary digit `n`
+                let split = Split::new(val, p, n);
+
+                // step 4...: finalize the rounding using the split
+                self.round_finite(split, useed)
+            }
         }
     }
 }

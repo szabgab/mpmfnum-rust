@@ -98,8 +98,12 @@ impl Real for Posit {
         2
     }
 
-    fn sign(&self) -> bool {
-        self.is_negative().unwrap_or(false)
+    fn sign(&self) -> Option<bool> {
+        match &self.num {
+            PositVal::Zero => None,
+            PositVal::NonZero(s, _, _, _) => Some(*s),
+            PositVal::Nar => None,
+        }
     }
 
     fn exp(&self) -> Option<isize> {
@@ -137,14 +141,13 @@ impl Real for Posit {
     }
 
     fn m(&self) -> Option<Integer> {
-        self.c().map(|c| if self.sign() { -c } else { c })
+        self.c().map(|c| if self.sign().unwrap() { -c } else { c })
     }
 
-    fn p(&self) -> usize {
+    fn prec(&self) -> Option<usize> {
         match &self.num {
-            PositVal::Zero => 0,
-            PositVal::NonZero(_, _, _, c) => c.significant_bits() as usize,
-            PositVal::Nar => 0,
+            PositVal::NonZero(_, _, _, c) => Some(c.significant_bits() as usize),
+            PositVal::Zero | PositVal::Nar => None,
         }
     }
 
@@ -165,11 +168,7 @@ impl Real for Posit {
     }
 
     fn is_negative(&self) -> Option<bool> {
-        match &self.num {
-            PositVal::Zero => None,
-            PositVal::NonZero(s, _, _, _) => Some(*s),
-            PositVal::Nar => None,
-        }
+        self.sign()
     }
 
     fn is_numerical(&self) -> bool {

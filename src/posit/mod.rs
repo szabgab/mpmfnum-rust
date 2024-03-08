@@ -5,10 +5,9 @@
 //! a posit number.
 
 mod number;
-mod ops;
+pub mod ops;
 mod round;
 
 pub use number::Posit;
 pub(crate) use number::PositVal;
-pub use ops::*;
 pub use round::PositContext;

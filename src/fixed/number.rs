@@ -61,7 +61,7 @@ impl Real for Fixed {
         2
     }
 
-    fn sign(&self) -> bool {
+    fn sign(&self) -> Option<bool> {
         self.num.sign()
     }
 
@@ -85,8 +85,8 @@ impl Real for Fixed {
         self.num.m()
     }
 
-    fn p(&self) -> usize {
-        self.num.p()
+    fn prec(&self) -> Option<usize> {
+        self.num.prec()
     }
 
     fn is_nar(&self) -> bool {

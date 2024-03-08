@@ -21,8 +21,9 @@ fn assert_round_small(
     tiny_post: bool,
     carry: bool,
 ) {
-    let ctx = ieee754::IEEE754Context::new(2, 5).with_rounding_mode(rm);
-    let rounded = ctx.round(input);
+    let rounded = ieee754::IEEE754Context::new(2, 5)
+        .with_rounding_mode(rm)
+        .round(input);
 
     assert_eq!(RFloat::from(rounded.clone()), *output, "mismatched result",);
     assert_eq!(
