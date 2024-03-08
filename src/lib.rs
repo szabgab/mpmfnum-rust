@@ -46,8 +46,8 @@
 //!  - [`FixedContext`][crate::fixed::FixedContext]
 //!     rounds a [`Real`] value to a fixed-point numbers,
 //!  - [`PositContext`][crate::posit::PositContext]
-//!     rounds a [`Real`] value to a posit number as described
-//!     by the Posit standard.
+//!     rounds a [`Real`] value to a posit number as described by
+//!     the Posit standard.
 //!
 
 pub mod fixed;

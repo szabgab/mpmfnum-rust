@@ -78,7 +78,7 @@ pub trait Real: Debug {
     /// behavior, the result is false.
     fn is_infinite(&self) -> bool;
 
-    /// Returns true if this number is zero.
+    /// Returns `true` if this number is zero.
     fn is_zero(&self) -> bool;
 
     /// Returns `true` if this number is negative.
@@ -91,8 +91,10 @@ pub trait Real: Debug {
     /// either a finite number, interval, or some limiting value.
     fn is_numerical(&self) -> bool;
 
-    /// Splits this value at the `n`the binary digit,
-    /// returning two [`RFloat`] values:
+    /// Splits this value at the `n`th binary digit,
+    /// returning two [`RFloat`] values.
+    ///
+    /// The two values consist of:
     ///
     ///  - all significant digits above position `n`
     ///  - all significant digits at or below position `n`
