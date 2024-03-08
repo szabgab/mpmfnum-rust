@@ -24,8 +24,8 @@ pub trait RoundingContext {
     fn round<T: Real>(&self, val: &T) -> Self::Format;
 }
 
-/// Similar to the unstable `trait_alias` feature,
-/// associates a groups a set of traits into a single named trait.
+/// Similar to the unstable `trait_alias` feature.
+/// Associates a groups a set of traits into a single named trait.
 #[macro_export]
 macro_rules! context_alias {
     ($id:ident, $t0:ident $(+ $ti:ident )* ) => {
