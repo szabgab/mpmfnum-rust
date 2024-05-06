@@ -7,7 +7,7 @@ description = "A numbers library in Rust"
 keywords = [ "numerics", "math" ]
 categories = [ "mathematics" ]
 
-homepage = "https://github.com/bksaiki/mpmfnum-rust"
+repository = "https://github.com/bksaiki/mpmfnum-rust"
 readme = "README.md"
 license = "MIT"
 
